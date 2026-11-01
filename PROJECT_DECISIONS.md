@@ -37,7 +37,7 @@ This document records the product and architecture decisions discussed so far. I
   - Create a new challenge.
   - Load an existing challenge.
   - Display a running challenge in read-only mode.
-- The UI will use **SvelteKit** and be organized into components.
+- The app will use **SvelteKit** and **TypeScript**, organized into components, with strict typing enabled.
 - The DM manages the challenge. A read-only view on another device shows the running turn order without editing capabilities.
 - The read-only view updates during play using Server-Sent Events (SSE). Viewers join using a random, case-insensitive code made from numbers and letters, avoiding easily confused characters. The same code can be entered manually or embedded in a QR code that links directly to the read-only view.
 - The viewer code is valid only while its session is active. The DM can regenerate it during a session, invalidating the previous code and QR link.
@@ -50,6 +50,7 @@ This document records the product and architecture decisions discussed so far. I
 - The app will run in a single Docker container, with a Docker Compose setup and server configuration persisted on the host. A host-managed reverse proxy will provide public access; the app must not depend on a specific reverse-proxy product.
 - HTTPS termination and certificate management are handled by the host's reverse proxy, not by the app.
 - The reverse proxy must support long-lived Server-Sent Events (SSE) connections without buffering or prematurely timing them out.
+- The browser app must be self-contained: all resources it needs are served by the app, with no runtime requests to third parties.
 - Server configuration, including the maximum number of active sessions, must be persisted on the hosting server outside container memory, so it survives container restarts.
 - The DM's challenge library and other required persistent challenge data live in the browser, using **IndexedDB**.
 - The DM can download persistent challenge data as a human-readable, pretty-printed JSON file for backup or transfer between devices. The file includes a format version and stable IDs for entities and references, and excludes active-session credentials such as viewer codes and DM reconnect tokens.
@@ -63,4 +64,19 @@ This document records the product and architecture decisions discussed so far. I
 - Because there is no server-side persistence in this design, a server restart or crash loses active sessions. The DM can restore from their local challenge and start a new session; viewers would need to reconnect.
 - PostgreSQL and other persistent server-side databases are not part of the current design.
 
+## Coding guidelines
+
+- Prefer clear names and simple designs. Keep functions and components focused, avoid duplication, and avoid unnecessary abstractions.
+- Use strict types and handle errors explicitly. Address compiler diagnostics rather than suppressing or bypassing them.
+- Keep third-party dependencies to a minimum; add one only when it provides clear value.
+- Follow established web accessibility guidelines, including semantic markup, keyboard operability, visible focus, and support for assistive technologies.
+- Add tests for behavior and keep formatting and linting consistent.
+- Write comments to explain non-obvious intent, not to restate the code.
+
 ## Still to decide
+
+- Turn-order algorithm edge cases, including conflicting or cyclic hooks and positions outside the list.
+- What happens when the active-session limit is reached, and whether abandoned sessions expire automatically.
+- How the DM recovers a session if they lose the reconnect token or switch devices.
+- The target accessibility standard, such as WCAG 2.2 AA.
+- How server configuration is set and changed, and defaults for options such as the active-session limit.
