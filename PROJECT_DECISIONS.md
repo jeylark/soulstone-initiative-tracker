@@ -42,8 +42,10 @@ This document records the product and architecture decisions discussed so far. I
 - The DM manages the challenge. A read-only view on another device shows the running turn order without editing capabilities.
 - The read-only view updates during play using Server-Sent Events (SSE). Viewers join using a random, case-insensitive code made from numbers and letters, avoiding easily confused characters. The same code can be entered manually or embedded in a QR code that links directly to the read-only view.
 - The viewer code is valid only while its session is active. The DM can regenerate it during a session, invalidating the previous code and QR link.
+- The server enforces a configurable maximum of 100 concurrent viewer connections per session by default. When the limit is reached, new viewer connections are refused; existing connections are not disconnected.
 - To reconnect without cookies, the DM's browser stores a separate, random bearer token in IndexedDB and sends it in an authorization header. The token grants DM access only to its active session and is invalidated when that session ends.
-- Anyone can create a session without an account or login. The server enforces a configurable maximum number of active sessions to limit resource usage.
+- Anyone can create a session without an account or login. The server enforces a configurable maximum of 100 active sessions by default to limit resource usage. When the limit is reached, new sessions are refused with a clear message; existing sessions are not evicted.
+- Sessions automatically end after a host-configured period without DM activity. The default inactivity timeout is six hours. Viewer connections or activity do not reset the timeout.
 
 ## Storage and hosting
 
@@ -52,7 +54,9 @@ This document records the product and architecture decisions discussed so far. I
 - HTTPS termination and certificate management are handled by the host's reverse proxy, not by the app.
 - The reverse proxy must support long-lived Server-Sent Events (SSE) connections without buffering or prematurely timing them out.
 - The browser app must be self-contained: all resources it needs are served by the app, with no runtime requests to third parties.
-- Server configuration, including the maximum number of active sessions, must be persisted on the hosting server outside container memory, so it survives container restarts.
+- Server configuration, including the maximum number of active sessions, maximum viewer connections per session, and session inactivity timeout, must be persisted on the hosting server outside container memory, so it survives container restarts.
+- The server must provide diagnostic logs for operational events and errors. Logs must not contain viewer codes or DM reconnect tokens.
+- Diagnostic logs must be persisted outside container memory and remain available across container restarts.
 - The DM's challenge library and other required persistent challenge data live in the browser, using **IndexedDB**.
 - The DM can download persistent challenge data as a human-readable, pretty-printed JSON file for backup or transfer between devices. The file includes a format version and stable IDs for entities and references, and excludes active-session credentials such as viewer codes and DM reconnect tokens.
 - When an imported challenge matches one in the local library, ask the DM whether to replace it or import a copy. Never allow replacing the local challenge used by a running session; offer to import a copy or abort instead.
@@ -76,7 +80,7 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- What happens when the active-session limit is reached, and whether abandoned sessions expire automatically.
 - How the DM recovers a session if they lose the reconnect token or switch devices.
 - The target accessibility standard, such as WCAG 2.2 AA.
-- How server configuration is set and changed, and defaults for options such as the active-session limit.
+- How server configuration is set and changed.
+- How server logging is formatted, output, configured, and retained.
