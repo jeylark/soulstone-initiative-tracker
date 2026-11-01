@@ -14,6 +14,7 @@ This document records the product and architecture decisions discussed so far. I
 - To roll initiative, roll a number of d6 equal to the creature's initiative stat and sum the highest three dice, or all dice if fewer than three were rolled.
 - For each turn, the DM can choose to roll initiative, enter a static initiative value, place it at the Nth position from the top or bottom, or place it N positions before or after a specified turn. Position-based placement is applied after the rest of the list is calculated.
 - Turn-order generation takes the ordered lists of initiative values and the hooked initiatives for each faction as inputs, and produces an ordered list of turns.
+- Fixed-position hooks beyond the available list are clamped to the nearest available position. If placement hooks conflict or form a cycle, turn-order generation is rejected and the affected turns are shown to the DM.
 - By default, players roll and the DM enters their results; the app rolls for NPCs. The DM can choose otherwise.
 - Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
 - When two turns in the same faction have the same rolled initiative, the DM decides which goes first. Other initiative tie-break criteria are not decided yet.
@@ -75,7 +76,6 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- Turn-order algorithm edge cases, including conflicting or cyclic hooks and positions outside the list.
 - What happens when the active-session limit is reached, and whether abandoned sessions expire automatically.
 - How the DM recovers a session if they lose the reconnect token or switch devices.
 - The target accessibility standard, such as WCAG 2.2 AA.
