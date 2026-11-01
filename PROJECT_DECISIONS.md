@@ -55,7 +55,8 @@ This document records the product and architecture decisions discussed so far. I
 - HTTPS termination and certificate management are handled by the host's reverse proxy, not by the app.
 - The reverse proxy must support long-lived Server-Sent Events (SSE) connections without buffering or prematurely timing them out.
 - The browser app must be self-contained: all resources it needs are served by the app, with no runtime requests to third parties.
-- Server configuration, including the maximum number of active sessions, maximum viewer connections per session, and session inactivity timeout, must be persisted on the hosting server outside container memory, so it survives container restarts.
+- Server configuration is stored in a JSON file on the hosting server and mounted into the container. Configuration changes take effect after restarting the app container.
+- Configuration includes the maximum number of active sessions, maximum viewer connections per session, and session inactivity timeout.
 - The server must provide diagnostic logs for operational events and errors. Logs must not contain viewer codes or DM reconnect tokens.
 - Diagnostic logs must be persisted outside container memory and remain available across container restarts.
 - The DM's challenge library and other required persistent challenge data live in the browser, using **IndexedDB**.
@@ -81,5 +82,4 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- How server configuration is set and changed.
 - How server logging is formatted, output, configured, and retained.
