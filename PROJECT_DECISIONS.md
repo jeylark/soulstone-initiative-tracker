@@ -13,9 +13,10 @@ This document records the product and architecture decisions discussed so far. I
 - Each turn may have its own initiative value. Players roll initiative and the DM enters the results; a value may also be set directly.
 - To roll initiative, roll a number of d6 equal to the creature's initiative stat and sum the highest three dice, or all dice if fewer than three were rolled.
 - For each turn, the DM can choose to roll initiative, enter a static initiative value, place it at the Nth position from the top or bottom, or place it N positions before or after a specified turn. Position-based placement is applied after the rest of the list is calculated.
+- Turn-order generation takes the ordered lists of initiative values and the hooked initiatives for each faction as inputs, and produces an ordered list of turns.
 - By default, players roll and the DM enters their results; the app rolls for NPCs. The DM can choose otherwise.
 - Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
-- Initiative tie-break criteria are not decided yet.
+- When two turns in the same faction have the same rolled initiative, the DM decides which goes first. Other initiative tie-break criteria are not decided yet.
 - The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
 
@@ -53,7 +54,6 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- Initiative roll formula and initiative tie-break criteria.
 - How read-only viewers join a live session and how the DM securely reconnects after a browser restart.
 - The challenge file format and import behavior.
 - Exact Svelte/server framework, deployment details, and any authentication requirements.
