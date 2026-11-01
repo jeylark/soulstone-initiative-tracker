@@ -64,5 +64,3 @@ This document records the product and architecture decisions discussed so far. I
 - PostgreSQL and other persistent server-side databases are not part of the current design.
 
 ## Still to decide
-
-- Whether a future session should persist through server restarts; the current choice is no.
