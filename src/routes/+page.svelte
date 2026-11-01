@@ -10,7 +10,7 @@
 	/>
 </svelte:head>
 
-<div class:dark={darkMode} class="app-shell">
+<div class:theme-dark={darkMode} class="app-shell">
 	<main>
 		<header>
 			<img src="/soulstone-logo.png" alt="" width="40" height="40" />
@@ -63,29 +63,15 @@
 
 <style>
 	.app-shell {
-		--background: #f2f5f8;
-		--foreground: #17263c;
-		--rule: #d8e0e8;
-		--divider: #cbd6e2;
-		--accent: #075da8;
-
 		display: flex;
 		min-height: 100vh;
 		min-height: 100svh;
 		flex-direction: column;
-		background: var(--background);
-		color: var(--foreground);
+		background: var(--color-background);
+		color: var(--color-foreground);
 		transition:
-			background-color 160ms ease,
-			color 160ms ease;
-	}
-
-	.app-shell.dark {
-		--background: #101a2b;
-		--foreground: #eaf3fc;
-		--rule: #29374a;
-		--divider: #34445a;
-		--accent: #69c8f0;
+			background-color var(--transition-theme),
+			color var(--transition-theme);
 	}
 
 	main {
@@ -98,7 +84,7 @@
 		align-items: center;
 		gap: 10px;
 		min-height: 72px;
-		border-bottom: 1px solid var(--rule);
+		border-bottom: 1px solid var(--color-border);
 		font-size: 14px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
@@ -114,7 +100,7 @@
 
 	h1 {
 		margin: 0 0 28px;
-		font-family: Georgia, 'Times New Roman', serif;
+		font-family: var(--font-family-heading);
 		font-size: clamp(26px, 8vw, 42px);
 		font-weight: 400;
 		letter-spacing: -0.045em;
@@ -124,7 +110,7 @@
 	ul {
 		margin: 0;
 		padding: 0;
-		border-top: 1px solid var(--divider);
+		border-top: 1px solid var(--color-border-subtle);
 		list-style: none;
 	}
 
@@ -141,10 +127,10 @@
 		gap: 16px;
 		padding: 0 16px;
 		border: 0;
-		border-bottom: 1px solid var(--divider);
+		border-bottom: 1px solid var(--color-border-subtle);
 		border-radius: 0;
 		background: transparent;
-		color: var(--foreground);
+		color: var(--color-foreground);
 		cursor: pointer;
 		font: inherit;
 		font-size: 15px;
@@ -152,12 +138,12 @@
 	}
 
 	.action-button span:last-child {
-		color: var(--accent);
+		color: var(--color-accent);
 		font-size: 19px;
 	}
 
 	.action-button:hover {
-		background: color-mix(in srgb, var(--accent) 5%, transparent);
+		background: var(--color-accent-hover);
 	}
 
 	footer {
@@ -174,28 +160,28 @@
 		align-items: center;
 		gap: 8px;
 		padding: 0 12px;
-		border: 1px solid var(--rule);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		background: transparent;
-		color: var(--foreground);
+		color: var(--color-foreground);
 		cursor: pointer;
 		font: inherit;
 		font-size: 13px;
 	}
 
 	footer button:hover {
-		border-color: var(--accent);
+		border-color: var(--color-accent);
 	}
 
 	.action-button:focus-visible,
 	footer button:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 3px;
+		outline: var(--focus-ring);
+		outline-offset: var(--focus-ring-offset);
 	}
 
 	footer button svg {
 		width: 17px;
-		stroke: var(--accent);
+		stroke: var(--color-accent);
 		stroke-linecap: round;
 		stroke-linejoin: round;
 		stroke-width: 1.4;

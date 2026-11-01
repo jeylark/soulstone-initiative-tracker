@@ -1,3 +1,28 @@
+:root {
+	color-scheme: light;
+	--color-background: #f2f5f8;
+	--color-foreground: #17263c;
+	--color-border: #d8e0e8;
+	--color-border-subtle: #cbd6e2;
+	--color-accent: #075da8;
+	--color-accent-hover: color-mix(in srgb, var(--color-accent) 5%, transparent);
+	--font-family-base: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+	--font-family-heading: Georgia, 'Times New Roman', serif;
+	--transition-theme: 160ms ease;
+	--focus-ring: 2px solid var(--color-accent);
+	--focus-ring-offset: 3px;
+}
+
+.theme-dark {
+	color-scheme: dark;
+	--color-background: #101a2b;
+	--color-foreground: #eaf3fc;
+	--color-border: #29374a;
+	--color-border-subtle: #34445a;
+	--color-accent: #69c8f0;
+	--focus-ring: 2px solid #69c8f0;
+}
+
 * {
 	box-sizing: border-box;
 }
@@ -10,6 +35,6 @@ html {
 body {
 	min-height: 100vh;
 	margin: 0;
-	font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+	font-family: var(--font-family-base);
 	-webkit-font-smoothing: antialiased;
 }
