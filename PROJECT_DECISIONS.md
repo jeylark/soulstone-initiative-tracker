@@ -11,8 +11,10 @@ This document records the product and architecture decisions discussed so far. I
 - A challenge has configurable factions. "Player" and "Monster" are common examples, not required faction names or a fixed limit.
 - A creature usually has one turn, but may have zero or multiple turns.
 - Each turn may have its own initiative value. Players roll initiative and the DM enters the results; a value may also be set directly.
-- Initiative is based on the initiative stat of the character or NPC creature type. The exact roll formula is not decided and should not be assumed by the app.
-- Turns can instead be ordered by a fixed position from the top or bottom of the list, or before/after a particular turn. Fixed-position placement is applied after the rest of the list is calculated.
+- To roll initiative, roll a number of d6 equal to the creature's initiative stat and sum the highest three dice, or all dice if fewer than three were rolled.
+- For each turn, the DM can choose to roll initiative, enter a static initiative value, place it at the Nth position from the top or bottom, or place it N positions before or after a specified turn. Position-based placement is applied after the rest of the list is calculated.
+- By default, players roll and the DM enters their results; the app rolls for NPCs. The DM can choose otherwise.
+- Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
 - Initiative tie-break criteria are not decided yet.
 - The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
