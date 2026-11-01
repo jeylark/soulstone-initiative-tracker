@@ -1,0 +1,15 @@
+* {
+	box-sizing: border-box;
+}
+
+html {
+	min-width: 320px;
+	min-height: 100%;
+}
+
+body {
+	min-height: 100vh;
+	margin: 0;
+	font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
