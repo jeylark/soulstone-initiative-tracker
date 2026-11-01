@@ -75,12 +75,11 @@ This document records the product and architecture decisions discussed so far. I
 - Prefer clear names and simple designs. Keep functions and components focused, avoid duplication, and avoid unnecessary abstractions.
 - Use strict types and handle errors explicitly. Address compiler diagnostics rather than suppressing or bypassing them.
 - Keep third-party dependencies to a minimum; add one only when it provides clear value.
-- Follow established web accessibility guidelines, including semantic markup, keyboard operability, visible focus, and support for assistive technologies.
+- Target WCAG 2.2 Level AA, including semantic markup, keyboard operability, visible focus, and support for assistive technologies.
 - Add tests for behavior and keep formatting and linting consistent.
 - Write comments to explain non-obvious intent, not to restate the code.
 
 ## Still to decide
 
-- The target accessibility standard, such as WCAG 2.2 AA.
 - How server configuration is set and changed.
 - How server logging is formatted, output, configured, and retained.
