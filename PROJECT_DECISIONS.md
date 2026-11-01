@@ -39,7 +39,8 @@ This document records the product and architecture decisions discussed so far. I
   - Display a running challenge in read-only mode.
 - The UI will use **Svelte** and be organized into components.
 - The DM manages the challenge. A read-only view on another device shows the running turn order without editing capabilities.
-- The read-only view updates during play. Its connection and sharing mechanism have not been chosen yet.
+- The read-only view updates during play. Viewers join using a random, case-insensitive code made from numbers and letters, avoiding easily confused characters. The same code can be entered manually or embedded in a QR code that links directly to the read-only view.
+- The viewer code is valid only while its session is active. The DM can regenerate it during a session, invalidating the previous code and QR link.
 
 ## Storage and hosting
 
@@ -54,7 +55,7 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- How read-only viewers join a live session and how the DM securely reconnects after a browser restart.
+- How the DM securely reconnects after a browser restart.
 - The challenge file format and import behavior.
 - Exact Svelte/server framework, deployment details, and any authentication requirements.
 - Whether a future session should persist through server restarts; the current choice is no.
