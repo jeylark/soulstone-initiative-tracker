@@ -17,6 +17,9 @@ challenges, and joining live sessions are not connected yet.
 ## Validation
 
 ```sh
+npm run lint
 npm run check
 npm run build
 ```
+
+Pull requests run all three checks in GitHub Actions.

@@ -82,7 +82,7 @@ This document records the product and architecture decisions discussed so far. I
 - Make the app usable on mobile devices, and use the available space on larger screens where practical.
 - Implement changes incrementally in small, reviewable steps; avoid large bulk changes.
 - Use a test-driven approach: clarify the expected behavior before implementation, then write or update tests for that behavior before writing or changing app code. Do not write app code while the expected behavior is unclear.
-- Keep formatting and linting consistent.
+- Run `npm run lint` and `npm run check` before submitting pull requests; CI must pass.
 - Write comments to explain non-obvious intent, not to restate the code.
 
 ## Still to decide
