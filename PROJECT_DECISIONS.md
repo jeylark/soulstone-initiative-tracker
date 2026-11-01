@@ -79,6 +79,7 @@ This document records the product and architecture decisions discussed so far. I
 - Use strict types and handle errors explicitly. Address compiler diagnostics rather than suppressing or bypassing them.
 - Keep third-party dependencies to a minimum; add one only when it provides clear value.
 - Target WCAG 2.2 Level AA, including semantic markup, keyboard operability, visible focus, and support for assistive technologies.
+- Make the app usable on mobile devices, and use the available space on larger screens where practical.
 - Implement changes incrementally in small, reviewable steps; avoid large bulk changes.
 - Use a test-driven approach: clarify the expected behavior before implementation, then write or update tests for that behavior before writing or changing app code. Do not write app code while the expected behavior is unclear.
 - Keep formatting and linting consistent.

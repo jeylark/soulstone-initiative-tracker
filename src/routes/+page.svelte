@@ -22,16 +22,22 @@
 
 			<ul aria-label="Available actions">
 				<li>
-					<span>New challenge</span>
-					<span aria-hidden="true">→</span>
+					<button class="action-button" type="button">
+						<span>New challenge</span>
+						<span aria-hidden="true">→</span>
+					</button>
 				</li>
 				<li>
-					<span>Open saved challenge</span>
-					<span aria-hidden="true">→</span>
+					<button class="action-button" type="button">
+						<span>Open saved challenge</span>
+						<span aria-hidden="true">→</span>
+					</button>
 				</li>
 				<li>
-					<span>Join a live session</span>
-					<span aria-hidden="true">→</span>
+					<button class="action-button" type="button">
+						<span>Join a live session</span>
+						<span aria-hidden="true">→</span>
+					</button>
 				</li>
 			</ul>
 		</section>
@@ -65,6 +71,7 @@
 
 		display: flex;
 		min-height: 100vh;
+		min-height: 100svh;
 		flex-direction: column;
 		background: var(--background);
 		color: var(--foreground);
@@ -82,7 +89,7 @@
 	}
 
 	main {
-		width: min(100% - 48px, 480px);
+		width: min(calc(100% - 40px), 1120px);
 		margin-inline: auto;
 	}
 
@@ -90,7 +97,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		height: 72px;
+		min-height: 72px;
 		border-bottom: 1px solid var(--rule);
 		font-size: 14px;
 		font-weight: 600;
@@ -102,15 +109,16 @@
 	}
 
 	section {
-		padding-top: clamp(72px, 16vh, 144px);
+		padding-top: clamp(64px, 12vh, 112px);
 	}
 
 	h1 {
 		margin: 0 0 28px;
 		font-family: Georgia, 'Times New Roman', serif;
-		font-size: clamp(32px, 8vw, 42px);
+		font-size: clamp(26px, 8vw, 42px);
 		font-weight: 400;
 		letter-spacing: -0.045em;
+		white-space: nowrap;
 	}
 
 	ul {
@@ -121,29 +129,46 @@
 	}
 
 	li {
+		margin: 0;
+	}
+
+	.action-button {
 		display: flex;
-		min-height: 62px;
+		width: 100%;
+		min-height: 64px;
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
+		padding: 0 16px;
+		border: 0;
 		border-bottom: 1px solid var(--divider);
+		border-radius: 0;
+		background: transparent;
+		color: var(--foreground);
+		cursor: pointer;
+		font: inherit;
 		font-size: 15px;
+		text-align: left;
 	}
 
-	li span:last-child {
+	.action-button span:last-child {
 		color: var(--accent);
 		font-size: 19px;
 	}
 
-	footer {
-		display: flex;
-		width: min(100% - 48px, 480px);
-		justify-content: flex-end;
-		margin: auto auto 20px;
-		padding-top: 24px;
+	.action-button:hover {
+		background: color-mix(in srgb, var(--accent) 5%, transparent);
 	}
 
-	button {
+	footer {
+		display: flex;
+		width: min(calc(100% - 40px), 1120px);
+		justify-content: flex-end;
+		margin: auto auto 0;
+		padding: 24px 0 max(20px, env(safe-area-inset-bottom));
+	}
+
+	footer button {
 		display: inline-flex;
 		min-height: 40px;
 		align-items: center;
@@ -158,21 +183,59 @@
 		font-size: 13px;
 	}
 
-	button:hover {
+	footer button:hover {
 		border-color: var(--accent);
 	}
 
-	button:focus-visible {
+	.action-button:focus-visible,
+	footer button:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: 3px;
 	}
 
-	button svg {
+	footer button svg {
 		width: 17px;
 		stroke: var(--accent);
 		stroke-linecap: round;
 		stroke-linejoin: round;
 		stroke-width: 1.4;
+	}
+
+	@media (min-width: 760px) {
+		header {
+			min-height: 84px;
+		}
+
+		section {
+			display: grid;
+			min-height: calc(100svh - 168px);
+			grid-template-columns: minmax(max-content, 1fr) minmax(0, 1.1fr);
+			align-items: center;
+			column-gap: clamp(48px, 8vw, 128px);
+			padding-block: 48px;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(48px, 6vw, 76px);
+			line-height: 1.08;
+		}
+
+		.action-button {
+			min-height: clamp(72px, 10vh, 92px);
+			padding-inline: 20px;
+			font-size: clamp(16px, 1.5vw, 19px);
+		}
+
+		.action-button span:last-child {
+			font-size: 22px;
+		}
+	}
+
+	@media (min-width: 1440px) {
+		section {
+			column-gap: 140px;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
