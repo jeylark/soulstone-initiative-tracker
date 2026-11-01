@@ -47,7 +47,11 @@ This document records the product and architecture decisions discussed so far. I
 
 - The app should be hostable on the user's own server.
 - The DM's challenge library and other required persistent challenge data live in the browser, using **IndexedDB**.
-- The DM can download challenge data as a file for backup or transfer between devices. The exact file format and import/export workflow remain to be specified.
+- The DM can download persistent challenge data as a human-readable, pretty-printed JSON file for backup or transfer between devices. The file includes a format version and stable IDs for entities and references, and excludes active-session credentials such as viewer codes and DM reconnect tokens.
+- When an imported challenge matches one in the local library, ask the DM whether to replace it or import a copy. Never allow replacing the local challenge used by a running session; offer to import a copy or abort instead.
+- If an import contains parts that cannot be imported, list them and ask whether to import only the valid data or abort. For older supported format versions, ask the DM before migrating.
+- Every change to the challenge data format must include a migration from the previously supported format, so existing challenge files remain usable.
+- Reject files with unsupported or unrecognized format versions without changing the library, and explain that a compatible app version is needed.
 - Starting or resuming a challenge sends the data needed for sharing to the server, which keeps the active session **in memory only**.
 - The DM must be able to reload or restart their browser and regain access to the session they were managing, as long as the server session is still running.
 - Ending a session removes its data from server memory.
@@ -56,6 +60,5 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- The challenge file format and import behavior.
 - Exact Svelte/server framework, deployment details, and any authentication requirements.
 - Whether a future session should persist through server restarts; the current choice is no.
