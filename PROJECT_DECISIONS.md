@@ -74,7 +74,7 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Coding guidelines
 
-- Work on each implementation task in a separate Git branch, then merge it into `main` when the task is complete.
+- Work on each implementation task in a separate Git branch. Never merge into or push to `main`.
 - Prefer clear names and simple designs. Keep functions and components focused, avoid duplication, and avoid unnecessary abstractions.
 - Use strict types and handle errors explicitly. Address compiler diagnostics rather than suppressing or bypassing them.
 - Keep third-party dependencies to a minimum; add one only when it provides clear value.
