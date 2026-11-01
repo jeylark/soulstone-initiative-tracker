@@ -44,6 +44,7 @@ This document records the product and architecture decisions discussed so far. I
 - The viewer code is valid only while its session is active. The DM can regenerate it during a session, invalidating the previous code and QR link.
 - The server enforces a configurable maximum of 100 concurrent viewer connections per session by default. When the limit is reached, new viewer connections are refused; existing connections are not disconnected.
 - To reconnect without cookies, the DM's browser stores a separate, random bearer token in IndexedDB and sends it in an authorization header. The token grants DM access only to its active session and is invalidated when that session ends.
+- There is no cross-device recovery for a lost DM reconnect token. If the token is lost, the DM must start a new session from the locally stored challenge.
 - Anyone can create a session without an account or login. The server enforces a configurable maximum of 100 active sessions by default to limit resource usage. When the limit is reached, new sessions are refused with a clear message; existing sessions are not evicted.
 - Sessions automatically end after a host-configured period without DM activity. The default inactivity timeout is six hours. Viewer connections or activity do not reset the timeout.
 
@@ -80,7 +81,6 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Still to decide
 
-- How the DM recovers a session if they lose the reconnect token or switch devices.
 - The target accessibility standard, such as WCAG 2.2 AA.
 - How server configuration is set and changed.
 - How server logging is formatted, output, configured, and retained.
