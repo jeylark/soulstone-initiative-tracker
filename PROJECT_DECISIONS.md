@@ -23,14 +23,11 @@ This document records the product and architecture decisions discussed so far. I
 
 ## Challenge workflow
 
-1. The DM creates a challenge or loads one from their device.
-2. The DM can reuse player characters from a previous challenge. Groups may have different DMs, players, and characters; their membership can also change.
-3. The DM specifies the NPC creature types that appear in the challenge.
-4. The DM adds creatures to factions, including any factions needed beyond the common Player and Monster factions.
-5. Where needed, the DM sets a creature's turn count and how turns without initiative are ordered.
-6. Players roll initiative; the DM records the results.
-7. The DM starts or resumes the challenge, and the turn order is calculated.
-8. Creatures take their turns in order. At the end of the list, the DM handles Spawn and the order is recalculated when necessary.
+1. **Set up the challenge.** The DM creates or loads a challenge, reuses any player characters, configures factions and NPC types, adds creatures, and configures their turns and initiative placement.
+2. **Collect turn initiatives.** For turns configured to roll, initiative is either calculated by the app or rolled in person and entered by the DM, according to the challenge's character/NPC roll modes. The results are saved with the challenge so they can be restored.
+3. **Generate the turn order.** The app combines the initiative results with static initiatives and placement hooks to produce the ordered turns. The generated order is also saved with the challenge so the running setup can be restored.
+
+The DM can then run the encounter. At the end of each round, the DM handles the Spawn step; if that changes the challenge, initiatives are collected again as needed and the order is regenerated.
 
 ## App navigation and views
 
@@ -61,6 +58,7 @@ This document records the product and architecture decisions discussed so far. I
 - Log entries include a timestamp, severity, event, source location, and correlation ID. Errors include stack traces and safe diagnostic context.
 - Logs must not contain viewer codes, DM reconnect tokens, authorization headers, or challenge contents.
 - The DM's challenge library and other required persistent challenge data live in the browser, using **IndexedDB**.
+- Challenge-library format version 1 contains reusable characters and challenges. Challenges contain their factions, NPC types, creature instances, turn setup, and initiative roll modes (`manual` or `app`); the mode records whether initiative is rolled manually and entered or calculated by the app, not who rolls. Stable IDs connect references between those records. A challenge's optional run state stores rolled initiative results and the generated turn order, allowing steps 1–3 to be restored after a restart. Player attendance and group membership are session-time data, not saved groups in the challenge library. Live-session credentials are not part of this library.
 - The DM can download persistent challenge data as a human-readable, pretty-printed JSON file for backup or transfer between devices. The file includes a format version and stable IDs for entities and references, and excludes active-session credentials such as viewer codes and DM reconnect tokens.
 - When an imported challenge matches one in the local library, ask the DM whether to replace it or import a copy. Never allow replacing the local challenge used by a running session; offer to import a copy or abort instead.
 - If an import contains parts that cannot be imported, list them and ask whether to import only the valid data or abort. For older supported format versions, ask the DM before migrating.
@@ -76,6 +74,8 @@ This document records the product and architecture decisions discussed so far. I
 
 - Work on each implementation task in a separate Git branch. Never merge into or push to `main`.
 - Prefer clear names and simple designs. Keep functions and components focused, avoid duplication, and avoid unnecessary abstractions.
+- Use PascalCase for types, camelCase for identifiers, and UPPER_SNAKE_CASE for constants. Prefix booleans with `is`, `has`, or `can`, and write acronyms as words (for example, `Uuid` and `Id`). ESLint enforces type and identifier casing, acronym style, and boolean prefixes.
+- Object, array, tuple, and collection parameters must be read-only: use `Readonly<T>`, `readonly T[]`, `readonly [A, B]`, `ReadonlySet<T>`, or `ReadonlyMap<K, V>` as appropriate. Do not accept mutable object or collection parameters, including accumulators; keep mutation local and return the resulting value. ESLint enforces this for explicitly typed parameters.
 - Use strict types and handle errors explicitly. Address compiler diagnostics rather than suppressing or bypassing them.
 - Keep third-party dependencies to a minimum; add one only when it provides clear value.
 - Target WCAG 2.2 Level AA, including semantic markup, keyboard operability, visible focus, and support for assistive technologies.

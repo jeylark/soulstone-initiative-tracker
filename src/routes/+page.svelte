@@ -1,5 +1,5 @@
 <script lang="ts">
-	let darkMode = $state(false);
+	let isDarkMode = $state(false);
 </script>
 
 <svelte:head>
@@ -10,7 +10,7 @@
 	/>
 </svelte:head>
 
-<div class:theme-dark={darkMode} class="app-shell">
+<div class:theme-dark={isDarkMode} class="app-shell">
 	<main>
 		<header>
 			<img src="/soulstone-logo.png" alt="" width="40" height="40" />
@@ -44,8 +44,8 @@
 	</main>
 
 	<footer>
-		<button type="button" aria-pressed={darkMode} onclick={() => (darkMode = !darkMode)}>
-			{#if darkMode}
+		<button type="button" aria-pressed={isDarkMode} onclick={() => (isDarkMode = !isDarkMode)}>
+			{#if isDarkMode}
 				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
 					<circle cx="10" cy="10" r="3.5" />
 					<path
