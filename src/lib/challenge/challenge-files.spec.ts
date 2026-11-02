@@ -6,6 +6,7 @@ import {
 	ChallengeImportError,
 	loadChallengeFromJsonFile,
 	loadCharactersFromChallengeJsonFile,
+	PartialChallengeImportError,
 	saveChallengeToJsonFile
 } from './challenge-files';
 import { loadChallengeLibrary, saveChallengeLibrary } from './storage';
@@ -120,6 +121,75 @@ describe('challenge file workflows', () => {
 
 		expect(loadedChallenge).toEqual(library.challenges[0]);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
+	});
+
+	it('requires confirmation before importing valid data from a partially invalid file', async () => {
+		const partialFile = createJsonFile(
+			JSON.stringify({
+				...library,
+				characters: [...library.characters, { id: 'invalid-id', name: 'Broken' }]
+			})
+		);
+
+		await expect(
+			loadChallengeFromJsonFile(partialFile, undefined, indexedDbFactory)
+		).rejects.toMatchObject({
+			code: 'partial-import-required',
+			issues: [expect.objectContaining({ path: '$.characters[1].id' })]
+		});
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			formatVersion: 1,
+			characters: [],
+			challenges: []
+		});
+
+		await expect(
+			loadChallengeFromJsonFile(partialFile, { partialImport: 'import-valid' }, indexedDbFactory)
+		).resolves.toEqual(library.challenges[0]);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
+	});
+
+	it('imports valid characters while skipping an invalid challenge when requested', async () => {
+		const partialFile = createJsonFile(
+			JSON.stringify({
+				...library,
+				challenges: [{ ...library.challenges[0], name: 7 }]
+			})
+		);
+
+		await expect(
+			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory)
+		).rejects.toBeInstanceOf(PartialChallengeImportError);
+		await expect(
+			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory, {
+				partialImport: 'import-valid'
+			})
+		).resolves.toEqual(library.characters);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			formatVersion: 1,
+			characters: library.characters,
+			challenges: []
+		});
+	});
+
+	it('rejects partial imports when the caller chooses to abort', async () => {
+		const partialFile = createJsonFile(
+			JSON.stringify({
+				...library,
+				characters: [{ id: 'invalid-id', name: 'Broken' }]
+			})
+		);
+
+		await expect(
+			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory, {
+				partialImport: 'abort'
+			})
+		).rejects.toMatchObject({ code: 'partial-import-aborted' });
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			formatVersion: 1,
+			characters: [],
+			challenges: []
+		});
 	});
 
 	it('requires an explicit choice when the challenge ID already exists', async () => {

@@ -44,6 +44,24 @@ export class ChallengeJsonFileError extends Error {
 	}
 }
 
+export interface PartialChallengeFile {
+	readonly library: DeepReadonly<ChallengeLibrary>;
+	readonly issues: readonly ValidationIssue[];
+}
+
+function parseJson(json: string): unknown {
+	try {
+		return JSON.parse(json);
+	} catch (cause) {
+		throw new ChallengeJsonFileError(
+			'invalid-json',
+			'The selected file is not valid JSON.',
+			[],
+			cause
+		);
+	}
+}
+
 function getValidatedLibrary(value: unknown): ChallengeLibrary {
 	const result = validateChallengeLibrary(value);
 	if (result.isValid) return result.value;
@@ -165,19 +183,101 @@ function serializeLibrary(library: DeepReadonly<ChallengeLibrary>): string {
 }
 
 function parseLibrary(json: string): ChallengeLibrary {
-	let parsedValue: unknown;
-	try {
-		parsedValue = JSON.parse(json);
-	} catch (cause) {
+	return sanitizeLibrary(getValidatedLibrary(parseJson(json)));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function rebaseValidationIssues(
+	issues: readonly ValidationIssue[],
+	from: string,
+	to: string
+): readonly ValidationIssue[] {
+	return issues.map(({ path, message }) => ({
+		path: path.replace(from, to),
+		message
+	}));
+}
+
+function getPartiallyValidatedChallengeFile(value: unknown): PartialChallengeFile {
+	if (!isRecord(value)) {
+		throw new ChallengeJsonFileError('invalid-library', 'The challenge file is not an object.', [
+			{ path: '$', message: 'Expected a challenge library object.' }
+		]);
+	}
+	if (value.formatVersion !== 1) {
 		throw new ChallengeJsonFileError(
-			'invalid-json',
-			'The selected file is not valid JSON.',
-			[],
-			cause
+			'unsupported-version',
+			'This file uses an unsupported format version. Use a compatible app version to open it.',
+			[{ path: '$.formatVersion', message: 'Unsupported challenge library version.' }]
 		);
 	}
 
-	return sanitizeLibrary(getValidatedLibrary(parsedValue));
+	const issues: ValidationIssue[] = [];
+	const characters: ChallengeLibrary['characters'] = [];
+	const seenCharacterIds = new Set<string>();
+	if (!Array.isArray(value.characters)) {
+		issues.push({ path: '$.characters', message: 'Expected an array.' });
+	} else {
+		value.characters.forEach((character, index) => {
+			const result = validateChallengeLibrary({
+				formatVersion: 1,
+				characters: [character],
+				challenges: []
+			});
+			if (!result.isValid) {
+				issues.push(
+					...rebaseValidationIssues(result.issues, '$.characters[0]', `$.characters[${index}]`)
+				);
+				return;
+			}
+
+			const validCharacter = result.value.characters[0];
+			if (!validCharacter) return;
+			const normalizedId = validCharacter.id.toLowerCase();
+			if (seenCharacterIds.has(normalizedId)) {
+				issues.push({
+					path: `$.characters[${index}].id`,
+					message: 'Duplicate character UUID; this character was skipped.'
+				});
+				return;
+			}
+			seenCharacterIds.add(normalizedId);
+			characters.push(validCharacter);
+		});
+	}
+
+	let challenge: ChallengeLibrary['challenges'][number] | undefined;
+	if (!Array.isArray(value.challenges)) {
+		issues.push({ path: '$.challenges', message: 'Expected an array.' });
+	} else if (value.challenges.length !== 1) {
+		issues.push({
+			path: '$.challenges',
+			message: 'A challenge file must contain exactly one challenge; challenge data was skipped.'
+		});
+	} else {
+		const result = validateChallengeLibrary({
+			formatVersion: 1,
+			characters,
+			challenges: value.challenges
+		});
+		if (!result.isValid) {
+			issues.push(...result.issues);
+		} else {
+			challenge = result.value.challenges[0];
+		}
+	}
+
+	return {
+		library: sanitizeLibrary({
+			formatVersion: 1,
+			characters,
+			challenges: challenge ? [challenge] : []
+		}),
+		issues
+	};
 }
 
 function downloadJsonFile(fileName: string, json: string): void {
@@ -314,4 +414,11 @@ export async function readChallengeLibraryJsonFile(
 /** Reads a single-challenge JSON file from a browser-selected file. */
 export async function readChallengeJsonFile(file: Readonly<File>): Promise<ChallengeLibrary> {
 	return parseChallengeJson(await readFile(file));
+}
+
+/** Reads a challenge file while retaining independently valid characters and challenge data. */
+export async function readChallengeJsonFilePartially(
+	file: Readonly<File>
+): Promise<PartialChallengeFile> {
+	return getPartiallyValidatedChallengeFile(parseJson(await readFile(file)));
 }

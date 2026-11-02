@@ -1,5 +1,10 @@
 import type { Challenge, ChallengeLibrary, PlayerCharacter, StableId } from './model';
-import { downloadChallengeJson, readChallengeJsonFile } from './json-files';
+import {
+	downloadChallengeJson,
+	readChallengeJsonFilePartially,
+	type PartialChallengeFile
+} from './json-files';
+import type { ValidationIssue } from './validation';
 import { createUuid, parseUuid } from './uuid';
 import { loadChallengeLibrary, saveChallengeLibrary } from './storage';
 
@@ -9,13 +14,21 @@ type DeepReadonly<T> = T extends readonly (infer U)[]
 		? { readonly [K in keyof T]: DeepReadonly<T[K]> }
 		: T;
 
-/** Explicit choice required when an imported challenge has an existing ID. */
-export type ChallengeImportOptions =
+export type PartialImportResolution = 'import-valid' | 'abort';
+
+type ChallengeConflictOptions =
+	| Readonly<{ resolution?: undefined }>
 	| Readonly<{ resolution: 'copy' }>
 	| Readonly<{
 			resolution: 'replace';
 			activeChallengeIds: ReadonlySet<StableId>;
 	  }>;
+
+/** Choices for handling invalid sections and duplicate challenge IDs in an import. */
+export type ChallengeImportOptions = Readonly<{
+	partialImport?: PartialImportResolution;
+}> &
+	ChallengeConflictOptions;
 
 /** A conflict or invalid operation while importing a single challenge file. */
 export class ChallengeImportError extends Error {
@@ -28,6 +41,44 @@ export class ChallengeImportError extends Error {
 		this.code = code;
 		this.challengeId = challengeId;
 	}
+}
+
+/** The caller must choose whether to import valid sections or abort. */
+export class PartialChallengeImportError extends Error {
+	readonly code: 'partial-import-required' | 'partial-import-aborted' | 'no-importable-data';
+	readonly issues: readonly ValidationIssue[];
+
+	constructor(
+		code: PartialChallengeImportError['code'],
+		issues: readonly ValidationIssue[],
+		message: string
+	) {
+		super(message);
+		this.name = 'PartialChallengeImportError';
+		this.code = code;
+		this.issues = [...issues];
+	}
+}
+
+function resolvePartialImport(
+	partialFile: DeepReadonly<PartialChallengeFile>,
+	resolution?: PartialImportResolution
+): DeepReadonly<ChallengeLibrary> {
+	if (resolution === 'abort') {
+		throw new PartialChallengeImportError(
+			'partial-import-aborted',
+			partialFile.issues,
+			'Import was aborted because the file contains invalid sections.'
+		);
+	}
+	if (partialFile.issues.length > 0 && resolution !== 'import-valid') {
+		throw new PartialChallengeImportError(
+			'partial-import-required',
+			partialFile.issues,
+			'The file contains invalid sections. Choose whether to import only valid data or abort.'
+		);
+	}
+	return partialFile.library;
 }
 
 function getLibraryEntityIds(library: DeepReadonly<ChallengeLibrary>): ReadonlySet<string> {
@@ -213,7 +264,7 @@ function importChallengeEntities(
 function mergeImportedChallenge(
 	library: DeepReadonly<ChallengeLibrary>,
 	importedLibrary: DeepReadonly<ChallengeLibrary>,
-	options?: ChallengeImportOptions
+	options?: ChallengeConflictOptions
 ): Readonly<{ library: ChallengeLibrary; challenge: Challenge }> {
 	const importedChallenge = importedLibrary.challenges[0];
 	if (!importedChallenge) {
@@ -314,7 +365,15 @@ export async function loadChallengeFromJsonFile(
 	options?: ChallengeImportOptions,
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<Challenge> {
-	const importedLibrary = await readChallengeJsonFile(file);
+	const partialFile = await readChallengeJsonFilePartially(file);
+	const importedLibrary = resolvePartialImport(partialFile, options?.partialImport);
+	if (importedLibrary.challenges.length !== 1) {
+		throw new PartialChallengeImportError(
+			'no-importable-data',
+			partialFile.issues,
+			'The file does not contain a valid challenge to import.'
+		);
+	}
 	const existingLibrary = await loadChallengeLibrary(indexedDbFactory);
 	const result = mergeImportedChallenge(existingLibrary, importedLibrary, options);
 	await saveChallengeLibrary(result.library, indexedDbFactory);
@@ -324,9 +383,18 @@ export async function loadChallengeFromJsonFile(
 /** Loads the reusable characters from a challenge file into the local library. */
 export async function loadCharactersFromChallengeJsonFile(
 	file: Readonly<File>,
-	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
+	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB,
+	options: Readonly<{ partialImport?: PartialImportResolution }> = {}
 ): Promise<readonly PlayerCharacter[]> {
-	const importedLibrary = await readChallengeJsonFile(file);
+	const partialFile = await readChallengeJsonFilePartially(file);
+	const importedLibrary = resolvePartialImport(partialFile, options.partialImport);
+	if (importedLibrary.characters.length === 0) {
+		throw new PartialChallengeImportError(
+			'no-importable-data',
+			partialFile.issues,
+			'The file does not contain any valid reusable characters to import.'
+		);
+	}
 	const existingLibrary = await loadChallengeLibrary(indexedDbFactory);
 	const result = mergeImportedCharacters(existingLibrary, importedLibrary);
 	await saveChallengeLibrary(result.library, indexedDbFactory);
