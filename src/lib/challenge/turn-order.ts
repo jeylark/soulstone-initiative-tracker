@@ -20,6 +20,25 @@ type RelativeTurn = {
 };
 type HookedTurn = FixedTurn | RelativeTurn;
 
+/** Thrown when placement hooks cannot be resolved into a turn order. */
+export class TurnOrderError extends Error {
+	/** IDs of the turns whose placement could not be resolved, in setup order. */
+	readonly turnIds: StableId[];
+
+	/**
+	 * @param turnIds IDs of the turns whose placement could not be resolved.
+	 */
+	constructor(turnIds: readonly StableId[]) {
+		super(`Cannot place turns: ${turnIds.join(', ')}`);
+		this.name = 'TurnOrderError';
+		this.turnIds = [...turnIds];
+	}
+}
+
+function clamp(value: number, min: number, max: number) {
+	return Math.min(Math.max(value, min), max);
+}
+
 function filterFactionTurns(
 	challenge: DeepReadonly<Challenge>,
 	initiativeResults: Readonly<InitiativeResults>
@@ -76,7 +95,7 @@ function filterFactionTurns(
  * 5	Stronger distribution fairness
  * 10+	Nearly proportional round-robin
  * @returns Turn IDs in generated play order.
- * @throws {Error} Until turn-order generation is implemented.
+ * @throws {TurnOrderError} If a relative placement targets a turn that is missing from the order or the placements form a cycle.
  */
 export function generateTurnOrder(
 	challenge: DeepReadonly<Challenge>,
@@ -88,7 +107,7 @@ export function generateTurnOrder(
 	const totalInitiativeTurnCount = turnsByFaction
 		.values()
 		.reduce((sum, factionTurns) => sum + factionTurns.length, 0);
-	const factions = turnsByFaction.values().map((factionTurns) => {
+	const factions = [...turnsByFaction.values()].map((factionTurns) => {
 		const totalFactionTurns = factionTurns.length;
 		const remainingFactionTurns = factionTurns.toSorted((a, b) => b.initiative - a.initiative);
 
@@ -130,58 +149,38 @@ export function generateTurnOrder(
 		]
 			.sort(({ priority: priorityA }, { priority: priorityB }) => priorityB - priorityA)[0]
 			.takeTurn();
-		initiativeTurns.push(nextTurn?.id ?? '----');
+		if (nextTurn === undefined) break;
+		initiativeTurns.push(nextTurn.id);
 	}
 
-	let firstUnhookableTurn: StableId | null = null;
-	while (hookedTurns.length > 0) {
-		const hookedTurn = hookedTurns.shift();
-		if (hookedTurn === undefined) {
-			break;
-		}
+	let pendingHooks = hookedTurns;
+	while (pendingHooks.length > 0) {
+		const deferredHooks: HookedTurn[] = [];
 
-		function putBack(turn: HookedTurn) {
-			if (firstUnhookableTurn === turn.id) {
-				initiativeTurns.push(turn.id);
-				let nextHookedTurn = hookedTurns.shift();
-				while (nextHookedTurn !== undefined) {
-					initiativeTurns.push(nextHookedTurn.id);
-					nextHookedTurn = hookedTurns.shift();
+		for (const hook of pendingHooks) {
+			let index: number;
+			if (hook.kind === 'fixed-position') {
+				index =
+					hook.from === 'top' ? hook.position - 1 : initiativeTurns.length - hook.position + 1;
+			} else {
+				const targetIndex = initiativeTurns.indexOf(hook.targetTurnId);
+				if (targetIndex === -1) {
+					deferredHooks.push(hook);
+					continue;
 				}
+				index =
+					hook.relation === 'before'
+						? targetIndex - hook.distance
+						: targetIndex + 1 + hook.distance;
 			}
 
-			firstUnhookableTurn = turn.id;
-			hookedTurns.push(turn);
+			initiativeTurns.splice(clamp(index, 0, initiativeTurns.length), 0, hook.id);
 		}
 
-		if (hookedTurn.kind === 'fixed-position') {
-			const position = hookedTurn.position;
-			const index = hookedTurn.from === 'top' ? position : initiativeTurns.length - position;
-			if (index < 0 || index > initiativeTurns.length) {
-				putBack(hookedTurn);
-				continue;
-			}
-
-			initiativeTurns.splice(index, 0, hookedTurn.id);
-			firstUnhookableTurn = null;
-			continue;
+		if (deferredHooks.length === pendingHooks.length) {
+			throw new TurnOrderError(deferredHooks.map((hook) => hook.id));
 		}
-
-		if (hookedTurn.kind === 'relative-position') {
-			const targetTurnIndex = initiativeTurns.indexOf(hookedTurn.targetTurnId);
-			const index =
-				hookedTurn.relation === 'before'
-					? targetTurnIndex - hookedTurn.distance
-					: targetTurnIndex + hookedTurn.distance;
-			if (targetTurnIndex === -1 || index < 0 || index > initiativeTurns.length) {
-				putBack(hookedTurn);
-				continue;
-			}
-
-			initiativeTurns.splice(index, 0, hookedTurn.id);
-			firstUnhookableTurn = null;
-			continue;
-		}
+		pendingHooks = deferredHooks;
 	}
 
 	return initiativeTurns;

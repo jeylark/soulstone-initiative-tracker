@@ -234,7 +234,7 @@ describe('generateTurnOrder', () => {
 
 		expect(
 			order([createCreature(factionId, [leading, target, trailing, oneBefore, oneAfter])])
-		).toEqual([leading.id, oneBefore.id, target.id, trailing.id, oneAfter.id]);
+		).toEqual([oneBefore.id, leading.id, target.id, trailing.id, oneAfter.id]);
 	});
 
 	it('resolves a relative turn whose target is another hooked turn', () => {
