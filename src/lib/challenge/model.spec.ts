@@ -6,7 +6,8 @@ import {
 	type GeneratedTurnOrder,
 	type InitiativeResults,
 	type StableId,
-	type TurnInitiative
+	type TurnInitiative,
+	validateChallengeLibrary
 } from '#lib';
 import { createUuid, parseUuid } from './uuid';
 
@@ -104,6 +105,115 @@ const library = {
 } satisfies ChallengeLibrary;
 
 describe('challenge domain models', () => {
+	it('accepts a structurally and referentially valid challenge library', () => {
+		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
+	});
+
+	it('reports malformed values and broken references with their paths', () => {
+		const invalidLibrary = structuredClone(library);
+		invalidLibrary.challenges[0].creatures[0].factionId = createUuid();
+
+		const result = validateChallengeLibrary(invalidLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].creatures[0].factionId',
+				message: 'References a faction that does not exist.'
+			});
+		}
+	});
+
+	it('rejects unsupported library versions and malformed enum values', () => {
+		const unsupportedVersion = { ...library, formatVersion: 2 };
+		const invalidModes = {
+			...library,
+			challenges: library.challenges.map((challenge) => ({
+				...challenge,
+				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' }
+			}))
+		};
+
+		const versionResult = validateChallengeLibrary(unsupportedVersion);
+		const modesResult = validateChallengeLibrary(invalidModes);
+
+		expect(versionResult.isValid).toBe(false);
+		if (!versionResult.isValid) {
+			expect(versionResult.issues).toContainEqual({
+				path: '$.formatVersion',
+				message: 'Unsupported challenge library version.'
+			});
+		}
+		expect(modesResult.isValid).toBe(false);
+		if (!modesResult.isValid) {
+			expect(modesResult.issues).toContainEqual({
+				path: '$.challenges[0].initiativeRollModes.npcs',
+				message: 'Expected "manual" or "app".'
+			});
+		}
+	});
+
+	it('reports independent shape and reference issues in the same validation pass', () => {
+		const invalidLibrary = {
+			...library,
+			characters: [{ ...library.characters[0], name: 7 }],
+			challenges: library.challenges.map((challenge) => ({
+				...challenge,
+				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' },
+				npcTypes: challenge.npcTypes.map((npcType) => ({
+					...npcType,
+					name: 4,
+					initiativeStat: 0
+				})),
+				creatures: challenge.creatures.map((creature, index) =>
+					index === 0 ? { ...creature, factionId: createUuid() } : creature
+				)
+			}))
+		};
+
+		const result = validateChallengeLibrary(invalidLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toHaveLength(5);
+			expect(result.issues).toContainEqual({
+				path: '$.characters[0].name',
+				message: 'Expected a string.'
+			});
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].initiativeRollModes.npcs',
+				message: 'Expected "manual" or "app".'
+			});
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].npcTypes[0].name',
+				message: 'Expected a string.'
+			});
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].npcTypes[0].initiativeStat',
+				message: 'Expected a positive whole number.'
+			});
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].creatures[0].factionId',
+				message: 'References a faction that does not exist.'
+			});
+		}
+	});
+
+	it('rejects duplicate entity IDs', () => {
+		const invalidLibrary = structuredClone(library);
+		invalidLibrary.challenges[0].factions[0].id = invalidLibrary.characters[0].id;
+
+		const result = validateChallengeLibrary(invalidLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].factions[0].id',
+				message: 'Duplicate entity UUID.'
+			});
+		}
+	});
+
 	it('creates UUID IDs and rejects invalid UUID strings', () => {
 		const id = createUuid();
 

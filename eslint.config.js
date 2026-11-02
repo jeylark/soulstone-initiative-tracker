@@ -32,6 +32,13 @@ export default defineConfig(
 			}
 		},
 		rules: {
+			'@typescript-eslint/prefer-readonly-parameter-types': [
+				'error',
+				{
+					ignoreInferredTypes: true,
+					treatMethodsAsReadonly: true
+				}
+			],
 			'@typescript-eslint/naming-convention': [
 				'error',
 				{
