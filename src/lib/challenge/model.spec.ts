@@ -60,6 +60,8 @@ const library = {
 		{
 			id: ids.challenge,
 			name: 'The Old Keep',
+			createdAt: new Date('2025-01-02T03:04:05.000Z'),
+			updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 			factions: [{ id: ids.faction, name: 'Adventurers' }],
 			npcTypes: [{ id: ids.npcType, name: 'Skeleton', initiativeStat: 2 }],
 			initiativeRollModes: {
@@ -643,6 +645,33 @@ describe('challenge domain models', () => {
 			isValid: true,
 			value: libraryWithoutRunState
 		});
+	});
+
+	it.each([
+		['createdAt', new Date(Number.NaN)],
+		['updatedAt', new Date(Number.NaN)],
+		['createdAt', '2025-01-02T03:04:05.000Z'],
+		['updatedAt', '2025-01-02T03:04:05.000Z'],
+		['createdAt', undefined],
+		['updatedAt', undefined]
+	])('rejects invalid or missing %s dates', (field, date) => {
+		const invalidLibrary = {
+			...library,
+			challenges: library.challenges.map((challenge) => ({
+				...challenge,
+				[field]: date
+			}))
+		};
+
+		const result = validateChallengeLibrary(invalidLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({
+				path: `$.challenges[0].${field}`,
+				message: 'Expected a valid Date.'
+			});
+		}
 	});
 
 	it.each(invalidFieldCases)('rejects invalid $field', ({ path, value, issuePath, message }) => {

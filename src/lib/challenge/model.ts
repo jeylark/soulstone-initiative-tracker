@@ -153,6 +153,10 @@ export interface Challenge {
 	id: StableId;
 	/** Challenge's display name. */
 	name: string;
+	/** Date and time when the challenge was created or copied. */
+	createdAt: Date;
+	/** Date and time when the challenge was most recently modified. */
+	updatedAt: Date;
 	/** Factions available to creatures in this challenge. */
 	factions: Faction[];
 	/** NPC types available to NPC creatures in this challenge. */

@@ -53,7 +53,13 @@ export interface ChallengeFileReadResult {
 
 function parseJson(json: string): unknown {
 	try {
-		return JSON.parse(json);
+		return JSON.parse(json, (key: string, value: unknown) => {
+			if ((key === 'createdAt' || key === 'updatedAt') && typeof value === 'string') {
+				const date = new Date(value);
+				if (Number.isFinite(date.getTime()) && date.toISOString() === value) return date;
+			}
+			return value;
+		});
 	} catch (cause) {
 		throw new ChallengeJsonFileError(
 			'invalid-json',

@@ -25,6 +25,8 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 	return {
 		id,
 		name,
+		createdAt: new Date('2025-01-02T03:04:05.000Z'),
+		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 		factions: [{ id: factionId, name: 'Adventurers' }],
 		npcTypes: [],
 		initiativeRollModes: { characters: 'manual', npcs: 'app' },
@@ -76,7 +78,10 @@ describe('challenge and library JSON files', () => {
 		const json = createChallengeLibraryJson(library);
 
 		expect(json).toContain('\n  "formatVersion": 1');
-		expect(JSON.parse(json)).toEqual(library);
+		expect(JSON.parse(json).challenges[0]).toMatchObject({
+			createdAt: library.challenges[0]?.createdAt.toISOString(),
+			updatedAt: library.challenges[0]?.updatedAt.toISOString()
+		});
 	});
 
 	it('does not export unmodeled session credentials', () => {
@@ -88,16 +93,22 @@ describe('challenge and library JSON files', () => {
 	it('loads a whole library from JSON', () => {
 		const json = createChallengeLibraryJson(library);
 
-		expect(parseChallengeLibraryJson(json)).toEqual(library);
+		const parsedLibrary = parseChallengeLibraryJson(json);
+
+		expect(parsedLibrary).toEqual(library);
+		expect(parsedLibrary.challenges[0]?.createdAt).toBeInstanceOf(Date);
+		expect(parsedLibrary.challenges[0]?.updatedAt).toBeInstanceOf(Date);
 	});
 
 	it('exports a single challenge with only its referenced reusable characters', () => {
 		const json = createChallengeJson(library, firstChallengeId);
-		const challengeFile = JSON.parse(json) as ChallengeLibrary;
+		const challengeFile = JSON.parse(json);
 
-		expect(challengeFile.challenges).toEqual([library.challenges[0]]);
+		expect(challengeFile.challenges[0].createdAt).toBe(
+			library.challenges[0]?.createdAt.toISOString()
+		);
 		expect(challengeFile.characters).toEqual([library.characters[0]]);
-		expect(parseChallengeJson(json)).toEqual(challengeFile);
+		expect(parseChallengeJson(json).challenges).toEqual([library.challenges[0]]);
 	});
 
 	it('rejects challenge files containing more than one challenge', () => {
