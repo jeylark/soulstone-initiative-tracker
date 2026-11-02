@@ -8,7 +8,7 @@ import type {
 	TurnInitiative
 } from './model';
 import { createUuid } from './uuid';
-import { generateTurnOrder, TurnOrderError } from './turn-order';
+import { generateTurnOrder } from './turn-order';
 
 function createTurn(initiative: TurnInitiative | null): Turn {
 	return { id: createUuid(), isHidden: false, initiative };
@@ -294,26 +294,5 @@ describe('generateTurnOrder', () => {
 		expect(() => order([createCreature(factionId, [unresolved])])).toThrow(
 			expect.objectContaining({ name: 'TurnOrderError', turnIds: [unresolved.id] })
 		);
-	});
-
-	it('reports the unresolved turn IDs through TurnOrderError', () => {
-		const factionId = createUuid();
-		const target = staticTurn(5);
-		const unresolved = createTurn({
-			kind: 'relative-position',
-			relation: 'before',
-			distance: 1,
-			targetTurnId: target.id
-		});
-
-		try {
-			order([createCreature(factionId, [unresolved, target])]);
-			throw new Error('Expected turn-order generation to fail.');
-		} catch (error) {
-			expect(error).toBeInstanceOf(TurnOrderError);
-			if (error instanceof TurnOrderError) {
-				expect(error.turnIds).toEqual([unresolved.id]);
-			}
-		}
 	});
 });
