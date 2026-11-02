@@ -9,12 +9,13 @@ import type {
 } from './model';
 import { createUuid } from './uuid';
 import { generateTurnOrder } from './turn-order';
+import type { DeepReadonly } from './challenge-copy';
 
-function createTurn(initiative: TurnInitiative | null): Turn {
+function createTurn(initiative: Readonly<TurnInitiative> | null): Turn {
 	return { id: createUuid(), isHidden: false, initiative };
 }
 
-function createCreature(factionId: StableId, turns: readonly Turn[]): ChallengeCreature {
+function createCreature(factionId: StableId, turns: readonly DeepReadonly<Turn>[]): ChallengeCreature {
 	return {
 		id: createUuid(),
 		kind: 'npc',
@@ -25,7 +26,7 @@ function createCreature(factionId: StableId, turns: readonly Turn[]): ChallengeC
 	};
 }
 
-function createChallenge(creatures: readonly ChallengeCreature[] = []): Challenge {
+function createChallenge(creatures: readonly DeepReadonly<ChallengeCreature>[] = []): DeepReadonly<Challenge> {
 	return {
 		id: createUuid(),
 		name: 'Turn order test',
@@ -47,7 +48,7 @@ function staticTurn(value: number): Turn {
 }
 
 function order(
-	creatures: readonly ChallengeCreature[],
+	creatures: readonly DeepReadonly<ChallengeCreature>[],
 	results: Readonly<InitiativeResults> = {},
 	fairnessWeight = 0
 ): StableId[] {
@@ -129,15 +130,16 @@ describe('generateTurnOrder', () => {
 		).toEqual([a1.id, b1.id, a2.id, a3.id]);
 	});
 
-	it('keeps all tied initiative turns exactly once without prescribing their tie order', () => {
+	it('orders tied turns of one faction by creature and turn setup order', () => {
 		const factionId = createUuid();
 		const first = staticTurn(5);
 		const second = staticTurn(5);
 		const third = staticTurn(3);
-		const result = order([createCreature(factionId, [first, second, third])]);
+		const fourth = staticTurn(5);
 
-		expect(result).toHaveLength(3);
-		expect(result).toEqual(expect.arrayContaining([first.id, second.id, third.id]));
+		expect(
+			order([createCreature(factionId, [first, second, third]), createCreature(factionId, [fourth])])
+		).toEqual([first.id, second.id, fourth.id, third.id]);
 	});
 
 	it('places fixed turns at one-based positions from the top and bottom', () => {
@@ -280,6 +282,115 @@ describe('generateTurnOrder', () => {
 				turnIds: [first.id, second.id]
 			})
 		);
+	});
+
+	it('keeps hidden turns in the generated order', () => {
+		const factionId = createUuid();
+		const visible = staticTurn(5);
+		const hidden = { ...staticTurn(8), isHidden: true };
+
+		expect(order([createCreature(factionId, [visible, hidden])])).toEqual([hidden.id, visible.id]);
+	});
+
+	it('merges more than two factions by value when fairness weight is zero', () => {
+		const a1 = staticTurn(9);
+		const a2 = staticTurn(3);
+		const b1 = staticTurn(7);
+		const c1 = staticTurn(8);
+		const c2 = staticTurn(1);
+
+		expect(
+			order([
+				createCreature(createUuid(), [a1, a2]),
+				createCreature(createUuid(), [b1]),
+				createCreature(createUuid(), [c1, c2])
+			])
+		).toEqual([a1.id, c1.id, b1.id, a2.id, c2.id]);
+	});
+
+	it('collects the turns of several creatures in the same faction', () => {
+		const factionId = createUuid();
+		const low = staticTurn(2);
+		const high = staticTurn(6);
+		const middle = staticTurn(4);
+
+		expect(
+			order([
+				createCreature(factionId, [low, middle]),
+				createCreature(factionId, []),
+				createCreature(factionId, [high])
+			])
+		).toEqual([high.id, middle.id, low.id]);
+	});
+
+	it('does not change the order of rolled turns when regenerated with the same results', () => {
+		const factionId = createUuid();
+		const first = rolledTurn();
+		const second = rolledTurn();
+		const creatures = [createCreature(factionId, [first, second])];
+		const results = { [first.id]: 4, [second.id]: 11 };
+
+		expect(order(creatures, results)).toEqual(order(creatures, results));
+	});
+
+	it('does not mutate the challenge or the initiative results', () => {
+		const factionId = createUuid();
+		const roll = rolledTurn();
+		const fixed = createTurn({ kind: 'fixed-position', from: 'top', position: 1 });
+		const challenge = createChallenge([createCreature(factionId, [roll, staticTurn(3), fixed])]);
+		const results = { [roll.id]: 5 };
+		const challengeBefore = structuredClone(challenge);
+		const resultsBefore = structuredClone(results);
+
+		generateTurnOrder(challenge, results, 0);
+
+		expect(challenge).toEqual(challengeBefore);
+		expect(results).toEqual(resultsBefore);
+	});
+
+	it('applies several fixed positions from the top in order', () => {
+		const factionId = createUuid();
+		const first = staticTurn(9);
+		const second = staticTurn(8);
+		const secondFromTop = createTurn({ kind: 'fixed-position', from: 'top', position: 1 });
+		const thirdFromTop = createTurn({ kind: 'fixed-position', from: 'top', position: 2 });
+
+		expect(
+			order([createCreature(factionId, [first, second, secondFromTop, thirdFromTop])])
+		).toEqual([secondFromTop.id, thirdFromTop.id, first.id, second.id]);
+	});
+
+	it('orders a list consisting only of fixed positions', () => {
+		const factionId = createUuid();
+		const top = createTurn({ kind: 'fixed-position', from: 'top', position: 1 });
+		const bottom = createTurn({ kind: 'fixed-position', from: 'bottom', position: 1 });
+
+		expect(order([createCreature(factionId, [top, bottom])])).toEqual([top.id, bottom.id]);
+	});
+
+	it('clamps relative placements that fall beyond either end of the list', () => {
+		const factionId = createUuid();
+		const first = staticTurn(9);
+		const second = staticTurn(8);
+		const tooEarly = createTurn({
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 5,
+			targetTurnId: first.id
+		});
+		const tooLate = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 5,
+			targetTurnId: second.id
+		});
+
+		expect(order([createCreature(factionId, [first, second, tooEarly, tooLate])])).toEqual([
+			tooEarly.id,
+			first.id,
+			second.id,
+			tooLate.id
+		]);
 	});
 
 	it('rejects a relative placement whose target is not in the challenge order', () => {
