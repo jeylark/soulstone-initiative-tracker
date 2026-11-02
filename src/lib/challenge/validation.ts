@@ -24,10 +24,27 @@ export interface ValidationIssue {
 	readonly message: string;
 }
 
-/** Result of checking unknown data against a runtime model. */
-export type ValidationResult<T> = Readonly<
-	{ isValid: true; value: T } | { isValid: false; issues: readonly ValidationIssue[] }
->;
+/** Successful validation result containing the validated value. */
+interface ValidValidationResult<T> {
+	/** Discriminant that is `true` when validation succeeds. */
+	readonly isValid: true;
+	/** The input narrowed to the requested validated type. */
+	readonly value: T;
+}
+
+/** Failed validation result containing all detected issues. */
+interface InvalidValidationResult {
+	/** Discriminant that is `false` when validation fails. */
+	readonly isValid: false;
+	/** Validation issues found in the supplied value. */
+	readonly issues: readonly ValidationIssue[];
+}
+
+/**
+ * Result of checking unknown data against a runtime model.
+ * @typeParam T Type expected when validation succeeds.
+ */
+export type ValidationResult<T> = Readonly<ValidValidationResult<T> | InvalidValidationResult>;
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 type IssueRecorder = (path: string, message: string) => void;
@@ -584,6 +601,8 @@ function validateRunStateReferences(
 /**
  * Validates untrusted runtime data as a challenge library, including entity IDs
  * and references between characters, factions, NPC types, turns, and run state.
+ * @param value Untrusted value to validate.
+ * @returns A discriminated result containing either the validated library or all issues.
  */
 export function validateChallengeLibrary(value: unknown): ValidationResult<ChallengeLibrary> {
 	const { addIssue, getIssues } = createIssueFactory();

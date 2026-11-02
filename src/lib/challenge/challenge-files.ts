@@ -1,35 +1,65 @@
 import type { Challenge, ChallengeLibrary, PlayerCharacter, StableId } from './model';
+import { sanitizeChallenge, type DeepReadonly } from './challenge-copy';
 import { downloadChallengeJson, type ChallengeFileReadResult } from './json-files';
 import type { ValidationIssue } from './validation';
 import { createUuid, parseUuid } from './uuid';
 
-type DeepReadonly<T> = T extends readonly (infer U)[]
-	? readonly DeepReadonly<U>[]
-	: T extends object
-		? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-		: T;
-
+/**
+ * Resolution required when a challenge file contains unreadable fields.
+ * `import-valid` accepts the recovered content; `abort` rejects the import.
+ */
 export type PartialImportResolution = 'import-valid' | 'abort';
 
-type ChallengeConflictOptions =
-	| Readonly<{ resolution?: undefined }>
-	| Readonly<{ resolution: 'copy' }>
-	| Readonly<{
-			resolution: 'replace';
-			activeChallengeIds: ReadonlySet<StableId>;
-	  }>;
-
-/** Choices for handling invalid sections and duplicate challenge IDs in an import. */
+/** Choices for handling unreadable sections and duplicate challenge IDs. */
 export type ChallengeImportOptions = Readonly<{
+	/** Required for partial files: import recovered content or abort. */
 	partialImport?: PartialImportResolution;
 }> &
-	ChallengeConflictOptions;
+	(
+		| Readonly<{
+				/** Leave unset when there is no ID conflict; conflicts require `copy` or `replace`. */
+				resolution?: undefined;
+		  }>
+		| Readonly<{
+				/** Keep the existing challenge and import this challenge as a copy with fresh IDs. */
+				resolution: 'copy';
+		  }>
+		| Readonly<{
+				/** Replace the existing inactive challenge with the imported challenge. */
+				resolution: 'replace';
+				/** Challenge IDs currently used by active sessions; these cannot be replaced. */
+				activeChallengeIds: ReadonlySet<StableId>;
+		  }>
+	);
+
+/** A prepared library update and the imported or copied challenge. */
+export interface PreparedChallengeImport {
+	/** Complete library to persist after the caller confirms the import. */
+	readonly library: ChallengeLibrary;
+	/** Imported challenge, with IDs adjusted if a copy was requested. */
+	readonly challenge: Challenge;
+}
+
+/** A prepared library update and the reusable characters included in it. */
+export interface PreparedCharacterImport {
+	/** Complete library to persist after the caller confirms the import. */
+	readonly library: ChallengeLibrary;
+	/** Characters added or reused from the imported challenge file. */
+	readonly importedCharacters: readonly PlayerCharacter[];
+}
 
 /** A conflict or invalid operation while importing a single challenge file. */
 export class ChallengeImportError extends Error {
+	/** `challenge-conflict` requires a copy/replace choice; `active-challenge` prevents replacement. */
 	readonly code: 'challenge-conflict' | 'active-challenge';
+	/** Stable ID of the challenge involved in the conflict. */
 	readonly challengeId: StableId;
 
+	/**
+	 * @param code Conflict category.
+	 * @param challengeId Stable ID of the challenge involved.
+	 * @param message Human-readable explanation of the conflict.
+	 */
 	constructor(code: ChallengeImportError['code'], challengeId: StableId, message: string) {
 		super(message);
 		this.name = 'ChallengeImportError';
@@ -40,9 +70,20 @@ export class ChallengeImportError extends Error {
 
 /** The caller must choose whether to import valid sections or abort. */
 export class PartialChallengeImportError extends Error {
+	/**
+	 * Machine-readable reason the partial import could not proceed:
+	 * `partial-import-required` requests a choice; `partial-import-aborted` records cancellation;
+	 * `no-importable-data` means no valid content remains for the requested operation.
+	 */
 	readonly code: 'partial-import-required' | 'partial-import-aborted' | 'no-importable-data';
+	/** Validation issues that caused or informed the partial-import decision. */
 	readonly issues: readonly ValidationIssue[];
 
+	/**
+	 * @param code Reason the partial import could not proceed.
+	 * @param issues Validation details associated with the partial file.
+	 * @param message Human-readable explanation of the partial-import result.
+	 */
 	constructor(
 		code: PartialChallengeImportError['code'],
 		issues: readonly ValidationIssue[],
@@ -125,37 +166,6 @@ function importCharacters(
 	});
 
 	return { characters, idMap };
-}
-
-function cloneChallenge(challenge: DeepReadonly<Challenge>): Challenge {
-	return {
-		id: challenge.id,
-		name: challenge.name,
-		factions: challenge.factions.map(({ id, name }) => ({ id, name })),
-		npcTypes: challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
-			id,
-			name,
-			initiativeStat
-		})),
-		initiativeRollModes: { ...challenge.initiativeRollModes },
-		creatures: challenge.creatures.map((creature) => ({
-			...creature,
-			turns: creature.turns.map((turn) => ({
-				...turn,
-				initiative: turn.initiative === null ? null : { ...turn.initiative }
-			}))
-		})),
-		...(challenge.runState === undefined
-			? {}
-			: {
-					runState: {
-						initiativeResults: { ...challenge.runState.initiativeResults },
-						...(challenge.runState.generatedTurnOrder === undefined
-							? {}
-							: { generatedTurnOrder: [...challenge.runState.generatedTurnOrder] })
-					}
-				})
-	};
 }
 
 function importChallengeEntities(
@@ -259,7 +269,7 @@ function importChallengeEntities(
 function mergeImportedChallenge(
 	library: DeepReadonly<ChallengeLibrary>,
 	importedLibrary: DeepReadonly<ChallengeLibrary>,
-	options?: ChallengeConflictOptions
+	options?: ChallengeImportOptions
 ): Readonly<{ library: ChallengeLibrary; challenge: Challenge }> {
 	const importedChallenge = importedLibrary.challenges[0];
 	if (!importedChallenge) {
@@ -297,7 +307,7 @@ function mergeImportedChallenge(
 					({ id }) => id.toLowerCase() !== existingChallenge.id.toLowerCase()
 				)
 			: library.challenges
-	).map(cloneChallenge);
+	).map(sanitizeChallenge);
 	const retainedLibrary = { ...library, challenges: retainedChallenges };
 	const usedIds = new Set(getLibraryEntityIds(retainedLibrary));
 	const importedCharacters = importCharacters(
@@ -306,7 +316,7 @@ function mergeImportedChallenge(
 		usedIds
 	);
 	const remapped = importChallengeEntities(importedChallenge, usedIds);
-	const remappedChallenge = cloneChallenge(remapped.challenge);
+	const remappedChallenge = sanitizeChallenge(remapped.challenge);
 	const challenge: Challenge = {
 		...remappedChallenge,
 		creatures: remappedChallenge.creatures.map((creature) =>
@@ -340,13 +350,18 @@ function mergeImportedCharacters(
 		library: {
 			formatVersion: library.formatVersion,
 			characters: [...result.characters],
-			challenges: library.challenges.map(cloneChallenge)
+			challenges: library.challenges.map(sanitizeChallenge)
 		},
 		importedCharacters: result.characters.filter(({ id }) => importedIds.has(id))
 	};
 }
 
-/** Saves a challenge snapshot, including its current run state, as a JSON file. */
+/**
+ * Saves a challenge snapshot, including its current run state, as a JSON file.
+ * @param library Library containing the challenge to export.
+ * @param challengeId Stable ID of the challenge to save.
+ * @throws If the challenge is missing, the library is invalid, or the browser download fails.
+ */
 export function saveChallengeToJsonFile(
 	library: DeepReadonly<ChallengeLibrary>,
 	challengeId: StableId
@@ -354,12 +369,20 @@ export function saveChallengeToJsonFile(
 	downloadChallengeJson(library, challengeId);
 }
 
-/** Prepares one challenge for the current library without persisting it. */
+/**
+ * Prepares one challenge for the current library without persisting it.
+ * @param library Current library to merge the challenge into.
+ * @param readResult Result returned by `readChallengeJsonFile`.
+ * @param options Partial-file and duplicate-challenge resolution choices.
+ * @returns Candidate library and imported challenge; the caller must persist the library separately.
+ * @throws {PartialChallengeImportError} If partial content is not accepted or no valid challenge remains.
+ * @throws {ChallengeImportError} If an existing challenge needs a resolution or cannot be replaced.
+ */
 export function prepareChallengeImport(
 	library: DeepReadonly<ChallengeLibrary>,
 	readResult: DeepReadonly<ChallengeFileReadResult>,
 	options?: ChallengeImportOptions
-): Readonly<{ library: ChallengeLibrary; challenge: Challenge }> {
+): PreparedChallengeImport {
 	const importedLibrary = resolvePartialImport(readResult, options?.partialImport);
 	if (importedLibrary.challenges.length !== 1) {
 		throw new PartialChallengeImportError(
@@ -371,12 +394,19 @@ export function prepareChallengeImport(
 	return mergeImportedChallenge(library, importedLibrary, options);
 }
 
-/** Prepares reusable characters from a challenge file without persisting them. */
+/**
+ * Prepares reusable characters from a challenge file without persisting them.
+ * @param library Current library to merge the characters into.
+ * @param readResult Result returned by `readChallengeJsonFile`.
+ * @param partialImport Choice required when the file was only partially readable.
+ * @returns Candidate library and imported/reused characters; persist the library separately.
+ * @throws {PartialChallengeImportError} If partial content is not accepted or no valid characters remain.
+ */
 export function prepareCharacterImport(
 	library: DeepReadonly<ChallengeLibrary>,
 	readResult: DeepReadonly<ChallengeFileReadResult>,
 	partialImport?: PartialImportResolution
-): Readonly<{ library: ChallengeLibrary; importedCharacters: readonly PlayerCharacter[] }> {
+): PreparedCharacterImport {
 	const importedLibrary = resolvePartialImport(readResult, partialImport);
 	if (importedLibrary.characters.length === 0) {
 		throw new PartialChallengeImportError(

@@ -8,8 +8,12 @@ const LIBRARY_KEY = 'current';
 
 /** Invalid challenge-library data found at the persistence boundary. */
 export class ChallengeLibraryValidationError extends Error {
+	/** Detailed paths and reasons the supplied or stored library failed validation. */
 	readonly issues: readonly ValidationIssue[];
 
+	/**
+	 * @param issues Validation issues associated with the invalid library.
+	 */
 	constructor(issues: readonly ValidationIssue[]) {
 		super('Challenge library data is invalid.');
 		this.name = 'ChallengeLibraryValidationError';
@@ -19,8 +23,13 @@ export class ChallengeLibraryValidationError extends Error {
 
 /** Failure to access or update browser challenge-library storage. */
 export class ChallengeLibraryStorageError extends Error {
+	/** Underlying IndexedDB exception, when the browser provided one. */
 	readonly cause: DOMException | null;
 
+	/**
+	 * @param message Human-readable description of the storage failure.
+	 * @param cause Underlying IndexedDB exception, if available.
+	 */
 	constructor(message: string, cause: DOMException | null = null) {
 		super(message);
 		this.name = 'ChallengeLibraryStorageError';
@@ -75,7 +84,13 @@ function openDatabase(indexedDbFactory: Readonly<IDBFactory>): Promise<IDBDataba
 	});
 }
 
-/** Loads and validates the saved challenge library, or returns an empty one. */
+/**
+ * Loads and validates the saved challenge library, or returns an empty one.
+ * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
+ * @returns The stored, validated library, or an empty library when nothing has been saved.
+ * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened, read, or closed successfully.
+ * @throws {ChallengeLibraryValidationError} If stored data does not match the library schema.
+ */
 export async function loadChallengeLibrary(
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<ChallengeLibrary> {
@@ -143,7 +158,13 @@ export async function loadChallengeLibrary(
 	}
 }
 
-/** Validates and saves the supplied challenge library. */
+/**
+ * Validates and saves the supplied challenge library, replacing the stored library.
+ * @param value Candidate library data to validate and persist.
+ * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
+ * @throws {ChallengeLibraryValidationError} If `value` does not match the library schema.
+ * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened or the write fails.
+ */
 export async function saveChallengeLibrary(
 	value: unknown,
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB

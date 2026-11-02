@@ -1,23 +1,13 @@
-import type {
-	Challenge,
-	ChallengeCreature,
-	ChallengeLibrary,
-	StableId,
-	TurnInitiative
-} from './model';
+import type { ChallengeLibrary, StableId } from './model';
+import { sanitizeChallenge, type DeepReadonly } from './challenge-copy';
 import { validateChallengeLibrary, type ValidationIssue } from './validation';
 
 const JSON_FILE_MIME_TYPE = 'application/json';
 const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json';
 
-type DeepReadonly<T> = T extends readonly (infer U)[]
-	? readonly DeepReadonly<U>[]
-	: T extends object
-		? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-		: T;
-
 /** Failure while reading, validating, or writing challenge and library JSON files. */
 export class ChallengeJsonFileError extends Error {
+	/** Machine-readable category describing the file-operation failure. */
 	readonly code:
 		| 'invalid-json'
 		| 'invalid-library'
@@ -27,9 +17,17 @@ export class ChallengeJsonFileError extends Error {
 		| 'file-read-failed'
 		| 'browser-unavailable'
 		| 'download-failed';
+	/** Validation issues associated with invalid or partially readable data. */
 	readonly issues: readonly ValidationIssue[];
+	/** Underlying parse, read, serialization, or download failure when available. */
 	readonly cause: unknown;
 
+	/**
+	 * @param code Machine-readable category describing the failure.
+	 * @param message Human-readable explanation of the failure.
+	 * @param issues Validation details associated with the failure.
+	 * @param cause Underlying error when one caused the failure.
+	 */
 	constructor(
 		code: ChallengeJsonFileError['code'],
 		message: string,
@@ -45,8 +43,11 @@ export class ChallengeJsonFileError extends Error {
 }
 
 export interface ChallengeFileReadResult {
+	/** Valid content recovered from the challenge file. */
 	readonly content: DeepReadonly<ChallengeLibrary>;
+	/** Paths and reasons for fields or sections that could not be read. */
 	readonly unreadableFields: readonly ValidationIssue[];
+	/** Whether any portion of the file was skipped or could not be recovered. */
 	readonly isPartial: boolean;
 }
 
@@ -79,87 +80,6 @@ function getValidatedLibrary(value: unknown): ChallengeLibrary {
 			: 'The challenge library file contains invalid data.',
 		result.issues
 	);
-}
-
-function sanitizeInitiative(
-	initiative: DeepReadonly<TurnInitiative> | null
-): TurnInitiative | null {
-	if (initiative === null) return null;
-
-	switch (initiative.kind) {
-		case 'roll':
-			return { kind: 'roll' };
-		case 'static':
-			return { kind: 'static', value: initiative.value };
-		case 'fixed-position':
-			return {
-				kind: 'fixed-position',
-				from: initiative.from,
-				position: initiative.position
-			};
-		case 'relative-position':
-			return {
-				kind: 'relative-position',
-				relation: initiative.relation,
-				distance: initiative.distance,
-				targetTurnId: initiative.targetTurnId
-			};
-	}
-}
-
-function sanitizeCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreature {
-	const turns = creature.turns.map((turn) => ({
-		id: turn.id,
-		isHidden: turn.isHidden,
-		initiative: sanitizeInitiative(turn.initiative)
-	}));
-
-	if (creature.kind === 'character') {
-		return {
-			id: creature.id,
-			kind: 'character',
-			characterId: creature.characterId,
-			factionId: creature.factionId,
-			turns
-		};
-	}
-
-	return {
-		id: creature.id,
-		kind: 'npc',
-		creatureTypeId: creature.creatureTypeId,
-		identifier: creature.identifier,
-		factionId: creature.factionId,
-		turns
-	};
-}
-
-function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge {
-	return {
-		id: challenge.id,
-		name: challenge.name,
-		factions: challenge.factions.map(({ id, name }) => ({ id, name })),
-		npcTypes: challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
-			id,
-			name,
-			initiativeStat
-		})),
-		initiativeRollModes: {
-			characters: challenge.initiativeRollModes.characters,
-			npcs: challenge.initiativeRollModes.npcs
-		},
-		creatures: challenge.creatures.map(sanitizeCreature),
-		...(challenge.runState === undefined
-			? {}
-			: {
-					runState: {
-						initiativeResults: { ...challenge.runState.initiativeResults },
-						...(challenge.runState.generatedTurnOrder === undefined
-							? {}
-							: { generatedTurnOrder: [...challenge.runState.generatedTurnOrder] })
-					}
-				})
-	};
 }
 
 function sanitizeLibrary(library: DeepReadonly<ChallengeLibrary>): ChallengeLibrary {
@@ -361,28 +281,54 @@ async function readFile(file: Readonly<File>): Promise<string> {
 	}
 }
 
-/** Creates a readable, versioned JSON backup of the complete challenge library. */
+/**
+ * Creates a readable, versioned JSON backup of the complete challenge library.
+ * @param value Candidate library data to validate and serialize.
+ * @returns Pretty-printed JSON containing only modeled library fields.
+ * @throws {ChallengeJsonFileError} If the value is invalid or cannot be serialized.
+ */
 export function createChallengeLibraryJson(value: unknown): string {
 	return serializeLibrary(getValidatedLibrary(value));
 }
 
-/** Parses and validates a complete challenge library JSON backup. */
+/**
+ * Parses and validates a complete challenge-library backup.
+ * @param json JSON text to parse.
+ * @returns The validated challenge library.
+ * @throws {ChallengeJsonFileError} If the JSON is malformed, invalid, or uses an unsupported version.
+ */
 export function parseChallengeLibraryJson(json: string): ChallengeLibrary {
 	return parseLibrary(json);
 }
 
-/** Downloads a readable JSON backup of the complete challenge library. */
+/**
+ * Downloads a readable JSON backup of the complete challenge library.
+ * @param value Candidate library data to validate and download.
+ * @throws {ChallengeJsonFileError} If the value is invalid or the browser cannot download the file.
+ */
 export function downloadChallengeLibraryJson(value: unknown): void {
 	downloadJsonFile(LIBRARY_FILE_NAME, createChallengeLibraryJson(value));
 }
 
-/** Creates a readable JSON file containing one challenge and its referenced characters. */
+/**
+ * Creates a readable JSON file containing one challenge and its referenced characters.
+ * @param value Candidate library containing the challenge and reusable characters.
+ * @param challengeId Stable ID of the challenge to include.
+ * @returns Pretty-printed JSON in the versioned library format.
+ * @throws {ChallengeJsonFileError} If the library is invalid or the challenge does not exist.
+ */
 export function createChallengeJson(value: unknown, challengeId: StableId): string {
 	const challengeFile = createChallengeFileLibrary(value, challengeId);
 	return serializeLibrary(challengeFile);
 }
 
-/** Parses a JSON file containing exactly one challenge and its referenced characters. */
+/**
+ * Parses a JSON document containing exactly one challenge and its referenced characters.
+ * @param json JSON text to parse.
+ * @returns The validated single-challenge library.
+ * @throws {ChallengeJsonFileError} If the JSON or library is invalid, the version is unsupported,
+ * or the document does not contain exactly one challenge.
+ */
 export function parseChallengeJson(json: string): ChallengeLibrary {
 	const library = parseLibrary(json);
 	if (library.challenges.length !== 1) {
@@ -394,7 +340,12 @@ export function parseChallengeJson(json: string): ChallengeLibrary {
 	return library;
 }
 
-/** Downloads one challenge and the reusable characters it references as JSON. */
+/**
+ * Downloads one challenge and the reusable characters it references as JSON.
+ * @param value Candidate library containing the challenge and reusable characters.
+ * @param challengeId Stable ID of the challenge to download.
+ * @throws {ChallengeJsonFileError} If the library is invalid, the challenge is missing, or download fails.
+ */
 export function downloadChallengeJson(value: unknown, challengeId: StableId): void {
 	const library = createChallengeFileLibrary(value, challengeId);
 	const challenge = library.challenges[0];
@@ -407,14 +358,26 @@ export function downloadChallengeJson(value: unknown, challengeId: StableId): vo
 	downloadJsonFile(createFileName(challenge.name), serializeLibrary(library));
 }
 
-/** Reads and validates a JSON backup from a browser-selected file. */
+/**
+ * Reads and validates a complete library backup from a browser-selected file.
+ * @param file User-selected JSON backup file.
+ * @returns The validated challenge library.
+ * @throws {ChallengeJsonFileError} If the file cannot be read, is invalid, or uses an unsupported version.
+ */
 export async function readChallengeLibraryJsonFile(
 	file: Readonly<File>
 ): Promise<ChallengeLibrary> {
 	return parseLibrary(await readFile(file));
 }
 
-/** Reads a single-challenge file and reports content that could not be recovered. */
+/**
+ * Reads a single-challenge file and reports any content that could not be recovered.
+ * Malformed JSON and unsupported versions are rejected; invalid independent characters are skipped,
+ * and challenge data is retained only when its complete structure and references validate.
+ * @param file User-selected single-challenge JSON file.
+ * @returns Recovered content, unreadable-field details, and whether the read was partial.
+ * @throws {ChallengeJsonFileError} If the file cannot be read, is malformed JSON, or uses an unsupported version.
+ */
 export async function readChallengeJsonFile(
 	file: Readonly<File>
 ): Promise<ChallengeFileReadResult> {

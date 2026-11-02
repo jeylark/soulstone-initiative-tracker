@@ -317,4 +317,26 @@ describe('challenge file workflows', () => {
 		expect(preparedImport.importedCharacters).toEqual(library.characters);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
+
+	it('copies only modeled fields when preparing existing challenges for an import', async () => {
+		const challengeWithExtraFields = {
+			...library.challenges[0],
+			privateChallengeField: 'not-for-copy',
+			creatures: library.challenges[0].creatures.map((creature) => ({
+				...creature,
+				privateCreatureField: 'not-for-copy'
+			}))
+		};
+		const libraryWithExtraFields = {
+			...library,
+			challenges: [challengeWithExtraFields]
+		};
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+
+		const preparedImport = prepareCharacterImport(libraryWithExtraFields, readResult);
+		const copiedChallenge = preparedImport.library.challenges[0];
+
+		expect(copiedChallenge).not.toHaveProperty('privateChallengeField');
+		expect(copiedChallenge?.creatures[0]).not.toHaveProperty('privateCreatureField');
+	});
 });
