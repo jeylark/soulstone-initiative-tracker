@@ -74,6 +74,12 @@ function validateString(value: unknown, path: string, addIssue: IssueRecorder): 
 	return false;
 }
 
+function validateDate(value: unknown, path: string, addIssue: IssueRecorder): value is Date {
+	if (value instanceof Date && Number.isFinite(value.getTime())) return true;
+	addIssue(path, 'Expected a valid Date.');
+	return false;
+}
+
 function validateStableId(
 	value: unknown,
 	path: string,
@@ -350,6 +356,8 @@ function validateChallenge(
 
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
+	const isValidCreatedAt = validateDate(value.createdAt, `${path}.createdAt`, addIssue);
+	const isValidUpdatedAt = validateDate(value.updatedAt, `${path}.updatedAt`, addIssue);
 	const isValidFactions = validateArray(
 		value.factions,
 		`${path}.factions`,
@@ -381,6 +389,8 @@ function validateChallenge(
 	return (
 		isValidId &&
 		isValidName &&
+		isValidCreatedAt &&
+		isValidUpdatedAt &&
 		isValidFactions &&
 		isValidNpcTypes &&
 		isValidRollModes &&

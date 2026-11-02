@@ -26,6 +26,8 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 	return {
 		id,
 		name,
+		createdAt: new Date('2025-01-02T03:04:05.000Z'),
+		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 		factions: [{ id: factionId, name: 'Adventurers' }],
 		npcTypes: [],
 		initiativeRollModes: { characters: 'manual', npcs: 'app' },
@@ -242,6 +244,7 @@ describe('challenge file workflows', () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
 
 		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const copyStartedAt = new Date();
 		const preparedImport = prepareChallengeImport(library, readResult, {
 			resolution: 'copy'
 		});
@@ -251,6 +254,11 @@ describe('challenge file workflows', () => {
 		const validation = validateChallengeLibrary(updatedLibrary);
 
 		expect(copiedChallenge.id).not.toBe(challengeId);
+		expect(copiedChallenge.createdAt).not.toBe(library.challenges[0]?.createdAt);
+		expect(copiedChallenge.updatedAt).not.toBe(library.challenges[0]?.updatedAt);
+		expect(copiedChallenge.createdAt.getTime()).toBeGreaterThanOrEqual(copyStartedAt.getTime());
+		expect(copiedChallenge.updatedAt.getTime()).toBe(copiedChallenge.createdAt.getTime());
+		expect(copiedChallenge.createdAt).not.toBe(copiedChallenge.updatedAt);
 		expect(copiedChallenge.creatures[0]?.id).not.toBe(creatureId);
 		expect(copiedChallenge.creatures[0]?.turns[0]?.id).not.toBe(turnId);
 		expect(copiedChallenge.runState?.initiativeResults).toEqual({
@@ -265,6 +273,8 @@ describe('challenge file workflows', () => {
 			copiedChallenge.creatures[0]?.turns[1]?.id
 		]);
 		expect(updatedLibrary.challenges).toHaveLength(2);
+		expect(updatedLibrary.challenges[0]?.createdAt).toBeInstanceOf(Date);
+		expect(updatedLibrary.challenges[1]?.createdAt).toBeInstanceOf(Date);
 		expect(validation.isValid).toBe(true);
 	});
 

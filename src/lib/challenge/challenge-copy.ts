@@ -6,9 +6,11 @@ import type { Challenge, ChallengeCreature, TurnInitiative } from './model';
  */
 export type DeepReadonly<T> = T extends readonly (infer U)[]
 	? readonly DeepReadonly<U>[]
-	: T extends object
-		? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-		: T;
+	: T extends Date
+		? Date
+		: T extends object
+			? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+			: T;
 
 function copyInitiative(initiative: DeepReadonly<TurnInitiative> | null): TurnInitiative | null {
 	if (initiative === null) return null;
@@ -70,6 +72,8 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 	return {
 		id: challenge.id,
 		name: challenge.name,
+		createdAt: new Date(challenge.createdAt.getTime()),
+		updatedAt: new Date(challenge.updatedAt.getTime()),
 		factions: challenge.factions.map(({ id, name }) => ({ id, name })),
 		npcTypes: challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
 			id,

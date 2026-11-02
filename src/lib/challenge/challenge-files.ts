@@ -257,6 +257,8 @@ function importChallengeEntities(
 		challenge: {
 			id: challengeId,
 			name: challenge.name,
+			createdAt: new Date(challenge.createdAt.getTime()),
+			updatedAt: new Date(challenge.updatedAt.getTime()),
 			factions,
 			npcTypes,
 			initiativeRollModes: { ...challenge.initiativeRollModes },
@@ -316,7 +318,16 @@ function mergeImportedChallenge(
 		usedIds
 	);
 	const remapped = importChallengeEntities(importedChallenge, usedIds);
-	const remappedChallenge = sanitizeChallenge(remapped.challenge);
+	const sanitizedChallenge = sanitizeChallenge(remapped.challenge);
+	const copyTimestamp = options?.resolution === 'copy' ? new Date() : undefined;
+	const remappedChallenge =
+		copyTimestamp === undefined
+			? sanitizedChallenge
+			: {
+					...sanitizedChallenge,
+					createdAt: new Date(copyTimestamp.getTime()),
+					updatedAt: new Date(copyTimestamp.getTime())
+				};
 	const challenge: Challenge = {
 		...remappedChallenge,
 		creatures: remappedChallenge.creatures.map((creature) =>
