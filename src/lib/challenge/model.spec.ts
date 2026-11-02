@@ -23,22 +23,30 @@ const ids = {
 	secondTurnId: createUuid()
 } satisfies Record<string, StableId>;
 
-const initiativeExamples = [
-	{ kind: 'roll' },
-	{ kind: 'static', value: 8 },
-	{
-		kind: 'relative-position',
-		relation: 'after',
-		distance: 2,
-		targetTurnId: ids.turn
-	}
-] satisfies TurnInitiative[];
-
 const initiativeResults = {
 	[ids.turn]: 12
 } satisfies InitiativeResults;
 
 const generatedTurnOrder = [ids.turn, ids.secondTurn] satisfies GeneratedTurnOrder;
+
+const initiativeExamples = [
+	{ kind: 'roll' },
+	{ kind: 'static', value: 8 },
+	{ kind: 'fixed-position', from: 'top', position: 2 },
+	{ kind: 'fixed-position', from: 'bottom', position: 1 },
+	{
+		kind: 'relative-position',
+		relation: 'before',
+		distance: 0,
+		targetTurnId: ids.secondTurn
+	},
+	{
+		kind: 'relative-position',
+		relation: 'after',
+		distance: 2,
+		targetTurnId: ids.secondTurn
+	}
+] satisfies TurnInitiative[];
 
 const library = {
 	formatVersion: CHALLENGE_FORMAT_VERSION,
@@ -104,9 +112,574 @@ const library = {
 	]
 } satisfies ChallengeLibrary;
 
+function replaceAtPath(
+	value: unknown,
+	path: readonly (string | number)[],
+	replacement: unknown
+): unknown {
+	const [key, ...remainingPath] = path;
+	if (key === undefined) return replacement;
+
+	if (Array.isArray(value)) {
+		if (typeof key !== 'number' || key < 0 || key >= value.length) {
+			throw new Error('Invalid array path in validation test.');
+		}
+		const updated = [...value];
+		updated[key] = replaceAtPath(updated[key], remainingPath, replacement);
+		return updated;
+	}
+
+	if (typeof value !== 'object' || value === null) {
+		throw new Error('Invalid object path in validation test.');
+	}
+
+	const property = String(key);
+	return {
+		...value,
+		[property]: replaceAtPath(
+			(value as Record<string, unknown>)[property],
+			remainingPath,
+			replacement
+		)
+	};
+}
+
+const invalidFieldCases = [
+	{
+		field: 'formatVersion',
+		path: ['formatVersion'],
+		value: 2,
+		issuePath: '$.formatVersion',
+		message: 'Unsupported challenge library version.'
+	},
+	{
+		field: 'characters collection',
+		path: ['characters'],
+		value: null,
+		issuePath: '$.characters',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'character object',
+		path: ['characters', 0],
+		value: null,
+		issuePath: '$.characters[0]',
+		message: 'Expected a character object.'
+	},
+	{
+		field: 'character id',
+		path: ['characters', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.characters[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'character name',
+		path: ['characters', 0, 'name'],
+		value: 4,
+		issuePath: '$.characters[0].name',
+		message: 'Expected a string.'
+	},
+	{
+		field: 'challenges collection',
+		path: ['challenges'],
+		value: null,
+		issuePath: '$.challenges',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'challenge object',
+		path: ['challenges', 0],
+		value: null,
+		issuePath: '$.challenges[0]',
+		message: 'Expected a challenge object.'
+	},
+	{
+		field: 'challenge id',
+		path: ['challenges', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'challenge name',
+		path: ['challenges', 0, 'name'],
+		value: 4,
+		issuePath: '$.challenges[0].name',
+		message: 'Expected a string.'
+	},
+	{
+		field: 'factions collection',
+		path: ['challenges', 0, 'factions'],
+		value: null,
+		issuePath: '$.challenges[0].factions',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'faction object',
+		path: ['challenges', 0, 'factions', 0],
+		value: null,
+		issuePath: '$.challenges[0].factions[0]',
+		message: 'Expected a faction object.'
+	},
+	{
+		field: 'faction id',
+		path: ['challenges', 0, 'factions', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].factions[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'faction name',
+		path: ['challenges', 0, 'factions', 0, 'name'],
+		value: 4,
+		issuePath: '$.challenges[0].factions[0].name',
+		message: 'Expected a string.'
+	},
+	{
+		field: 'NPC types collection',
+		path: ['challenges', 0, 'npcTypes'],
+		value: null,
+		issuePath: '$.challenges[0].npcTypes',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'NPC type object',
+		path: ['challenges', 0, 'npcTypes', 0],
+		value: null,
+		issuePath: '$.challenges[0].npcTypes[0]',
+		message: 'Expected an NPC type object.'
+	},
+	{
+		field: 'NPC type id',
+		path: ['challenges', 0, 'npcTypes', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].npcTypes[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'NPC type name',
+		path: ['challenges', 0, 'npcTypes', 0, 'name'],
+		value: 4,
+		issuePath: '$.challenges[0].npcTypes[0].name',
+		message: 'Expected a string.'
+	},
+	{
+		field: 'NPC initiative stat',
+		path: ['challenges', 0, 'npcTypes', 0, 'initiativeStat'],
+		value: 0,
+		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
+		message: 'Expected a positive whole number.'
+	},
+	{
+		field: 'fractional NPC initiative stat',
+		path: ['challenges', 0, 'npcTypes', 0, 'initiativeStat'],
+		value: 1.5,
+		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
+		message: 'Expected a positive whole number.'
+	},
+	{
+		field: 'initiative roll modes object',
+		path: ['challenges', 0, 'initiativeRollModes'],
+		value: null,
+		issuePath: '$.challenges[0].initiativeRollModes',
+		message: 'Expected an initiative roll modes object.'
+	},
+	{
+		field: 'character initiative roll mode',
+		path: ['challenges', 0, 'initiativeRollModes', 'characters'],
+		value: 'automatic',
+		issuePath: '$.challenges[0].initiativeRollModes.characters',
+		message: 'Expected "manual" or "app".'
+	},
+	{
+		field: 'NPC initiative roll mode',
+		path: ['challenges', 0, 'initiativeRollModes', 'npcs'],
+		value: 'automatic',
+		issuePath: '$.challenges[0].initiativeRollModes.npcs',
+		message: 'Expected "manual" or "app".'
+	},
+	{
+		field: 'creatures collection',
+		path: ['challenges', 0, 'creatures'],
+		value: null,
+		issuePath: '$.challenges[0].creatures',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'creature object',
+		path: ['challenges', 0, 'creatures', 0],
+		value: null,
+		issuePath: '$.challenges[0].creatures[0]',
+		message: 'Expected a creature object.'
+	},
+	{
+		field: 'creature kind',
+		path: ['challenges', 0, 'creatures', 0, 'kind'],
+		value: 'beast',
+		issuePath: '$.challenges[0].creatures[0].kind',
+		message: 'Expected "character" or "npc".'
+	},
+	{
+		field: 'character creature id',
+		path: ['challenges', 0, 'creatures', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'character creature character id',
+		path: ['challenges', 0, 'creatures', 0, 'characterId'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[0].characterId',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'character creature faction id',
+		path: ['challenges', 0, 'creatures', 0, 'factionId'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[0].factionId',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'character creature turns',
+		path: ['challenges', 0, 'creatures', 0, 'turns'],
+		value: null,
+		issuePath: '$.challenges[0].creatures[0].turns',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'turn object',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0],
+		value: null,
+		issuePath: '$.challenges[0].creatures[0].turns[0]',
+		message: 'Expected a turn object.'
+	},
+	{
+		field: 'turn id',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[0].turns[0].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'turn visibility',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'isHidden'],
+		value: 'no',
+		issuePath: '$.challenges[0].creatures[0].turns[0].isHidden',
+		message: 'Expected a boolean.'
+	},
+	{
+		field: 'turn initiative',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: undefined,
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative',
+		message: 'Expected an initiative object.'
+	},
+	{
+		field: 'initiative kind',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative', 'kind'],
+		value: 'random',
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.kind',
+		message: 'Expected a supported initiative kind.'
+	},
+	{
+		field: 'static initiative value',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: { kind: 'static', value: Number.NaN },
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.value',
+		message: 'Expected a finite initiative value.'
+	},
+	{
+		field: 'fixed initiative position origin',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 1, 'initiative'],
+		value: { kind: 'fixed-position', from: 'middle', position: 1 },
+		issuePath: '$.challenges[0].creatures[0].turns[1].initiative.from',
+		message: 'Expected "top" or "bottom".'
+	},
+	{
+		field: 'fixed initiative position',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 1, 'initiative'],
+		value: { kind: 'fixed-position', from: 'bottom', position: 0 },
+		issuePath: '$.challenges[0].creatures[0].turns[1].initiative.position',
+		message: 'Expected a positive whole-number position.'
+	},
+	{
+		field: 'fractional fixed initiative position',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 1, 'initiative'],
+		value: { kind: 'fixed-position', from: 'bottom', position: 1.5 },
+		issuePath: '$.challenges[0].creatures[0].turns[1].initiative.position',
+		message: 'Expected a positive whole-number position.'
+	},
+	{
+		field: 'relative initiative relation',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'alongside',
+			distance: 1,
+			targetTurnId: ids.secondTurn
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.relation',
+		message: 'Expected "before" or "after".'
+	},
+	{
+		field: 'relative initiative distance',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			distance: -1,
+			targetTurnId: ids.secondTurn
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.distance',
+		message: 'Expected a non-negative whole-number distance.'
+	},
+	{
+		field: 'fractional relative initiative distance',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 1.5,
+			targetTurnId: ids.secondTurn
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.distance',
+		message: 'Expected a non-negative whole-number distance.'
+	},
+	{
+		field: 'relative initiative target id',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 1,
+			targetTurnId: 'invalid'
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'NPC creature id',
+		path: ['challenges', 0, 'creatures', 1, 'id'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[1].id',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'NPC creature type id',
+		path: ['challenges', 0, 'creatures', 1, 'creatureTypeId'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[1].creatureTypeId',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'NPC creature identifier',
+		path: ['challenges', 0, 'creatures', 1, 'identifier'],
+		value: 4,
+		issuePath: '$.challenges[0].creatures[1].identifier',
+		message: 'Expected a string.'
+	},
+	{
+		field: 'NPC creature faction id',
+		path: ['challenges', 0, 'creatures', 1, 'factionId'],
+		value: 'invalid',
+		issuePath: '$.challenges[0].creatures[1].factionId',
+		message: 'Expected a valid UUID.'
+	},
+	{
+		field: 'NPC creature turns',
+		path: ['challenges', 0, 'creatures', 1, 'turns'],
+		value: null,
+		issuePath: '$.challenges[0].creatures[1].turns',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'run state object',
+		path: ['challenges', 0, 'runState'],
+		value: null,
+		issuePath: '$.challenges[0].runState',
+		message: 'Expected a run state object.'
+	},
+	{
+		field: 'initiative results object',
+		path: ['challenges', 0, 'runState', 'initiativeResults'],
+		value: null,
+		issuePath: '$.challenges[0].runState.initiativeResults',
+		message: 'Expected an object keyed by turn UUID.'
+	},
+	{
+		field: 'initiative results turn id',
+		path: ['challenges', 0, 'runState', 'initiativeResults'],
+		value: { invalid: 12 },
+		issuePath: '$.challenges[0].runState.initiativeResults.invalid',
+		message: 'Expected a valid turn UUID key.'
+	},
+	{
+		field: 'initiative results value',
+		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
+		value: 'fast',
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
+		message: 'Expected a finite initiative value.'
+	},
+	{
+		field: 'generated turn order array',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: null,
+		issuePath: '$.challenges[0].runState.generatedTurnOrder',
+		message: 'Expected an array.'
+	},
+	{
+		field: 'generated turn order id',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder', 0],
+		value: 'invalid',
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[0]',
+		message: 'Expected a valid UUID.'
+	}
+];
+
+const missingTurnId = createUuid();
+
+const invalidReferenceCases = [
+	{
+		field: 'character creature character reference',
+		path: ['challenges', 0, 'creatures', 0, 'characterId'],
+		value: createUuid(),
+		issuePath: '$.challenges[0].creatures[0].characterId',
+		message: 'References a reusable character that does not exist.'
+	},
+	{
+		field: 'character creature faction reference',
+		path: ['challenges', 0, 'creatures', 0, 'factionId'],
+		value: createUuid(),
+		issuePath: '$.challenges[0].creatures[0].factionId',
+		message: 'References a faction that does not exist.'
+	},
+	{
+		field: 'NPC creature faction reference',
+		path: ['challenges', 0, 'creatures', 1, 'factionId'],
+		value: createUuid(),
+		issuePath: '$.challenges[0].creatures[1].factionId',
+		message: 'References a faction that does not exist.'
+	},
+	{
+		field: 'NPC creature type reference',
+		path: ['challenges', 0, 'creatures', 1, 'creatureTypeId'],
+		value: createUuid(),
+		issuePath: '$.challenges[0].creatures[1].creatureTypeId',
+		message: 'References an NPC type that does not exist.'
+	},
+	{
+		field: 'relative initiative target reference',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 1,
+			targetTurnId: createUuid()
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'relative initiative self-reference',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 1,
+			targetTurnId: ids.turn
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
+		message: 'A turn cannot be positioned relative to itself.'
+	},
+	{
+		field: 'initiative result turn reference',
+		path: ['challenges', 0, 'runState', 'initiativeResults'],
+		value: { [missingTurnId]: 12 },
+		issuePath: `$.challenges[0].runState.initiativeResults.${missingTurnId}`,
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'initiative result for a non-roll turn',
+		path: ['challenges', 0, 'runState', 'initiativeResults'],
+		value: { [ids.secondTurn]: 12 },
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.secondTurn}`,
+		message: 'Initiative results can only be stored for turns configured to roll.'
+	},
+	{
+		field: 'generated turn order turn reference',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: [missingTurnId],
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[0]',
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'duplicate generated turn order entry',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: [ids.turn, ids.turn],
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[1]',
+		message: 'Turn appears more than once in the order.'
+	}
+];
+
 describe('challenge domain models', () => {
 	it('accepts a structurally and referentially valid challenge library', () => {
 		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
+	});
+
+	it.each([null, [], 42])('rejects a non-object challenge library: %s', (value) => {
+		expect(validateChallengeLibrary(value)).toEqual({
+			isValid: false,
+			issues: [{ path: '$', message: 'Expected a challenge library object.' }]
+		});
+	});
+
+	it('accepts a challenge without optional run state', () => {
+		const libraryWithoutRunState: ChallengeLibrary = structuredClone(library);
+		delete libraryWithoutRunState.challenges[0].runState;
+
+		expect(validateChallengeLibrary(libraryWithoutRunState)).toEqual({
+			isValid: true,
+			value: libraryWithoutRunState
+		});
+	});
+
+	it.each(invalidFieldCases)('rejects invalid $field', ({ path, value, issuePath, message }) => {
+		const invalidLibrary = replaceAtPath(
+			replaceAtPath(library, ['challenges', 0, 'runState', 'initiativeResults'], {}),
+			path,
+			value
+		);
+		const result = validateChallengeLibrary(invalidLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({ path: issuePath, message });
+		}
+	});
+
+	it.each(invalidReferenceCases)(
+		'rejects invalid $field',
+		({ path, value, issuePath, message }) => {
+			const invalidLibrary = replaceAtPath(library, path, value);
+			const result = validateChallengeLibrary(invalidLibrary);
+
+			expect(result.isValid).toBe(false);
+			if (!result.isValid) {
+				expect(result.issues).toContainEqual({ path: issuePath, message });
+			}
+		}
+	);
+
+	it.each(initiativeExamples)('accepts the "$kind" initiative rule', (initiative) => {
+		const validLibrary = replaceAtPath(
+			replaceAtPath(library, ['challenges', 0, 'runState', 'initiativeResults'], {}),
+			['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+			initiative
+		);
+
+		expect(validateChallengeLibrary(validLibrary).isValid).toBe(true);
 	});
 
 	it('reports malformed values and broken references with their paths', () => {
@@ -255,6 +828,9 @@ describe('challenge domain models', () => {
 		expect(initiativeExamples.map(({ kind }) => kind)).toEqual([
 			'roll',
 			'static',
+			'fixed-position',
+			'fixed-position',
+			'relative-position',
 			'relative-position'
 		]);
 	});
