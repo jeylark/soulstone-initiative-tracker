@@ -24,6 +24,69 @@ export default defineConfig(
 		}
 	},
 	{
+		files: ['src/**/*.{js,ts,svelte}'],
+		languageOptions: {
+			parserOptions: {
+				projectService: true,
+				extraFileExtensions: ['.svelte']
+			}
+		},
+		rules: {
+			'@typescript-eslint/naming-convention': [
+				'error',
+				{
+					selector: 'typeLike',
+					format: ['PascalCase'],
+					custom: {
+						regex: '^(?!.*[A-Z]{2,})[A-Z][A-Za-z0-9]*$',
+						match: true
+					}
+				},
+				{
+					selector: 'import',
+					format: ['camelCase', 'PascalCase'],
+					custom: {
+						regex: '^(?:(?!.*[A-Z]{2,})[a-z][A-Za-z0-9]*|[A-Z][A-Za-z0-9]*)$',
+						match: true
+					}
+				},
+				{
+					selector: 'variable',
+					format: ['camelCase', 'UPPER_CASE'],
+					custom: {
+						regex: '^(?:(?!.*[A-Z]{2,})[a-z][A-Za-z0-9]*|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*)$',
+						match: true
+					}
+				},
+				{
+					selector: ['variable', 'parameter', 'property', 'accessor'],
+					types: ['boolean'],
+					format: null,
+					custom: {
+						regex: '^(is|has|can)[A-Z]',
+						match: true
+					}
+				},
+				{
+					selector: ['property', 'parameter', 'function', 'method', 'accessor'],
+					format: ['camelCase'],
+					custom: {
+						regex: '^(?!.*[A-Z]{2,})[a-z][A-Za-z0-9]*$',
+						match: true
+					}
+				},
+				{
+					selector: 'default',
+					format: ['camelCase'],
+					custom: {
+						regex: '^(?!.*[A-Z]{2,})[a-z][A-Za-z0-9]*$',
+						match: true
+					}
+				}
+			]
+		}
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {
