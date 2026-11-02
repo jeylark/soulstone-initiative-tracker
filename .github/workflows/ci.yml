@@ -28,6 +28,9 @@ jobs:
       - name: Check formatting and lint
         run: npm run lint
 
+      - name: Run tests
+        run: npm test
+
       - name: Check types and Svelte
         run: npm run check
 

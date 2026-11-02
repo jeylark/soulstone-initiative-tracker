@@ -18,6 +18,7 @@ challenges, and joining live sessions are not connected yet.
 
 ```sh
 npm run lint
+npm test
 npm run check
 npm run build
 ```
