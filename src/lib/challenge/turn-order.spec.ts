@@ -15,7 +15,10 @@ function createTurn(initiative: Readonly<TurnInitiative> | null): Turn {
 	return { id: createUuid(), isHidden: false, initiative };
 }
 
-function createCreature(factionId: StableId, turns: readonly DeepReadonly<Turn>[]): ChallengeCreature {
+function createCreature(
+	factionId: StableId,
+	turns: readonly DeepReadonly<Turn>[]
+): ChallengeCreature {
 	return {
 		id: createUuid(),
 		kind: 'npc',
@@ -26,7 +29,9 @@ function createCreature(factionId: StableId, turns: readonly DeepReadonly<Turn>[
 	};
 }
 
-function createChallenge(creatures: readonly DeepReadonly<ChallengeCreature>[] = []): DeepReadonly<Challenge> {
+function createChallenge(
+	creatures: readonly DeepReadonly<ChallengeCreature>[] = []
+): DeepReadonly<Challenge> {
 	return {
 		id: createUuid(),
 		name: 'Turn order test',
@@ -138,7 +143,10 @@ describe('generateTurnOrder', () => {
 		const fourth = staticTurn(5);
 
 		expect(
-			order([createCreature(factionId, [first, second, third]), createCreature(factionId, [fourth])])
+			order([
+				createCreature(factionId, [first, second, third]),
+				createCreature(factionId, [fourth])
+			])
 		).toEqual([first.id, second.id, fourth.id, third.id]);
 	});
 
