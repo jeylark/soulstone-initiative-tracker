@@ -144,15 +144,43 @@ describe('challenge and library JSON files', () => {
 		await expect(readChallengeLibraryJsonFile(file)).resolves.toEqual(library);
 	});
 
-	it('reads a single challenge JSON file', async () => {
+	it('reads a single challenge JSON file with an explicit complete result', async () => {
 		const file = new File([createChallengeJson(library, firstChallengeId)], 'challenge.json', {
 			type: 'application/json'
 		});
 
 		await expect(readChallengeJsonFile(file)).resolves.toEqual({
-			formatVersion: 1,
-			characters: [library.characters[0]],
-			challenges: [library.challenges[0]]
+			content: {
+				formatVersion: 1,
+				characters: [library.characters[0]],
+				challenges: [library.challenges[0]]
+			},
+			unreadableFields: [],
+			isPartial: false
+		});
+	});
+
+	it('returns recoverable content and unreadable fields for a partial read', async () => {
+		const partialFile = new File(
+			[
+				JSON.stringify({
+					formatVersion: 1,
+					characters: [library.characters[0], { id: 'invalid-id', name: 'Broken' }],
+					challenges: [library.challenges[0]]
+				})
+			],
+			'challenge.json',
+			{ type: 'application/json' }
+		);
+
+		await expect(readChallengeJsonFile(partialFile)).resolves.toEqual({
+			content: {
+				formatVersion: 1,
+				characters: [library.characters[0]],
+				challenges: [library.challenges[0]]
+			},
+			unreadableFields: [expect.objectContaining({ path: '$.characters[1].id' })],
+			isPartial: true
 		});
 	});
 

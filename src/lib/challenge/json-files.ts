@@ -44,9 +44,10 @@ export class ChallengeJsonFileError extends Error {
 	}
 }
 
-export interface PartialChallengeFile {
-	readonly library: DeepReadonly<ChallengeLibrary>;
-	readonly issues: readonly ValidationIssue[];
+export interface ChallengeFileReadResult {
+	readonly content: DeepReadonly<ChallengeLibrary>;
+	readonly unreadableFields: readonly ValidationIssue[];
+	readonly isPartial: boolean;
 }
 
 function parseJson(json: string): unknown {
@@ -201,7 +202,7 @@ function rebaseValidationIssues(
 	}));
 }
 
-function getPartiallyValidatedChallengeFile(value: unknown): PartialChallengeFile {
+function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 	if (!isRecord(value)) {
 		throw new ChallengeJsonFileError('invalid-library', 'The challenge file is not an object.', [
 			{ path: '$', message: 'Expected a challenge library object.' }
@@ -270,13 +271,15 @@ function getPartiallyValidatedChallengeFile(value: unknown): PartialChallengeFil
 		}
 	}
 
+	const content = sanitizeLibrary({
+		formatVersion: 1,
+		characters,
+		challenges: challenge ? [challenge] : []
+	});
 	return {
-		library: sanitizeLibrary({
-			formatVersion: 1,
-			characters,
-			challenges: challenge ? [challenge] : []
-		}),
-		issues
+		content,
+		unreadableFields: issues,
+		isPartial: issues.length > 0
 	};
 }
 
@@ -411,14 +414,9 @@ export async function readChallengeLibraryJsonFile(
 	return parseLibrary(await readFile(file));
 }
 
-/** Reads a single-challenge JSON file from a browser-selected file. */
-export async function readChallengeJsonFile(file: Readonly<File>): Promise<ChallengeLibrary> {
-	return parseChallengeJson(await readFile(file));
-}
-
-/** Reads a challenge file while retaining independently valid characters and challenge data. */
-export async function readChallengeJsonFilePartially(
+/** Reads a single-challenge file and reports content that could not be recovered. */
+export async function readChallengeJsonFile(
 	file: Readonly<File>
-): Promise<PartialChallengeFile> {
-	return getPartiallyValidatedChallengeFile(parseJson(await readFile(file)));
+): Promise<ChallengeFileReadResult> {
+	return getChallengeFileReadResult(parseJson(await readFile(file)));
 }

@@ -1,11 +1,11 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Challenge, ChallengeLibrary, StableId } from './model';
-import { createChallengeJson } from './json-files';
+import { createChallengeJson, readChallengeJsonFile } from './json-files';
 import {
 	ChallengeImportError,
-	loadChallengeFromJsonFile,
-	loadCharactersFromChallengeJsonFile,
+	prepareChallengeImport,
+	prepareCharacterImport,
 	PartialChallengeImportError,
 	saveChallengeToJsonFile
 } from './challenge-files';
@@ -62,6 +62,7 @@ const library: ChallengeLibrary = {
 	characters: [{ id: characterId, name: 'Aria' }],
 	challenges: [createChallenge()]
 };
+const emptyLibrary: ChallengeLibrary = { formatVersion: 1, characters: [], challenges: [] };
 
 function deleteDatabase(): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -74,6 +75,10 @@ function deleteDatabase(): Promise<void> {
 
 function createJsonFile(json: string): File {
 	return new File([json], 'challenge.json', { type: 'application/json' });
+}
+
+async function readChallengeFile(json: string) {
+	return readChallengeJsonFile(createJsonFile(json));
 }
 
 function stubObjectUrl(
@@ -110,16 +115,14 @@ describe('challenge file workflows', () => {
 		expect(click).toHaveBeenCalledOnce();
 	});
 
-	it('loads a single challenge and its characters into the library', async () => {
-		const challengeFile = createJsonFile(createChallengeJson(library, challengeId));
+	it('prepares a single challenge import without persisting it', async () => {
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const preparedImport = prepareChallengeImport(emptyLibrary, readResult);
 
-		const loadedChallenge = await loadChallengeFromJsonFile(
-			challengeFile,
-			undefined,
-			indexedDbFactory
-		);
-
-		expect(loadedChallenge).toEqual(library.challenges[0]);
+		expect(preparedImport.challenge).toEqual(library.challenges[0]);
+		expect(preparedImport.library).toEqual(library);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
@@ -131,21 +134,25 @@ describe('challenge file workflows', () => {
 			})
 		);
 
-		await expect(
-			loadChallengeFromJsonFile(partialFile, undefined, indexedDbFactory)
-		).rejects.toMatchObject({
-			code: 'partial-import-required',
-			issues: [expect.objectContaining({ path: '$.characters[1].id' })]
-		});
+		const readResult = await readChallengeJsonFile(partialFile);
+
+		expect(() => prepareChallengeImport(emptyLibrary, readResult)).toThrow(
+			expect.objectContaining({
+				code: 'partial-import-required',
+				issues: [expect.objectContaining({ path: '$.characters[1].id' })]
+			})
+		);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			formatVersion: 1,
 			characters: [],
 			challenges: []
 		});
 
-		await expect(
-			loadChallengeFromJsonFile(partialFile, { partialImport: 'import-valid' }, indexedDbFactory)
-		).resolves.toEqual(library.challenges[0]);
+		const preparedImport = prepareChallengeImport(emptyLibrary, readResult, {
+			partialImport: 'import-valid'
+		});
+		expect(preparedImport.challenge).toEqual(library.challenges[0]);
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
@@ -157,14 +164,14 @@ describe('challenge file workflows', () => {
 			})
 		);
 
-		await expect(
-			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory)
-		).rejects.toBeInstanceOf(PartialChallengeImportError);
-		await expect(
-			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory, {
-				partialImport: 'import-valid'
-			})
-		).resolves.toEqual(library.characters);
+		const readResult = await readChallengeJsonFile(partialFile);
+
+		expect(() => prepareCharacterImport(emptyLibrary, readResult)).toThrow(
+			PartialChallengeImportError
+		);
+		const preparedImport = prepareCharacterImport(emptyLibrary, readResult, 'import-valid');
+		expect(preparedImport.importedCharacters).toEqual(library.characters);
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			formatVersion: 1,
 			characters: library.characters,
@@ -180,11 +187,11 @@ describe('challenge file workflows', () => {
 			})
 		);
 
-		await expect(
-			loadCharactersFromChallengeJsonFile(partialFile, indexedDbFactory, {
-				partialImport: 'abort'
-			})
-		).rejects.toMatchObject({ code: 'partial-import-aborted' });
+		const readResult = await readChallengeJsonFile(partialFile);
+
+		expect(() => prepareCharacterImport(emptyLibrary, readResult, 'abort')).toThrow(
+			expect.objectContaining({ code: 'partial-import-aborted' })
+		);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			formatVersion: 1,
 			characters: [],
@@ -194,25 +201,25 @@ describe('challenge file workflows', () => {
 
 	it('requires an explicit choice when the challenge ID already exists', async () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
-		const challengeFile = createJsonFile(createChallengeJson(library, challengeId));
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
 
-		await expect(
-			loadChallengeFromJsonFile(challengeFile, undefined, indexedDbFactory)
-		).rejects.toMatchObject({ code: 'challenge-conflict', challengeId });
+		expect(() => prepareChallengeImport(library, readResult)).toThrow(
+			expect.objectContaining({ code: 'challenge-conflict', challengeId })
+		);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
 	it('does not replace a challenge that is active', async () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
 		const replacement = { ...library, challenges: [createChallenge(challengeId, 'Updated')] };
+		const readResult = await readChallengeFile(createChallengeJson(replacement, challengeId));
 
-		await expect(
-			loadChallengeFromJsonFile(
-				createJsonFile(createChallengeJson(replacement, challengeId)),
-				{ resolution: 'replace', activeChallengeIds: new Set([challengeId]) },
-				indexedDbFactory
-			)
-		).rejects.toBeInstanceOf(ChallengeImportError);
+		expect(() =>
+			prepareChallengeImport(library, readResult, {
+				resolution: 'replace',
+				activeChallengeIds: new Set([challengeId])
+			})
+		).toThrow(ChallengeImportError);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
@@ -220,24 +227,26 @@ describe('challenge file workflows', () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
 		const replacement = { ...library, challenges: [createChallenge(challengeId, 'Updated')] };
 
-		const imported = await loadChallengeFromJsonFile(
-			createJsonFile(createChallengeJson(replacement, challengeId)),
-			{ resolution: 'replace', activeChallengeIds: new Set() },
-			indexedDbFactory
-		);
+		const readResult = await readChallengeFile(createChallengeJson(replacement, challengeId));
+		const preparedImport = prepareChallengeImport(library, readResult, {
+			resolution: 'replace',
+			activeChallengeIds: new Set()
+		});
 
-		expect(imported.name).toBe('Updated');
+		expect(preparedImport.challenge.name).toBe('Updated');
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(replacement);
 	});
 
 	it('imports a copy with fresh IDs and preserved references and run state', async () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
 
-		const copiedChallenge = await loadChallengeFromJsonFile(
-			createJsonFile(createChallengeJson(library, challengeId)),
-			{ resolution: 'copy' },
-			indexedDbFactory
-		);
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const preparedImport = prepareChallengeImport(library, readResult, {
+			resolution: 'copy'
+		});
+		const copiedChallenge = preparedImport.challenge;
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		const updatedLibrary = await loadChallengeLibrary(indexedDbFactory);
 		const validation = validateChallengeLibrary(updatedLibrary);
 
@@ -266,11 +275,12 @@ describe('challenge file workflows', () => {
 			characters: [{ id: characterId, name: 'Different Aria' }]
 		};
 
-		const copiedChallenge = await loadChallengeFromJsonFile(
-			createJsonFile(createChallengeJson(changedCharacterLibrary, challengeId)),
-			{ resolution: 'copy' },
-			indexedDbFactory
+		const readResult = await readChallengeFile(
+			createChallengeJson(changedCharacterLibrary, challengeId)
 		);
+		const preparedImport = prepareChallengeImport(library, readResult, { resolution: 'copy' });
+		const copiedChallenge = preparedImport.challenge;
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		const updatedLibrary = await loadChallengeLibrary(indexedDbFactory);
 		const importedCharacterId =
 			copiedChallenge.creatures[0]?.kind === 'character'
@@ -286,12 +296,11 @@ describe('challenge file workflows', () => {
 	});
 
 	it('loads characters from a challenge file without importing its challenge', async () => {
-		const importedCharacters = await loadCharactersFromChallengeJsonFile(
-			createJsonFile(createChallengeJson(library, challengeId)),
-			indexedDbFactory
-		);
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const preparedImport = prepareCharacterImport(emptyLibrary, readResult);
 
-		expect(importedCharacters).toEqual(library.characters);
+		expect(preparedImport.importedCharacters).toEqual(library.characters);
+		await saveChallengeLibrary(preparedImport.library, indexedDbFactory);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			formatVersion: 1,
 			characters: library.characters,
@@ -302,12 +311,10 @@ describe('challenge file workflows', () => {
 	it('does not duplicate reusable characters already in the database', async () => {
 		await saveChallengeLibrary(library, indexedDbFactory);
 
-		const importedCharacters = await loadCharactersFromChallengeJsonFile(
-			createJsonFile(createChallengeJson(library, challengeId)),
-			indexedDbFactory
-		);
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const preparedImport = prepareCharacterImport(library, readResult);
 
-		expect(importedCharacters).toEqual(library.characters);
+		expect(preparedImport.importedCharacters).toEqual(library.characters);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 });

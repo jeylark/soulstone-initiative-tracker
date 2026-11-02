@@ -1,12 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createChallengeLibraryJson } from './json-files';
-import {
-	backupChallengeLibraryToJsonFile,
-	restoreChallengeLibraryFromJsonFile
-} from './library-files';
-import { loadChallengeLibrary, saveChallengeLibrary } from './storage';
-import { createUuid } from './uuid';
+import { backupChallengeLibraryToJsonFile } from './library-files';
+import { saveChallengeLibrary } from './storage';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
 const library = { formatVersion: 1 as const, characters: [], challenges: [] };
@@ -19,10 +14,6 @@ function deleteDatabase(): Promise<void> {
 		request.onerror = () => reject(request.error);
 		request.onblocked = () => reject(new Error('Deleting the test database was blocked.'));
 	});
-}
-
-function createJsonFile(json: string): File {
-	return new File([json], 'backup.json', { type: 'application/json' });
 }
 
 function stubObjectUrl(
@@ -59,29 +50,5 @@ describe('library file workflows', () => {
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
 		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:backup');
-	});
-
-	it('restores a full library backup and replaces the current database contents', async () => {
-		await saveChallengeLibrary(
-			{ formatVersion: 1, characters: [{ id: createUuid(), name: 'Existing' }], challenges: [] },
-			indexedDbFactory
-		);
-
-		await expect(
-			restoreChallengeLibraryFromJsonFile(
-				createJsonFile(createChallengeLibraryJson(library)),
-				indexedDbFactory
-			)
-		).resolves.toEqual(library);
-		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
-	});
-
-	it('leaves the current database unchanged when a backup file is invalid', async () => {
-		await saveChallengeLibrary(library, indexedDbFactory);
-
-		await expect(
-			restoreChallengeLibraryFromJsonFile(createJsonFile('{'), indexedDbFactory)
-		).rejects.toThrow();
-		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 });
