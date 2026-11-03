@@ -8,6 +8,6 @@
 		"Set-Content": true,
 		"Out-Null": true,
 		"git add": true,
-		"npm test": true,
+		"npm test": true
 	}
 }
