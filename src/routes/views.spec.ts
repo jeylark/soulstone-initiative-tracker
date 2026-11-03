@@ -34,8 +34,8 @@ describe('new challenge setup', () => {
 		expect(fairnessWeight.getAttribute('max')).toBe('10');
 		expect(fairnessWeight.getAttribute('step')).toBe('0.01');
 		expect(screen.getByText('0.00', { selector: 'output' })).toBeTruthy();
-		expect(screen.getByRole('combobox', { name: 'Character initiative' })).toBeTruthy();
-		expect(screen.getByRole('combobox', { name: 'NPC initiative' })).toBeTruthy();
+		expect(screen.queryByRole('combobox', { name: 'Character initiative' })).toBeNull();
+		expect(screen.queryByRole('combobox', { name: 'NPC initiative' })).toBeNull();
 		expect(screen.getByRole('group', { name: 'Challenge settings' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'NPC types' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'Factions' })).toBeTruthy();

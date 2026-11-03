@@ -29,7 +29,6 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 		factions: [{ id: factionId, name: 'Adventurers' }],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight: 3,
 		creatures: [
 			{
@@ -83,6 +82,7 @@ describe('challenge and library JSON files', () => {
 			createdAt: library.challenges[0]?.createdAt.toISOString(),
 			updatedAt: library.challenges[0]?.updatedAt.toISOString()
 		});
+		expect(JSON.parse(json).challenges[0]).not.toHaveProperty('initiativeRollModes');
 	});
 
 	it('does not export unmodeled session credentials', () => {

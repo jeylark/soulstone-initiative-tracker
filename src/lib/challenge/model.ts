@@ -6,17 +6,6 @@ export const CHALLENGE_FORMAT_VERSION = 1 as const;
 /** UUID used to identify a saved entity or reference in the challenge model. */
 export type StableId = Uuid;
 
-/** Specifies whether initiative is entered by the DM or rolled by the app. */
-export type InitiativeRollMode = 'manual' | 'app';
-
-/** Initiative collection mode selected for each creature category. */
-export interface InitiativeRollModes {
-	/** How character initiative is collected. */
-	characters: InitiativeRollMode;
-	/** How NPC initiative is collected. */
-	npcs: InitiativeRollMode;
-}
-
 /** Rolled initiative values, keyed by turn ID; turns without a result are omitted. */
 export type InitiativeResults = Partial<Record<StableId, number>>;
 
@@ -30,12 +19,6 @@ export interface ChallengeRunState {
 	/** Generated order of turns, when one has been created. */
 	generatedTurnOrder?: GeneratedTurnOrder;
 }
-
-/** Default initiative collection modes for newly created challenges. */
-export const DEFAULT_INITIATIVE_ROLL_MODES = {
-	characters: 'manual',
-	npcs: 'app'
-} as const satisfies InitiativeRollModes;
 
 /** Persistent library containing reusable characters and saved challenges. */
 export interface ChallengeLibrary {
@@ -161,8 +144,6 @@ export interface Challenge {
 	factions: Faction[];
 	/** NPC types available to NPC creatures in this challenge. */
 	npcTypes: NpcType[];
-	/** Initiative collection mode for characters and NPCs. */
-	initiativeRollModes: InitiativeRollModes;
 	/** Non-negative weight balancing faction distribution against initiative when generating the turn order; 0 orders purely by initiative. */
 	fairnessWeight: number;
 	/** Character and NPC instances participating in this challenge. */

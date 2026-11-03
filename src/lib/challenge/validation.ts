@@ -6,8 +6,6 @@ import type {
 	ChallengeRunState,
 	CharacterCreature,
 	Faction,
-	InitiativeRollMode,
-	InitiativeRollModes,
 	NpcCreature,
 	NpcType,
 	PlayerCharacter,
@@ -276,35 +274,6 @@ function validateCreature(
 	return false;
 }
 
-function validateInitiativeRollMode(
-	value: unknown,
-	path: string,
-	addIssue: IssueRecorder
-): value is InitiativeRollMode {
-	if (value === 'manual' || value === 'app') return true;
-	addIssue(path, 'Expected "manual" or "app".');
-	return false;
-}
-
-function validateInitiativeRollModes(
-	value: unknown,
-	path: string,
-	addIssue: IssueRecorder
-): value is InitiativeRollModes {
-	if (!isRecord(value)) {
-		addIssue(path, 'Expected an initiative roll modes object.');
-		return false;
-	}
-
-	const isValidCharacters = validateInitiativeRollMode(
-		value.characters,
-		`${path}.characters`,
-		addIssue
-	);
-	const isValidNpcs = validateInitiativeRollMode(value.npcs, `${path}.npcs`, addIssue);
-	return isValidCharacters && isValidNpcs;
-}
-
 function validateRunState(
 	value: unknown,
 	path: string,
@@ -370,11 +339,6 @@ function validateChallenge(
 		addIssue,
 		validateNpcType
 	);
-	const isValidRollModes = validateInitiativeRollModes(
-		value.initiativeRollModes,
-		`${path}.initiativeRollModes`,
-		addIssue
-	);
 	const isValidFairnessWeight =
 		typeof value.fairnessWeight === 'number' &&
 		Number.isFinite(value.fairnessWeight) &&
@@ -400,7 +364,6 @@ function validateChallenge(
 		isValidUpdatedAt &&
 		isValidFactions &&
 		isValidNpcTypes &&
-		isValidRollModes &&
 		isValidFairnessWeight &&
 		isValidCreatures &&
 		isValidRunState

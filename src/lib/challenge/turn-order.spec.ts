@@ -40,7 +40,6 @@ function createChallenge(
 		updatedAt: new Date(),
 		factions: [],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight,
 		creatures: [...creatures]
 	};

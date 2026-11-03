@@ -1,11 +1,8 @@
 <script lang="ts">
 	import {
-		DEFAULT_INITIATIVE_ROLL_MODES,
 		createUuid,
 		type Challenge,
 		type Faction,
-		type InitiativeRollMode,
-		type InitiativeRollModes,
 		type NpcType,
 		type PlayerCharacter,
 		type StableId,
@@ -32,7 +29,6 @@
 			{ id: createUuid(), name: 'Enemies' }
 		],
 		npcTypes: [],
-		initiativeRollModes: { ...DEFAULT_INITIATIVE_ROLL_MODES },
 		fairnessWeight: 0,
 		creatures: []
 	});
@@ -45,10 +41,6 @@
 
 	function updateFairnessWeight(weight: number) {
 		challenge.fairnessWeight = weight;
-	}
-
-	function updateInitiativeRollMode(category: keyof InitiativeRollModes, mode: InitiativeRollMode) {
-		challenge.initiativeRollModes = { ...challenge.initiativeRollModes, [category]: mode };
 	}
 
 	function addFaction() {
@@ -268,10 +260,8 @@
 		<ChallengeSettings
 			name={challenge.name}
 			fairnessWeight={challenge.fairnessWeight}
-			initiativeRollModes={challenge.initiativeRollModes}
 			onNameChange={updateChallengeName}
 			onFairnessWeightChange={updateFairnessWeight}
-			onRollModeChange={updateInitiativeRollMode}
 		/>
 
 		<NpcTypeEditor

@@ -11,7 +11,7 @@ foundations.
 - [x] Connect the landing-page actions to create a challenge, open a saved
       challenge, and join a live session.
 - [ ] Build challenge setup and editing for factions, reusable characters, NPC
-      types, creatures, turns, initiative settings, and fairness weight.
+      types, creatures, turns, initiative placement, and fairness weight.
 - [ ] Support creature and turn ordering, zero or multiple turns per creature,
       and hide/show settings.
 - [ ] Reuse saved characters and support copying a challenge with fresh stable
@@ -21,9 +21,9 @@ foundations.
 
 ## 2. Initiative and encounter play
 
-- [ ] Collect initiative according to the character and NPC roll modes; app
-      rolls must roll the initiative stat in d6s and sum the highest three, or all
-      dice when fewer than three are rolled.
+- [ ] Collect initiative manually for player characters and by app roll for
+      NPCs; app rolls must roll the initiative stat in d6s and sum the highest
+      three, or all dice when fewer than three are rolled.
 - [ ] Preserve collected results when recalculating the order and provide an
       explicit reroll action.
 - [ ] Connect setup and collected results to turn-order generation, including

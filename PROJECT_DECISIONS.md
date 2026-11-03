@@ -16,7 +16,7 @@ This document records the product and architecture decisions discussed so far. I
 - Turn-order generation takes the ordered lists of initiative values and the hooked initiatives for each faction as inputs, and produces an ordered list of turns.
 - Each challenge stores a non-negative fairness weight that controls how strongly turn-order generation balances factions against initiative; 0 orders purely by initiative.
 - Fixed-position and relative-position hooks beyond either end of the list are clamped to the nearest available position. Placement hooks are applied in creature and turn setup order, except that a relative hook waits until its target is placed. Hooks whose target is missing or that form a cycle cause turn-order generation to be rejected, and the affected turns are shown to the DM.
-- By default, players roll and the DM enters their results; the app rolls for NPCs. The DM can choose otherwise.
+- Player character initiative is entered manually by default; NPC initiative is rolled by the app by default. Collection mode is determined by creature kind, not configured at the challenge level.
 - Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
 - When two turns in the same faction have the same initiative, they keep creature and turn setup order; the DM decides which goes first by reordering the creatures or turns. Other initiative tie-break criteria are not decided yet.
 - The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.

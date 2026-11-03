@@ -1,23 +1,12 @@
 <script lang="ts">
-	import type { InitiativeRollMode, InitiativeRollModes } from '#lib';
-
 	interface Props {
 		name: string;
 		fairnessWeight: number;
-		initiativeRollModes: Readonly<InitiativeRollModes>;
 		onNameChange: (name: string) => void;
 		onFairnessWeightChange: (weight: number) => void;
-		onRollModeChange: (category: keyof InitiativeRollModes, mode: InitiativeRollMode) => void;
 	}
 
-	let {
-		name,
-		fairnessWeight,
-		initiativeRollModes,
-		onNameChange,
-		onFairnessWeightChange,
-		onRollModeChange
-	}: Props = $props();
+	let { name, fairnessWeight, onNameChange, onFairnessWeightChange }: Props = $props();
 </script>
 
 <fieldset class="settings">
@@ -45,27 +34,5 @@
 			/>
 			<output for="fairness-weight">{fairnessWeight.toFixed(2)}</output>
 		</div>
-	</label>
-	<label>
-		<span>Character initiative</span>
-		<select
-			value={initiativeRollModes.characters}
-			onchange={(event) =>
-				onRollModeChange('characters', event.currentTarget.value as InitiativeRollMode)}
-		>
-			<option value="manual">Enter results manually</option>
-			<option value="app">Roll in the app</option>
-		</select>
-	</label>
-	<label>
-		<span>NPC initiative</span>
-		<select
-			value={initiativeRollModes.npcs}
-			onchange={(event) =>
-				onRollModeChange('npcs', event.currentTarget.value as InitiativeRollMode)}
-		>
-			<option value="manual">Enter results manually</option>
-			<option value="app">Roll in the app</option>
-		</select>
 	</label>
 </fieldset>

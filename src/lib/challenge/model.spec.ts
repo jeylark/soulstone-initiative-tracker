@@ -1,7 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
 	CHALLENGE_FORMAT_VERSION,
-	DEFAULT_INITIATIVE_ROLL_MODES,
 	type ChallengeLibrary,
 	type GeneratedTurnOrder,
 	type InitiativeResults,
@@ -64,10 +63,6 @@ const library = {
 			updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 			factions: [{ id: ids.faction, name: 'Adventurers' }],
 			npcTypes: [{ id: ids.npcType, name: 'Skeleton', initiativeStat: 2 }],
-			initiativeRollModes: {
-				characters: 'manual',
-				npcs: 'app'
-			},
 			fairnessWeight: 3,
 			runState: {
 				initiativeResults: { [ids.turn]: 12 },
@@ -280,27 +275,6 @@ const invalidFieldCases = [
 		value: 1.5,
 		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
 		message: 'Expected a positive whole number.'
-	},
-	{
-		field: 'initiative roll modes object',
-		path: ['challenges', 0, 'initiativeRollModes'],
-		value: null,
-		issuePath: '$.challenges[0].initiativeRollModes',
-		message: 'Expected an initiative roll modes object.'
-	},
-	{
-		field: 'character initiative roll mode',
-		path: ['challenges', 0, 'initiativeRollModes', 'characters'],
-		value: 'automatic',
-		issuePath: '$.challenges[0].initiativeRollModes.characters',
-		message: 'Expected "manual" or "app".'
-	},
-	{
-		field: 'NPC initiative roll mode',
-		path: ['challenges', 0, 'initiativeRollModes', 'npcs'],
-		value: 'automatic',
-		issuePath: '$.challenges[0].initiativeRollModes.npcs',
-		message: 'Expected "manual" or "app".'
 	},
 	{
 		field: 'fairness weight',
@@ -748,31 +722,15 @@ describe('challenge domain models', () => {
 		}
 	});
 
-	it('rejects unsupported library versions and malformed enum values', () => {
+	it('rejects unsupported library versions', () => {
 		const unsupportedVersion = { ...library, formatVersion: 2 };
-		const invalidModes = {
-			...library,
-			challenges: library.challenges.map((challenge) => ({
-				...challenge,
-				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' }
-			}))
-		};
-
 		const versionResult = validateChallengeLibrary(unsupportedVersion);
-		const modesResult = validateChallengeLibrary(invalidModes);
 
 		expect(versionResult.isValid).toBe(false);
 		if (!versionResult.isValid) {
 			expect(versionResult.issues).toContainEqual({
 				path: '$.formatVersion',
 				message: 'Unsupported challenge library version.'
-			});
-		}
-		expect(modesResult.isValid).toBe(false);
-		if (!modesResult.isValid) {
-			expect(modesResult.issues).toContainEqual({
-				path: '$.challenges[0].initiativeRollModes.npcs',
-				message: 'Expected "manual" or "app".'
 			});
 		}
 	});
@@ -783,7 +741,6 @@ describe('challenge domain models', () => {
 			characters: [{ ...library.characters[0], name: 7 }],
 			challenges: library.challenges.map((challenge) => ({
 				...challenge,
-				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' },
 				npcTypes: challenge.npcTypes.map((npcType) => ({
 					...npcType,
 					name: 4,
@@ -799,14 +756,10 @@ describe('challenge domain models', () => {
 
 		expect(result.isValid).toBe(false);
 		if (!result.isValid) {
-			expect(result.issues).toHaveLength(5);
+			expect(result.issues).toHaveLength(4);
 			expect(result.issues).toContainEqual({
 				path: '$.characters[0].name',
 				message: 'Expected a string.'
-			});
-			expect(result.issues).toContainEqual({
-				path: '$.challenges[0].initiativeRollModes.npcs',
-				message: 'Expected "manual" or "app".'
 			});
 			expect(result.issues).toContainEqual({
 				path: '$.challenges[0].npcTypes[0].name',
@@ -850,13 +803,6 @@ describe('challenge domain models', () => {
 	it('uses the initial version for persisted challenge libraries', () => {
 		expect(CHALLENGE_FORMAT_VERSION).toBe(1);
 		expectTypeOf<ChallengeLibrary['formatVersion']>().toEqualTypeOf<1>();
-	});
-
-	it('defaults characters to manual rolls and NPCs to app-calculated rolls', () => {
-		expect(DEFAULT_INITIATIVE_ROLL_MODES).toEqual({
-			characters: 'manual',
-			npcs: 'app'
-		});
 	});
 
 	it('represents reusable characters, challenge entities, and turn references', () => {

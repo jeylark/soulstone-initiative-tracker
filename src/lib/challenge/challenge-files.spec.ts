@@ -30,7 +30,6 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
 		factions: [{ id: factionId, name: 'Adventurers' }],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight: 3,
 		creatures: [
 			{
