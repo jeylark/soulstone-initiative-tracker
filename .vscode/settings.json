@@ -1,6 +1,7 @@
 {
 	"files.eol": "\n",
 	"chat.tools.terminal.autoApprove": {
-		"npx prettier": true
+		"npx prettier": true,
+		"git commit": true
 	}
 }
