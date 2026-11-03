@@ -12,7 +12,7 @@ foundations.
       challenge, and join a live session.
 - [ ] Build challenge setup and editing for factions, reusable characters, NPC
       types, creatures, turns, initiative placement, and fairness weight.
-- [ ] Finish removing NPC type `Use`/`Selected` controls now that each NPC can
+- [x] Finish removing NPC type `Use`/`Selected` controls now that each NPC can
       select its own type; verify the first-type fallback and remembered
       cross-faction default for newly added NPCs.
 - [ ] Let NPC type forms wrap onto multiple rows when they no longer fit
