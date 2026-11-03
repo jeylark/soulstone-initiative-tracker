@@ -12,6 +12,15 @@ foundations.
       challenge, and join a live session.
 - [ ] Build challenge setup and editing for factions, reusable characters, NPC
       types, creatures, turns, initiative placement, and fairness weight.
+- [ ] Finish removing NPC type `Use`/`Selected` controls now that each NPC can
+      select its own type; verify the first-type fallback and remembered
+      cross-faction default for newly added NPCs.
+- [ ] Let NPC type forms wrap onto multiple rows when they no longer fit
+      horizontally on the screen.
+- [ ] Add a faction color property and accessible palette selector. Keep
+      colors distinguishable from each other and from app surfaces in light
+      and dark themes; prefer unused defaults, allow reuse, and preserve colors
+      through challenge copies and file workflows. No data migration is needed.
 - [ ] Support creature and turn ordering, zero or multiple turns per creature,
       and hide/show settings.
 - [ ] Reuse saved characters and support copying a challenge with fresh stable
@@ -29,7 +38,8 @@ foundations.
 - [ ] Connect setup and collected results to turn-order generation, including
       fixed and relative placement hooks and clear feedback for invalid hooks.
 - [ ] Display the DM turn list with controls to reorder and hide/show turns;
-      omit hidden turns from the read-only view.
+      use each faction's selected color and omit hidden turns from the
+      read-only view.
 - [ ] Save collected results and generated order as run state so a challenge
       can be resumed.
 - [ ] Add the end-of-round Spawn step for adding or removing creatures, then
