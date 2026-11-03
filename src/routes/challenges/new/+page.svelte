@@ -369,9 +369,7 @@
 
 		<NpcTypeEditor
 			npcTypes={challenge.npcTypes}
-			selectedNpcTypeId={newNpcTypeId}
 			onCreate={addNpcType}
-			onSelect={(npcTypeId) => (newNpcTypeId = npcTypeId)}
 			onRename={renameNpcType}
 			onInitiativeStatChange={updateNpcTypeInitiativeStat}
 			onRemove={removeNpcType}

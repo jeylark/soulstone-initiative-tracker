@@ -110,11 +110,9 @@
 	flex-basis: auto;
 }
 
-.challenge-setup .npc-type-actions {
-	display: flex;
+.challenge-setup .npc-type-card > button {
 	grid-column: 1 / -1;
-	justify-content: space-between;
-	gap: 8px;
+	justify-self: start;
 }
 
 .challenge-setup label {

@@ -3,23 +3,13 @@
 
 	interface Props {
 		npcTypes: readonly NpcType[];
-		selectedNpcTypeId: StableId | '';
 		onCreate: () => void;
-		onSelect: (npcTypeId: StableId) => void;
 		onRename: (npcTypeId: StableId, name: string) => void;
 		onInitiativeStatChange: (npcTypeId: StableId, initiativeStat: number) => void;
 		onRemove: (npcTypeId: StableId) => void;
 	}
 
-	let {
-		npcTypes,
-		selectedNpcTypeId,
-		onCreate,
-		onSelect,
-		onRename,
-		onInitiativeStatChange,
-		onRemove
-	}: Props = $props();
+	let { npcTypes, onCreate, onRename, onInitiativeStatChange, onRemove }: Props = $props();
 </script>
 
 <fieldset class="setup-section npc-type-strip-section">
@@ -51,25 +41,14 @@
 									onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
 							/>
 						</label>
-						<div class="npc-type-actions">
-							<button
-								class="quiet-button"
-								type="button"
-								aria-pressed={selectedNpcTypeId === npcType.id}
-								aria-label={`Use NPC type ${npcType.name}`}
-								onclick={() => onSelect(npcType.id)}
-							>
-								{selectedNpcTypeId === npcType.id ? 'Selected' : 'Use'}
-							</button>
-							<button
-								class="quiet-button warning-button"
-								type="button"
-								aria-label={`Remove NPC type ${npcType.name}`}
-								onclick={() => onRemove(npcType.id)}
-							>
-								Remove
-							</button>
-						</div>
+						<button
+							class="quiet-button warning-button"
+							type="button"
+							aria-label={`Remove NPC type ${npcType.name}`}
+							onclick={() => onRemove(npcType.id)}
+						>
+							Remove
+						</button>
 					</fieldset>
 				</li>
 			{/each}
