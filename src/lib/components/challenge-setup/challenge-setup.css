@@ -30,7 +30,7 @@
 
 .challenge-setup .fairness-control {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 4ch;
+	grid-template-columns: minmax(0, 1fr) minmax(8ch, 12ch);
 	align-items: center;
 	gap: 12px;
 }
@@ -42,7 +42,8 @@
 	accent-color: var(--color-accent);
 }
 
-.challenge-setup .fairness-control output {
+.challenge-setup .fairness-control input[type='number'] {
+	width: 100%;
 	font-variant-numeric: tabular-nums;
 	text-align: right;
 }

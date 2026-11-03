@@ -32,15 +32,25 @@
 		<div class="fairness-control">
 			<input
 				id="fairness-weight"
-				aria-label="Fairness weight"
-				value={fairnessWeight}
 				type="range"
 				min="0"
 				max="10"
 				step="0.01"
+				aria-label="Fairness weight"
+				value={Math.min(fairnessWeight, 10)}
 				oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
 			/>
-			<output for="fairness-weight">{fairnessWeight.toFixed(2)}</output>
+			<input
+				aria-label="Fairness weight"
+				value={fairnessWeight}
+				type="number"
+				min="0"
+				step="any"
+				oninput={(event) => {
+					const weight = event.currentTarget.valueAsNumber;
+					if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
+				}}
+			/>
 		</div>
 		<p class="fairness-description" aria-live="polite">{getFairnessDescription(fairnessWeight)}</p>
 	</label>

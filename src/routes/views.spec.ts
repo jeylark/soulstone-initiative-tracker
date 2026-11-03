@@ -33,8 +33,10 @@ describe('new challenge setup', () => {
 		expect(fairnessWeight.getAttribute('min')).toBe('0');
 		expect(fairnessWeight.getAttribute('max')).toBe('10');
 		expect(fairnessWeight.getAttribute('step')).toBe('0.01');
-		expect(screen.getByText('1.00', { selector: 'output' })).toBeTruthy();
-		expect(screen.getByText('Initiative remains the main influence on turn order.')).toBeTruthy();
+		expect(
+			(screen.getByRole('spinbutton', { name: 'Fairness weight' }) as HTMLInputElement).value
+		).toBe('3');
+		expect(screen.getByText('Initiative and faction balance have similar influence.')).toBeTruthy();
 		expect(screen.queryByRole('combobox', { name: 'Character initiative' })).toBeNull();
 		expect(screen.queryByRole('combobox', { name: 'NPC initiative' })).toBeNull();
 		expect(screen.getByRole('group', { name: 'Challenge settings' })).toBeTruthy();
@@ -50,7 +52,27 @@ describe('new challenge setup', () => {
 		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight' }), {
 			target: { value: '4.25' }
 		});
-		expect(screen.getByText('4.25', { selector: 'output' })).toBeTruthy();
+		expect(
+			(screen.getByRole('spinbutton', { name: 'Fairness weight' }) as HTMLInputElement).value
+		).toBe('4.25');
+	});
+
+	it('accepts a fairness weight above the slider range and keeps the slider at its maximum', async () => {
+		render(newChallengePage);
+
+		const numericInput = screen.getByRole('spinbutton', {
+			name: 'Fairness weight'
+		}) as HTMLInputElement;
+		const slider = screen.getByRole('slider', { name: 'Fairness weight' }) as HTMLInputElement;
+		expect(numericInput.getAttribute('min')).toBe('0');
+		expect(numericInput.getAttribute('max')).toBeNull();
+
+		await fireEvent.input(numericInput, { target: { value: '12.75' } });
+		expect(numericInput.value).toBe('12.75');
+		expect(slider.value).toBe('10');
+
+		await fireEvent.input(slider, { target: { value: '8.5' } });
+		expect(numericInput.value).toBe('8.5');
 	});
 
 	it.each([
