@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
+import type { Component } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
@@ -11,7 +12,7 @@ afterEach(() => {
 	cleanup();
 });
 
-const views = [
+const views: { name: string; page: Component }[] = [
 	{ name: 'landing', page: LandingPage },
 	{ name: 'new challenge', page: NewChallengePage },
 	{ name: 'saved challenges', page: SavedChallengesPage },
