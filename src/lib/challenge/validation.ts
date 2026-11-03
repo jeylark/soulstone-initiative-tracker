@@ -375,6 +375,13 @@ function validateChallenge(
 		`${path}.initiativeRollModes`,
 		addIssue
 	);
+	const isValidFairnessWeight =
+		typeof value.fairnessWeight === 'number' &&
+		Number.isFinite(value.fairnessWeight) &&
+		value.fairnessWeight >= 0;
+	if (!isValidFairnessWeight) {
+		addIssue(`${path}.fairnessWeight`, 'Expected a non-negative number.');
+	}
 	const isValidCreatures = validateArray(
 		value.creatures,
 		`${path}.creatures`,
@@ -394,6 +401,7 @@ function validateChallenge(
 		isValidFactions &&
 		isValidNpcTypes &&
 		isValidRollModes &&
+		isValidFairnessWeight &&
 		isValidCreatures &&
 		isValidRunState
 	);

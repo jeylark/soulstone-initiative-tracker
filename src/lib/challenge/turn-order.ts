@@ -86,22 +86,22 @@ function filterFactionTurns(
 
 /**
  * Generates a turn order from a challenge's setup and collected initiative results.
- * @param challenge Challenge whose creature turns and placement rules define the order.
- * @param initiativeResults Initiative values collected for rolling turns.
- * @param fairnessWeight Weighting factor for fairness in turn order. Higher values prioritize fairness in faction distribution over initiative.
+ * The challenge's `fairnessWeight` balances faction distribution against initiative:
  * 0	Pure value-based merge
  * 1	Value has strong influence
  * 3	Balanced approach
  * 5	Stronger distribution fairness
  * 10+	Nearly proportional round-robin
+ * @param challenge Challenge whose creature turns, placement rules and fairness weight define the order.
+ * @param initiativeResults Initiative values collected for rolling turns.
  * @returns Turn IDs in generated play order.
  * @throws {TurnOrderError} If a relative placement targets a turn that is missing from the order or the placements form a cycle.
  */
 export function generateTurnOrder(
 	challenge: DeepReadonly<Challenge>,
-	initiativeResults: Readonly<InitiativeResults>,
-	fairnessWeight: number
+	initiativeResults: Readonly<InitiativeResults>
 ): GeneratedTurnOrder {
+	const { fairnessWeight } = challenge;
 	const [turnsByFaction, hookedTurns] = filterFactionTurns(challenge, initiativeResults);
 
 	const totalInitiativeTurnCount = turnsByFaction

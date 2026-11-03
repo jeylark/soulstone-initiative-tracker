@@ -163,6 +163,8 @@ export interface Challenge {
 	npcTypes: NpcType[];
 	/** Initiative collection mode for characters and NPCs. */
 	initiativeRollModes: InitiativeRollModes;
+	/** Non-negative weight balancing faction distribution against initiative when generating the turn order; 0 orders purely by initiative. */
+	fairnessWeight: number;
 	/** Character and NPC instances participating in this challenge. */
 	creatures: ChallengeCreature[];
 	/** Saved initiative results and generated order for resuming the challenge. */

@@ -30,7 +30,8 @@ function createCreature(
 }
 
 function createChallenge(
-	creatures: readonly DeepReadonly<ChallengeCreature>[] = []
+	creatures: readonly DeepReadonly<ChallengeCreature>[] = [],
+	fairnessWeight = 0
 ): DeepReadonly<Challenge> {
 	return {
 		id: createUuid(),
@@ -40,6 +41,7 @@ function createChallenge(
 		factions: [],
 		npcTypes: [],
 		initiativeRollModes: { characters: 'manual', npcs: 'app' },
+		fairnessWeight,
 		creatures: [...creatures]
 	};
 }
@@ -57,7 +59,7 @@ function order(
 	results: Readonly<InitiativeResults> = {},
 	fairnessWeight = 0
 ): StableId[] {
-	return generateTurnOrder(createChallenge(creatures), results, fairnessWeight);
+	return generateTurnOrder(createChallenge(creatures, fairnessWeight), results);
 }
 
 describe('generateTurnOrder', () => {
@@ -350,7 +352,7 @@ describe('generateTurnOrder', () => {
 		const challengeBefore = structuredClone(challenge);
 		const resultsBefore = structuredClone(results);
 
-		generateTurnOrder(challenge, results, 0);
+		generateTurnOrder(challenge, results);
 
 		expect(challenge).toEqual(challengeBefore);
 		expect(results).toEqual(resultsBefore);

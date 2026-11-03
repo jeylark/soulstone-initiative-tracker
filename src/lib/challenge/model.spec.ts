@@ -68,6 +68,7 @@ const library = {
 				characters: 'manual',
 				npcs: 'app'
 			},
+			fairnessWeight: 3,
 			runState: {
 				initiativeResults: { [ids.turn]: 12 },
 				generatedTurnOrder: [ids.turn, ids.secondTurn]
@@ -300,6 +301,27 @@ const invalidFieldCases = [
 		value: 'automatic',
 		issuePath: '$.challenges[0].initiativeRollModes.npcs',
 		message: 'Expected "manual" or "app".'
+	},
+	{
+		field: 'fairness weight',
+		path: ['challenges', 0, 'fairnessWeight'],
+		value: '3',
+		issuePath: '$.challenges[0].fairnessWeight',
+		message: 'Expected a non-negative number.'
+	},
+	{
+		field: 'negative fairness weight',
+		path: ['challenges', 0, 'fairnessWeight'],
+		value: -1,
+		issuePath: '$.challenges[0].fairnessWeight',
+		message: 'Expected a non-negative number.'
+	},
+	{
+		field: 'non-finite fairness weight',
+		path: ['challenges', 0, 'fairnessWeight'],
+		value: Infinity,
+		issuePath: '$.challenges[0].fairnessWeight',
+		message: 'Expected a non-negative number.'
 	},
 	{
 		field: 'creatures collection',

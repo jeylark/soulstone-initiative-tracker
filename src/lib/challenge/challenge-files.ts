@@ -262,6 +262,7 @@ function importChallengeEntities(
 			factions,
 			npcTypes,
 			initiativeRollModes: { ...challenge.initiativeRollModes },
+			fairnessWeight: challenge.fairnessWeight,
 			creatures,
 			...(runState === undefined ? {} : { runState })
 		}
