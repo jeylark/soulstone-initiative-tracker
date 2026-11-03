@@ -9,24 +9,14 @@
 	<title>{title} | Soulstone Initiative Tracker</title>
 </svelte:head>
 
-<div class="view">
-	<main>
-		<a class="back" href={resolve('/')}>Back</a>
-		<h1>{title}</h1>
-		{@render children()}
-	</main>
-</div>
+<section>
+	<a class="back" href={resolve('/')}>Back</a>
+	<h1>{title}</h1>
+	{@render children()}
+</section>
 
 <style>
-	.view {
-		min-height: 100svh;
-		background: var(--color-background);
-		color: var(--color-foreground);
-	}
-
-	main {
-		width: min(calc(100% - 40px), 1120px);
-		margin-inline: auto;
+	section {
 		padding-block: 24px 64px;
 	}
 
