@@ -70,7 +70,8 @@
 	}
 </script>
 
-<section class="faction-panel" aria-label={faction.name}>
+<fieldset class="faction-panel">
+	<legend>{faction.name}</legend>
 	<div class="faction-heading">
 		<label>
 			<span>Faction name</span>
@@ -119,4 +120,4 @@
 			Add NPC
 		</button>
 	</div>
-</section>
+</fieldset>

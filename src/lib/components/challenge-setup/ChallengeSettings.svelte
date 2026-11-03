@@ -20,8 +20,8 @@
 	}: Props = $props();
 </script>
 
-<section class="settings" aria-labelledby="challenge-settings-heading">
-	<h2 id="challenge-settings-heading">Challenge settings</h2>
+<fieldset class="settings">
+	<legend>Challenge settings</legend>
 	<label>
 		<span>Challenge name</span>
 		<input
@@ -68,4 +68,4 @@
 			<option value="app">Roll in the app</option>
 		</select>
 	</label>
-</section>
+</fieldset>

@@ -44,11 +44,9 @@
 	}: Props = $props();
 </script>
 
-<section class="setup-section faction-board-section" aria-labelledby="factions-heading">
-	<div class="section-heading">
-		<h2 id="factions-heading">Factions</h2>
-		<button type="button" onclick={onCreateFaction}>Add Faction</button>
-	</div>
+<fieldset class="setup-section faction-board-section">
+	<legend>Factions</legend>
+	<button class="add-entity-button" type="button" onclick={onCreateFaction}>Add Faction</button>
 	<div class="faction-board">
 		{#each factions as faction (faction.id)}
 			<FactionEditor
@@ -70,4 +68,4 @@
 			/>
 		{/each}
 	</div>
-</section>
+</fieldset>

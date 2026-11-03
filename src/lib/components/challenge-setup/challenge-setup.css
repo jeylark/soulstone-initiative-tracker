@@ -17,6 +17,8 @@
 }
 
 .challenge-setup .settings {
+	min-inline-size: 0;
+	margin: 0;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16px 24px;
@@ -51,16 +53,20 @@
 
 .challenge-setup .setup-section {
 	padding: 16px;
+	min-width: 0;
 	border: 1px solid var(--color-border);
 	border-radius: 6px;
 	background: var(--color-surface);
 }
 
-.challenge-setup .section-heading {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
+.challenge-setup .setup-section > legend,
+.challenge-setup .settings > legend {
+	padding: 0 8px;
+	font-size: 20px;
+	font-weight: 600;
+}
+
+.challenge-setup .add-entity-button {
 	margin-bottom: 12px;
 }
 
@@ -75,14 +81,27 @@
 
 .challenge-setup .npc-type-card {
 	display: grid;
-	flex: 0 0 min(280px, 82vw);
 	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr);
 	align-items: end;
 	gap: 10px;
+	min-width: 0;
+	margin: 0;
 	padding: 12px;
 	border: 1px solid var(--color-border-subtle);
 	border-radius: 4px;
 	background: var(--color-surface-subtle);
+}
+
+.challenge-setup .npc-type-list li {
+	display: flex;
+	flex: 0 0 min(280px, 82vw);
+	min-width: 0;
+}
+
+.challenge-setup .npc-type-card legend {
+	padding: 0 6px;
+	font-size: 15px;
+	font-weight: 600;
 }
 
 .challenge-setup .npc-type-card label {
@@ -156,12 +175,20 @@
 .challenge-setup .faction-panel {
 	display: flex;
 	min-width: 0;
+	min-inline-size: 0;
 	flex-direction: column;
 	gap: 14px;
+	margin: 0;
 	padding: 12px;
 	border: 1px solid var(--color-border-subtle);
 	border-radius: 4px;
 	background: var(--color-surface-inset);
+}
+
+.challenge-setup .faction-panel legend {
+	padding: 0 8px;
+	font-size: 17px;
+	font-weight: 600;
 }
 
 .challenge-setup .faction-heading {

@@ -22,56 +22,57 @@
 	}: Props = $props();
 </script>
 
-<section class="setup-section npc-type-strip-section" aria-labelledby="npc-types-heading">
-	<div class="section-heading">
-		<h2 id="npc-types-heading">NPC types</h2>
-		<button type="button" onclick={onCreate}>Add NPC Type</button>
-	</div>
+<fieldset class="setup-section npc-type-strip-section">
+	<legend>NPC types</legend>
+	<button class="add-entity-button" type="button" onclick={onCreate}>Add NPC Type</button>
 	{#if npcTypes.length > 0}
 		<ul class="npc-type-list">
 			{#each npcTypes as npcType (npcType.id)}
-				<li class="npc-type-card">
-					<label>
-						<span>NPC type name</span>
-						<input
-							aria-label={`NPC type name: ${npcType.name}`}
-							value={npcType.name}
-							oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
-						/>
-					</label>
-					<label>
-						<span>Initiative stat (d6)</span>
-						<input
-							aria-label={`Initiative stat for ${npcType.name}`}
-							value={npcType.initiativeStat}
-							type="number"
-							min="1"
-							step="1"
-							oninput={(event) =>
-								onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
-						/>
-					</label>
-					<div class="npc-type-actions">
-						<button
-							class="quiet-button"
-							type="button"
-							aria-pressed={selectedNpcTypeId === npcType.id}
-							aria-label={`Use NPC type ${npcType.name}`}
-							onclick={() => onSelect(npcType.id)}
-						>
-							{selectedNpcTypeId === npcType.id ? 'Selected' : 'Use'}
-						</button>
-						<button
-							class="quiet-button"
-							type="button"
-							aria-label={`Remove NPC type ${npcType.name}`}
-							onclick={() => onRemove(npcType.id)}
-						>
-							Remove
-						</button>
-					</div>
+				<li>
+					<fieldset class="npc-type-card">
+						<legend>{npcType.name}</legend>
+						<label>
+							<span>NPC type name</span>
+							<input
+								aria-label={`NPC type name: ${npcType.name}`}
+								value={npcType.name}
+								oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
+							/>
+						</label>
+						<label>
+							<span>Initiative stat (d6)</span>
+							<input
+								aria-label={`Initiative stat for ${npcType.name}`}
+								value={npcType.initiativeStat}
+								type="number"
+								min="1"
+								step="1"
+								oninput={(event) =>
+									onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
+							/>
+						</label>
+						<div class="npc-type-actions">
+							<button
+								class="quiet-button"
+								type="button"
+								aria-pressed={selectedNpcTypeId === npcType.id}
+								aria-label={`Use NPC type ${npcType.name}`}
+								onclick={() => onSelect(npcType.id)}
+							>
+								{selectedNpcTypeId === npcType.id ? 'Selected' : 'Use'}
+							</button>
+							<button
+								class="quiet-button"
+								type="button"
+								aria-label={`Remove NPC type ${npcType.name}`}
+								onclick={() => onRemove(npcType.id)}
+							>
+								Remove
+							</button>
+						</div>
+					</fieldset>
 				</li>
 			{/each}
 		</ul>
 	{/if}
-</section>
+</fieldset>

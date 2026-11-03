@@ -36,10 +36,11 @@ describe('new challenge setup', () => {
 		expect(screen.getByText('0.00', { selector: 'output' })).toBeTruthy();
 		expect(screen.getByRole('combobox', { name: 'Character initiative' })).toBeTruthy();
 		expect(screen.getByRole('combobox', { name: 'NPC initiative' })).toBeTruthy();
-		expect(screen.getByRole('heading', { level: 2, name: 'NPC types' })).toBeTruthy();
-		expect(screen.getByRole('heading', { level: 2, name: 'Factions' })).toBeTruthy();
-		expect(screen.getByRole('region', { name: 'Players' })).toBeTruthy();
-		expect(screen.getByRole('region', { name: 'Enemies' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Challenge settings' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'NPC types' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Factions' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Players' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Enemies' })).toBeTruthy();
 	});
 
 	it('updates the visible fairness value as the slider moves', async () => {
@@ -55,10 +56,11 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
-		expect(screen.getByRole('region', { name: 'Faction 1' })).toBeTruthy();
+		expect(screen.getByRole('group', { name: 'Faction 1' })).toBeTruthy();
 		expect(screen.queryByRole('textbox', { name: 'New faction name' })).toBeNull();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		expect(screen.getByRole('group', { name: 'NPC Type 1' })).toBeTruthy();
 		expect(screen.getByRole('textbox', { name: 'NPC type name: NPC Type 1' })).toBeTruthy();
 		expect(screen.getByRole('spinbutton', { name: 'Initiative stat for NPC Type 1' })).toBeTruthy();
 		expect(
@@ -71,8 +73,8 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
-		const playersPanel = screen.getByRole('region', { name: 'Players' });
-		const enemiesPanel = screen.getByRole('region', { name: 'Enemies' });
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
 
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
@@ -91,7 +93,7 @@ describe('new challenge setup', () => {
 	it('confirms removing a faction and its creatures', async () => {
 		render(newChallengePage);
 
-		const factionPanel = screen.getByRole('region', { name: 'Players' });
+		const factionPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(factionPanel).getByRole('group', { name: 'Player 1' });
 
@@ -107,7 +109,7 @@ describe('new challenge setup', () => {
 		await fireEvent.click(
 			within(factionPanel).getByRole('button', { name: 'Remove faction Players' })
 		);
-		expect(screen.queryByRole('region', { name: 'Players' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Players' })).toBeNull();
 		expect(screen.queryByRole('group', { name: 'Player 1' })).toBeNull();
 	});
 
@@ -116,7 +118,7 @@ describe('new challenge setup', () => {
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 
-		const factionPanel = screen.getByRole('region', { name: 'Enemies' });
+		const factionPanel = screen.getByRole('group', { name: 'Enemies' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add NPC' }));
 		const npc = within(factionPanel).getByRole('group', { name: 'NPC Type 1 1' });
 
@@ -131,6 +133,6 @@ describe('new challenge setup', () => {
 		confirmation.mockReturnValue(true);
 		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type NPC Type 1' }));
 		expect(screen.queryByRole('group', { name: 'NPC Type 1 1' })).toBeNull();
-		expect(screen.queryByRole('textbox', { name: 'NPC type name: NPC Type 1' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'NPC Type 1' })).toBeNull();
 	});
 });
