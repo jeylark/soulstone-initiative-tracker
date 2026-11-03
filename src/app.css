@@ -2,6 +2,9 @@
 	color-scheme: light;
 	--color-background: #f2f5f8;
 	--color-foreground: #17263c;
+	--color-surface: #ffffff;
+	--color-surface-subtle: #edf2f7;
+	--color-surface-inset: #e3ebf4;
 	--color-border: #d8e0e8;
 	--color-border-subtle: #cbd6e2;
 	--color-accent: #075da8;
@@ -17,6 +20,9 @@
 	color-scheme: dark;
 	--color-background: #101a2b;
 	--color-foreground: #eaf3fc;
+	--color-surface: #172439;
+	--color-surface-subtle: #1c2b42;
+	--color-surface-inset: #233750;
 	--color-border: #29374a;
 	--color-border-subtle: #34445a;
 	--color-accent: #69c8f0;
