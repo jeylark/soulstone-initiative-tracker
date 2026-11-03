@@ -62,7 +62,7 @@
 								{selectedNpcTypeId === npcType.id ? 'Selected' : 'Use'}
 							</button>
 							<button
-								class="quiet-button"
+								class="quiet-button warning-button"
 								type="button"
 								aria-label={`Remove NPC type ${npcType.name}`}
 								onclick={() => onRemove(npcType.id)}

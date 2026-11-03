@@ -111,11 +111,18 @@ describe('new challenge setup', () => {
 		const factionPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(factionPanel).getByRole('group', { name: 'Player 1' });
+		expect(
+			within(player)
+				.getByRole('button', { name: 'Remove Player 1' })
+				.classList.contains('warning-button')
+		).toBe(true);
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		await fireEvent.click(
-			within(factionPanel).getByRole('button', { name: 'Remove faction Players' })
-		);
+		const removeFactionButton = within(factionPanel).getByRole('button', {
+			name: 'Remove faction Players'
+		});
+		expect(removeFactionButton.classList.contains('warning-button')).toBe(true);
+		await fireEvent.click(removeFactionButton);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
 		expect(player).toBeTruthy();
@@ -132,13 +139,22 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		expect(
+			screen
+				.getByRole('button', { name: 'Use NPC type NPC Type 1' })
+				.classList.contains('warning-button')
+		).toBe(false);
 
 		const factionPanel = screen.getByRole('group', { name: 'Enemies' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add NPC' }));
 		const npc = within(factionPanel).getByRole('group', { name: 'NPC Type 1 1' });
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type NPC Type 1' }));
+		const removeNpcTypeButton = screen.getByRole('button', {
+			name: 'Remove NPC type NPC Type 1'
+		});
+		expect(removeNpcTypeButton.classList.contains('warning-button')).toBe(true);
+		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')
 		);

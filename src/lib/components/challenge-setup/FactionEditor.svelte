@@ -82,7 +82,7 @@
 			/>
 		</label>
 		<button
-			class="quiet-button"
+			class="quiet-button warning-button"
 			type="button"
 			aria-label={`Remove faction ${faction.name}`}
 			onclick={() => onRemove(faction.id)}

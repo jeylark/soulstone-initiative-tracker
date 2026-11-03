@@ -155,6 +155,16 @@
 	background: transparent;
 }
 
+.challenge-setup .warning-button {
+	color: var(--color-danger);
+	border-color: transparent;
+	background: var(--color-danger-surface);
+}
+
+.challenge-setup .warning-button:hover {
+	background: var(--color-danger-hover);
+}
+
 .challenge-setup button:disabled,
 .challenge-setup select:disabled {
 	cursor: not-allowed;

@@ -73,7 +73,7 @@
 		/>
 	{/each}
 	<button
-		class="quiet-button"
+		class="quiet-button warning-button"
 		type="button"
 		aria-label={`Remove ${name}`}
 		onclick={() => onRemove(creature.id)}
