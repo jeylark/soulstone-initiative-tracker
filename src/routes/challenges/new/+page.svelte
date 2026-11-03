@@ -4,22 +4,23 @@
 		createUuid,
 		type Challenge,
 		type Faction,
+		type InitiativeRollMode,
+		type InitiativeRollModes,
 		type NpcType,
 		type PlayerCharacter,
 		type StableId,
-		type Turn,
-		type TurnInitiative
+		type Turn
 	} from '#lib';
+	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
+	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
+	import FactionEditor from '#lib/components/challenge-setup/FactionEditor.svelte';
+	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
-
-	type InitiativeChoice =
-		| 'none'
-		| 'roll'
-		| 'static'
-		| 'fixed-top'
-		| 'fixed-bottom'
-		| 'relative-before'
-		| 'relative-after';
+	import type {
+		InitiativeChoice,
+		TurnEditorChange
+	} from '../../../lib/components/challenge-setup/challenge-setup-types.js';
+	import '../../../lib/components/challenge-setup/challenge-setup.css';
 
 	const createdAt = new Date();
 	let challenge = $state<Challenge>({
@@ -34,25 +35,43 @@
 		creatures: []
 	});
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
-	let isAddingFaction = $state(false);
-	let isAddingNpcType = $state(false);
-	let newFactionName = $state('');
-	let newNpcTypeName = $state('');
-	let newNpcInitiativeStat = $state(1);
-	let newCharacterName = $state('');
 	let newCharacterFactionId = $state<StableId | ''>('');
+	let newNpcFactionId = $state<StableId | ''>('');
 	let newNpcTypeId = $state<StableId | ''>('');
-	let newNpcIdentifier = $state('');
+	let usedFactionIds = $derived(new Set(challenge.creatures.map((creature) => creature.factionId)));
+	let usedNpcTypeIds = $derived(
+		new Set(
+			challenge.creatures.flatMap((creature) =>
+				creature.kind === 'npc' ? [creature.creatureTypeId] : []
+			)
+		)
+	);
 
-	function addFaction() {
-		const name = newFactionName.trim();
-		if (!name) return;
+	function updateChallengeName(name: string) {
+		challenge.name = name;
+	}
 
-		const faction = { id: createUuid(), name } satisfies Faction;
+	function updateFairnessWeight(weight: number) {
+		challenge.fairnessWeight = weight;
+	}
+
+	function updateInitiativeRollMode(category: keyof InitiativeRollModes, mode: InitiativeRollMode) {
+		challenge.initiativeRollModes = { ...challenge.initiativeRollModes, [category]: mode };
+	}
+
+	function addFaction(name: string) {
+		const normalizedName = name.trim();
+		if (!normalizedName) return;
+
+		const faction = { id: createUuid(), name: normalizedName } satisfies Faction;
 		challenge.factions.push(faction);
 		newCharacterFactionId ||= faction.id;
-		newFactionName = '';
-		isAddingFaction = false;
+		newNpcFactionId ||= faction.id;
+	}
+
+	function renameFaction(factionId: StableId, name: string) {
+		const faction = challenge.factions.find((item) => item.id === factionId);
+		if (faction) faction.name = name;
 	}
 
 	function removeFaction(factionId: StableId) {
@@ -61,22 +80,30 @@
 		if (newCharacterFactionId === factionId) {
 			newCharacterFactionId = challenge.factions[0]?.id ?? '';
 		}
+		if (newNpcFactionId === factionId) newNpcFactionId = challenge.factions[0]?.id ?? '';
 	}
 
-	function addNpcType() {
-		const name = newNpcTypeName.trim();
-		if (!name || !Number.isSafeInteger(newNpcInitiativeStat) || newNpcInitiativeStat < 1) return;
+	function addNpcType(name: string, initiativeStat: number) {
+		const normalizedName = name.trim();
+		if (!normalizedName || !Number.isSafeInteger(initiativeStat) || initiativeStat < 1) return;
 
 		const npcType = {
 			id: createUuid(),
-			name,
-			initiativeStat: newNpcInitiativeStat
+			name: normalizedName,
+			initiativeStat
 		} satisfies NpcType;
 		challenge.npcTypes.push(npcType);
 		newNpcTypeId ||= npcType.id;
-		newNpcTypeName = '';
-		newNpcInitiativeStat = 1;
-		isAddingNpcType = false;
+	}
+
+	function renameNpcType(npcTypeId: StableId, name: string) {
+		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
+		if (npcType) npcType.name = name;
+	}
+
+	function updateNpcTypeInitiativeStat(npcTypeId: StableId, initiativeStat: number) {
+		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
+		if (npcType) npcType.initiativeStat = initiativeStat;
 	}
 
 	function removeNpcType(npcTypeId: StableId) {
@@ -95,11 +122,11 @@
 		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll' } };
 	}
 
-	function addCharacter() {
-		const name = newCharacterName.trim();
-		if (!name || !newCharacterFactionId) return;
+	function addCharacter(name: string) {
+		const normalizedName = name.trim();
+		if (!normalizedName || !newCharacterFactionId) return;
 
-		const character = { id: createUuid(), name } satisfies PlayerCharacter;
+		const character = { id: createUuid(), name: normalizedName } satisfies PlayerCharacter;
 		reusableCharacters.push(character);
 		challenge.creatures.push({
 			id: createUuid(),
@@ -108,34 +135,20 @@
 			factionId: newCharacterFactionId,
 			turns: [createTurn()]
 		});
-		newCharacterName = '';
 	}
 
-	function addNpc() {
-		const identifier = newNpcIdentifier.trim();
-		if (!identifier || !newNpcTypeId || !newCharacterFactionId) return;
+	function addNpc(identifier: string) {
+		const normalizedIdentifier = identifier.trim();
+		if (!normalizedIdentifier || !newNpcTypeId || !newNpcFactionId) return;
 
 		challenge.creatures.push({
 			id: createUuid(),
 			kind: 'npc',
 			creatureTypeId: newNpcTypeId,
-			identifier,
-			factionId: newCharacterFactionId,
+			identifier: normalizedIdentifier,
+			factionId: newNpcFactionId,
 			turns: [createTurn()]
 		});
-		newNpcIdentifier = '';
-	}
-
-	function characterName(characterId: StableId): string {
-		return (
-			reusableCharacters.find((character) => character.id === characterId)?.name ?? 'Character'
-		);
-	}
-
-	function npcName(creatureTypeId: StableId, identifier: string): string {
-		const typeName =
-			challenge.npcTypes.find((npcType) => npcType.id === creatureTypeId)?.name ?? 'NPC';
-		return `${typeName} ${identifier}`.trim();
 	}
 
 	function updateCharacterName(characterId: StableId, name: string) {
@@ -143,18 +156,9 @@
 		if (character) character.name = name;
 	}
 
-	function initiativeChoice(initiative: Readonly<TurnInitiative> | null): InitiativeChoice {
-		if (!initiative) return 'none';
-		if (initiative.kind === 'roll' || initiative.kind === 'static') return initiative.kind;
-		if (initiative.kind === 'fixed-position') {
-			return initiative.from === 'top' ? 'fixed-top' : 'fixed-bottom';
-		}
-		return `relative-${initiative.relation}`;
-	}
-
-	function setTurnInitiative(creatureId: StableId, choice: InitiativeChoice) {
+	function setTurnInitiative(creatureId: StableId, turnId: StableId, choice: InitiativeChoice) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
-		const turn = creature?.turns[0];
+		const turn = creature?.turns.find((item) => item.id === turnId);
 		if (!turn) return;
 
 		const otherTurn = challenge.creatures.find((item) => item.id !== creatureId)?.turns[0];
@@ -177,513 +181,98 @@
 		}
 	}
 
+	function updateTurnInitiative(
+		creatureId: StableId,
+		turnId: StableId,
+		change: Readonly<TurnEditorChange>
+	) {
+		if (change.kind === 'choice') {
+			setTurnInitiative(creatureId, turnId, change.choice);
+			return;
+		}
+
+		const turn = challenge.creatures
+			.find((creature) => creature.id === creatureId)
+			?.turns.find((item) => item.id === turnId);
+		const initiative = turn?.initiative;
+		if (!initiative) return;
+
+		if (change.kind === 'static-value' && initiative.kind === 'static') {
+			initiative.value = change.value;
+		} else if (change.kind === 'fixed-from' && initiative.kind === 'fixed-position') {
+			initiative.from = change.from;
+		} else if (change.kind === 'fixed-position' && initiative.kind === 'fixed-position') {
+			initiative.position = change.position;
+		} else if (change.kind === 'relative-relation' && initiative.kind === 'relative-position') {
+			initiative.relation = change.relation;
+		} else if (change.kind === 'relative-distance' && initiative.kind === 'relative-position') {
+			initiative.distance = change.distance;
+		} else if (change.kind === 'relative-target' && initiative.kind === 'relative-position') {
+			initiative.targetTurnId = change.targetTurnId;
+		}
+	}
+
+	function updateCreatureFaction(creatureId: StableId, factionId: StableId) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (creature) creature.factionId = factionId;
+	}
+
+	function updateNpcIdentifier(creatureId: StableId, identifier: string) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (creature?.kind === 'npc') creature.identifier = identifier;
+	}
+
 	function removeCreature(creatureId: StableId) {
 		challenge.creatures = challenge.creatures.filter((creature) => creature.id !== creatureId);
 	}
 </script>
 
 <ViewPage title="New challenge">
-	<div class="setup">
-		<section class="settings" aria-labelledby="challenge-settings-heading">
-			<h2 id="challenge-settings-heading">Challenge settings</h2>
-			<label>
-				<span>Challenge name</span>
-				<input bind:value={challenge.name} autocomplete="off" />
-			</label>
-			<label>
-				<span>Fairness weight</span>
-				<input bind:value={challenge.fairnessWeight} type="number" min="0" step="1" />
-			</label>
-			<label>
-				<span>Character initiative</span>
-				<select bind:value={challenge.initiativeRollModes.characters}>
-					<option value="manual">Enter results manually</option>
-					<option value="app">Roll in the app</option>
-				</select>
-			</label>
-			<label>
-				<span>NPC initiative</span>
-				<select bind:value={challenge.initiativeRollModes.npcs}>
-					<option value="manual">Enter results manually</option>
-					<option value="app">Roll in the app</option>
-				</select>
-			</label>
-		</section>
+	<div class="challenge-setup">
+		<ChallengeSettings
+			name={challenge.name}
+			fairnessWeight={challenge.fairnessWeight}
+			initiativeRollModes={challenge.initiativeRollModes}
+			onNameChange={updateChallengeName}
+			onFairnessWeightChange={updateFairnessWeight}
+			onRollModeChange={updateInitiativeRollMode}
+		/>
 
-		<section class="setup-section" aria-labelledby="factions-heading">
-			<div class="section-heading">
-				<h2 id="factions-heading">Factions</h2>
-				<button type="button" onclick={() => (isAddingFaction = true)}>Add faction</button>
-			</div>
-			{#if challenge.factions.length > 0}
-				<ul class="entity-list">
-					{#each challenge.factions as faction (faction.id)}
-						<li>
-							<label>
-								<span>Faction name</span>
-								<input aria-label={`Faction name: ${faction.name}`} bind:value={faction.name} />
-							</label>
-							<button
-								class="quiet-button"
-								type="button"
-								disabled={challenge.creatures.some((creature) => creature.factionId === faction.id)}
-								aria-label={`Remove faction ${faction.name}`}
-								title="Factions assigned to creatures cannot be removed"
-								onclick={() => removeFaction(faction.id)}
-							>
-								Remove
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-			{#if isAddingFaction}
-				<form
-					class="inline-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						addFaction();
-					}}
-				>
-					<label>
-						<span>New faction name</span>
-						<input bind:value={newFactionName} required />
-					</label>
-					<button type="submit">Save faction</button>
-					<button class="quiet-button" type="button" onclick={() => (isAddingFaction = false)}>
-						Cancel
-					</button>
-				</form>
-			{/if}
-		</section>
+		<FactionEditor
+			factions={challenge.factions}
+			{usedFactionIds}
+			onCreate={addFaction}
+			onRename={renameFaction}
+			onRemove={removeFaction}
+		/>
 
-		<section class="setup-section" aria-labelledby="npc-types-heading">
-			<div class="section-heading">
-				<h2 id="npc-types-heading">NPC types</h2>
-				<button type="button" onclick={() => (isAddingNpcType = true)}>Add NPC type</button>
-			</div>
-			{#if challenge.npcTypes.length > 0}
-				<ul class="entity-list">
-					{#each challenge.npcTypes as npcType (npcType.id)}
-						<li>
-							<label>
-								<span>NPC type name</span>
-								<input aria-label={`NPC type name: ${npcType.name}`} bind:value={npcType.name} />
-							</label>
-							<label>
-								<span>Initiative stat (d6)</span>
-								<input
-									aria-label={`Initiative stat for ${npcType.name}`}
-									bind:value={npcType.initiativeStat}
-									type="number"
-									min="1"
-									step="1"
-								/>
-							</label>
-							<input bind:value={newFactionName} required />
-							<button
-								class="quiet-button"
-								type="button"
-								disabled={challenge.creatures.some(
-									(creature) => creature.kind === 'npc' && creature.creatureTypeId === npcType.id
-								)}
-								aria-label={`Remove NPC type ${npcType.name}`}
-								title="Types used by creatures cannot be removed"
-								onclick={() => removeNpcType(npcType.id)}
-							>
-								Remove
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-			{#if isAddingNpcType}
-				<form
-					class="inline-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						addNpcType();
-					}}
-				>
-					<label>
-						<span>New NPC type name</span>
-						<input bind:value={newNpcTypeName} required />
-						<input bind:value={newNpcTypeName} required />
-					</label>
-					<label>
-						<span>Initiative stat (d6)</span>
-						<input bind:value={newNpcInitiativeStat} type="number" min="1" step="1" required />
-					</label>
-					<button type="submit">Save NPC type</button>
-					<button class="quiet-button" type="button" onclick={() => (isAddingNpcType = false)}>
-						Cancel
-					</button>
-				</form>
-			{/if}
-		</section>
+		<NpcTypeEditor
+			npcTypes={challenge.npcTypes}
+			{usedNpcTypeIds}
+			onCreate={addNpcType}
+			onRename={renameNpcType}
+			onInitiativeStatChange={updateNpcTypeInitiativeStat}
+			onRemove={removeNpcType}
+		/>
 
-		<section class="setup-section" aria-labelledby="creatures-heading">
-			<div class="section-heading">
-				<h2 id="creatures-heading">Creatures</h2>
-			</div>
-			<div class="add-creature-forms">
-				<form
-					class="inline-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						addCharacter();
-					}}
-				>
-					<h3>Player character</h3>
-					<label>
-						<span>Character name</span>
-						<input bind:value={newCharacterName} autocomplete="off" required />
-					</label>
-					<label>
-						<span>Faction</span>
-						<select
-							bind:value={newCharacterFactionId}
-							required
-							disabled={!challenge.factions.length}
-						>
-							<option value="" disabled>Select a faction</option>
-							{#each challenge.factions as faction (faction.id)}
-								<option value={faction.id}>{faction.name}</option>
-							{/each}
-						</select>
-					</label>
-					<button type="submit" disabled={!challenge.factions.length}>Add character</button>
-				</form>
-				<form
-					class="inline-form"
-					onsubmit={(event) => {
-						event.preventDefault();
-						addNpc();
-					}}
-				>
-					<h3>NPC</h3>
-					<label>
-						<span>NPC type</span>
-						<select bind:value={newNpcTypeId} required disabled={!challenge.npcTypes.length}>
-							<option value="" disabled>Select an NPC type</option>
-							{#each challenge.npcTypes as npcType (npcType.id)}
-								<option value={npcType.id}>{npcType.name}</option>
-							{/each}
-						</select>
-					</label>
-					<label>
-						<span>NPC identifier</span>
-						<input bind:value={newNpcIdentifier} autocomplete="off" required />
-					</label>
-					<label>
-						<span>Faction</span>
-						<select
-							bind:value={newCharacterFactionId}
-							required
-							disabled={!challenge.factions.length}
-						>
-							<option value="" disabled>Select a faction</option>
-							{#each challenge.factions as faction (faction.id)}
-								<option value={faction.id}>{faction.name}</option>
-							{/each}
-						</select>
-					</label>
-					<button type="submit" disabled={!challenge.factions.length || !challenge.npcTypes.length}>
-						Add NPC
-					</button>
-				</form>
-			</div>
-
-			{#if challenge.creatures.length > 0}
-				<div class="creature-list">
-					{#each challenge.creatures as creature (creature.id)}
-						{@const name =
-							creature.kind === 'character'
-								? characterName(creature.characterId)
-								: npcName(creature.creatureTypeId, creature.identifier)}
-						<fieldset class="creature" aria-label={name}>
-							<legend>{name}</legend>
-							<label>
-								<span>Faction</span>
-								<select bind:value={creature.factionId}>
-									{#each challenge.factions as faction (faction.id)}
-										<option value={faction.id}>{faction.name}</option>
-									{/each}
-								</select>
-							</label>
-							{#if creature.kind === 'character'}
-								<label>
-									<span>Character name</span>
-									<input
-										aria-label={`Character name: ${characterName(creature.characterId)}`}
-										value={reusableCharacters.find(
-											(character) => character.id === creature.characterId
-										)?.name ?? ''}
-										oninput={(event) =>
-											updateCharacterName(creature.characterId, event.currentTarget.value)}
-									/>
-								</label>
-							{:else if creature.kind === 'npc'}
-								<label>
-									<span>NPC identifier</span>
-									<input bind:value={creature.identifier} />
-								</label>
-							{/if}
-							{#each creature.turns as turn (turn.id)}
-								<div class="turn-settings">
-									<label>
-										<span>Turn initiative</span>
-										<select
-											value={initiativeChoice(turn.initiative)}
-											onchange={(event) =>
-												setTurnInitiative(
-													creature.id,
-													event.currentTarget.value as InitiativeChoice
-												)}
-										>
-											<option value="none">No initiative</option>
-											<option value="roll">Roll or enter a result</option>
-											<option value="static">Static value</option>
-											<option value="fixed-top">Fixed position from top</option>
-											<option value="fixed-bottom">Fixed position from bottom</option>
-											<option
-												value="relative-before"
-												disabled={!challenge.creatures.some((item) => item.id !== creature.id)}
-											>
-												Before another turn
-											</option>
-											<option
-												value="relative-after"
-												disabled={!challenge.creatures.some((item) => item.id !== creature.id)}
-											>
-												After another turn
-											</option>
-										</select>
-									</label>
-									{#if turn.initiative?.kind === 'static'}
-										<label>
-											<span>Static initiative</span>
-											<input bind:value={turn.initiative.value} type="number" step="1" />
-										</label>
-									{:else if turn.initiative?.kind === 'fixed-position'}
-										<label>
-											<span>Count from</span>
-											<select bind:value={turn.initiative.from}>
-												<option value="top">Top</option>
-												<option value="bottom">Bottom</option>
-											</select>
-										</label>
-										<label>
-											<span>Position</span>
-											<input bind:value={turn.initiative.position} type="number" min="1" step="1" />
-										</label>
-									{:else if turn.initiative?.kind === 'relative-position'}
-										<label>
-											<span>Relationship</span>
-											<select bind:value={turn.initiative.relation}>
-												<option value="before">Before</option>
-												<option value="after">After</option>
-											</select>
-										</label>
-										<label>
-											<span>Distance</span>
-											<input bind:value={turn.initiative.distance} type="number" min="0" step="1" />
-										</label>
-										<label>
-											<span>Target turn</span>
-											<select bind:value={turn.initiative.targetTurnId}>
-												{#each challenge.creatures.filter((item) => item.id !== creature.id) as target (target.id)}
-													<option value={target.turns[0].id}>
-														{target.kind === 'character'
-															? characterName(target.characterId)
-															: npcName(target.creatureTypeId, target.identifier)}
-													</option>
-												{/each}
-											</select>
-										</label>
-									{/if}
-								</div>
-							{/each}
-							<button
-								class="quiet-button"
-								type="button"
-								aria-label={`Remove ${name}`}
-								onclick={() => removeCreature(creature.id)}
-							>
-								Remove creature
-							</button>
-						</fieldset>
-					{/each}
-				</div>
-			{/if}
-		</section>
+		<CreatureSetup
+			creatures={challenge.creatures}
+			characters={reusableCharacters}
+			factions={challenge.factions}
+			npcTypes={challenge.npcTypes}
+			characterFactionId={newCharacterFactionId}
+			npcFactionId={newNpcFactionId}
+			npcTypeId={newNpcTypeId}
+			onCharacterFactionChange={(factionId) => (newCharacterFactionId = factionId)}
+			onNpcFactionChange={(factionId) => (newNpcFactionId = factionId)}
+			onNpcTypeChange={(npcTypeId) => (newNpcTypeId = npcTypeId)}
+			onCreateCharacter={addCharacter}
+			onCreateNpc={addNpc}
+			onCreatureFactionChange={updateCreatureFaction}
+			onCharacterNameChange={updateCharacterName}
+			onNpcIdentifierChange={updateNpcIdentifier}
+			onTurnChange={updateTurnInitiative}
+			onRemoveCreature={removeCreature}
+		/>
 	</div>
 </ViewPage>
-
-<style>
-	.setup {
-		max-width: 1080px;
-	}
-
-	h2 {
-		margin: 0;
-		font-size: 20px;
-		font-weight: 600;
-	}
-
-	h3 {
-		margin: 0;
-		font-size: 16px;
-		font-weight: 600;
-	}
-
-	.settings,
-	.add-creature-forms {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 16px 24px;
-	}
-
-	.settings {
-		padding-bottom: 24px;
-	}
-
-	.setup-section {
-		padding-block: 20px 24px;
-		border-top: 1px solid var(--color-border);
-	}
-
-	.section-heading,
-	.entity-list li {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-	}
-
-	.section-heading {
-		margin-bottom: 12px;
-	}
-
-	.entity-list {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	.entity-list li {
-		min-height: 40px;
-		border-bottom: 1px solid var(--color-border-subtle);
-	}
-
-	.inline-form {
-		display: flex;
-		align-items: end;
-		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 12px;
-	}
-
-	.add-creature-forms .inline-form {
-		align-items: end;
-		padding-block: 12px;
-	}
-
-	.inline-form h3 {
-		flex-basis: 100%;
-	}
-
-	label {
-		display: grid;
-		flex: 1 1 180px;
-		gap: 6px;
-		min-width: 0;
-		font-size: 14px;
-	}
-
-	input,
-	select,
-	button {
-		min-height: 40px;
-		border: 1px solid var(--color-border-subtle);
-		border-radius: 4px;
-		font: inherit;
-	}
-
-	input,
-	select {
-		width: 100%;
-		padding: 8px 10px;
-		color: var(--color-foreground);
-		background: var(--color-background);
-	}
-
-	button {
-		padding: 8px 14px;
-		color: white;
-		border-color: var(--color-accent);
-		background: var(--color-accent);
-		cursor: pointer;
-	}
-
-	.quiet-button {
-		color: var(--color-foreground);
-		border-color: transparent;
-		background: transparent;
-	}
-
-	button:disabled,
-	select:disabled {
-		cursor: not-allowed;
-		opacity: 0.55;
-	}
-
-	:where(input, select, button):focus-visible {
-		outline: var(--focus-ring);
-		outline-offset: var(--focus-ring-offset);
-	}
-
-	.creature-list {
-		display: grid;
-		gap: 16px;
-		margin-top: 16px;
-	}
-
-	.creature {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: end;
-		gap: 14px 20px;
-		min-width: 0;
-		margin: 0;
-		padding: 16px 0;
-		border: 0;
-		border-top: 1px solid var(--color-border-subtle);
-	}
-
-	.creature legend {
-		padding: 0 8px 0 0;
-		font-size: 17px;
-		font-weight: 600;
-	}
-
-	.turn-settings {
-		display: contents;
-	}
-
-	.creature > button {
-		justify-self: start;
-	}
-
-	@media (max-width: 640px) {
-		.settings,
-		.add-creature-forms,
-		.creature {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.inline-form > button {
-			flex: 1 1 auto;
-		}
-	}
-</style>
