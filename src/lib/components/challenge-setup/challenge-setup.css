@@ -28,10 +28,6 @@
 	border-radius: 6px;
 }
 
-.challenge-setup .fairness-setting {
-	grid-column: 1 / -1;
-}
-
 .challenge-setup .fairness-control {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 4ch;
@@ -49,6 +45,11 @@
 .challenge-setup .fairness-control output {
 	font-variant-numeric: tabular-nums;
 	text-align: right;
+}
+
+.challenge-setup .fairness-description {
+	margin: 0;
+	font-size: 13px;
 }
 
 .challenge-setup .setup-section {

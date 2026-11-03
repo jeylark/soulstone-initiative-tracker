@@ -29,7 +29,7 @@
 			{ id: createUuid(), name: 'Enemies' }
 		],
 		npcTypes: [],
-		fairnessWeight: 0,
+		fairnessWeight: 1,
 		creatures: []
 	});
 	let reusableCharacters = $state<PlayerCharacter[]>([]);

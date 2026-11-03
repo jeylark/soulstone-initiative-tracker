@@ -7,6 +7,14 @@
 	}
 
 	let { name, fairnessWeight, onNameChange, onFairnessWeightChange }: Props = $props();
+
+	function getFairnessDescription(weight: number): string {
+		if (weight === 0) return 'Pure initiative ordering.';
+		if (weight < 2) return 'Initiative remains the main influence on turn order.';
+		if (weight < 4) return 'Initiative and faction balance have similar influence.';
+		if (weight < 10) return 'Faction balance has a stronger influence than initiative.';
+		return 'Turn order approaches a proportional round-robin across factions.';
+	}
 </script>
 
 <fieldset class="settings">
@@ -19,7 +27,7 @@
 			oninput={(event) => onNameChange(event.currentTarget.value)}
 		/>
 	</label>
-	<label class="fairness-setting">
+	<label>
 		<span>Fairness weight</span>
 		<div class="fairness-control">
 			<input
@@ -34,5 +42,6 @@
 			/>
 			<output for="fairness-weight">{fairnessWeight.toFixed(2)}</output>
 		</div>
+		<p class="fairness-description" aria-live="polite">{getFairnessDescription(fairnessWeight)}</p>
 	</label>
 </fieldset>
