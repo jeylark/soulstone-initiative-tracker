@@ -69,20 +69,20 @@
 		const faction = challenge.factions.find((item) => item.id === factionId);
 		if (!faction) return;
 
-		const creatureCount = challenge.creatures.filter(
+		const factionCreatures = challenge.creatures.filter(
 			(creature) => creature.factionId === factionId
-		).length;
-		if (
-			creatureCount > 0 &&
-			!window.confirm(
-				`Remove faction "${faction.name}" and its ${creatureCount} creature${creatureCount === 1 ? '' : 's'}? Its creatures will also be deleted.`
-			)
-		) {
-			return;
-		}
-		challenge.creatures = challenge.creatures.filter(
-			(creature) => creature.factionId !== factionId
 		);
+		const creatureIds = new Set(factionCreatures.map((creature) => creature.id));
+		const initialTurnIds = new Set(
+			factionCreatures.flatMap((creature) => creature.turns.map(({ id }) => id))
+		);
+		const turnIds = confirmTurnCascade(
+			initialTurnIds,
+			`Remove faction "${faction.name}" and its ${factionCreatures.length} creature${factionCreatures.length === 1 ? '' : 's'}? Those creatures will also be deleted.`,
+			factionCreatures.length > 0
+		);
+		if (turnIds === null) return;
+		removeCreaturesAndTurns(creatureIds, turnIds);
 		challenge.factions = challenge.factions.filter((faction) => faction.id !== factionId);
 	}
 
@@ -114,26 +114,30 @@
 		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
 		if (!npcType) return;
 
-		const npcCount = challenge.creatures.filter(
+		const npcs = challenge.creatures.filter(
 			(creature) => creature.kind === 'npc' && creature.creatureTypeId === npcTypeId
-		).length;
-		if (
-			npcCount > 0 &&
-			!window.confirm(
-				`Remove NPC type "${npcType.name}" and its ${npcCount} NPC${npcCount === 1 ? '' : 's'}? Those NPCs will also be deleted.`
-			)
-		) {
-			return;
-		}
-		challenge.creatures = challenge.creatures.filter(
-			(creature) => creature.kind !== 'npc' || creature.creatureTypeId !== npcTypeId
 		);
+		const creatureIds = new Set(npcs.map((creature) => creature.id));
+		const initialTurnIds = new Set(npcs.flatMap((creature) => creature.turns.map(({ id }) => id)));
+		const turnIds = confirmTurnCascade(
+			initialTurnIds,
+			`Remove NPC type "${npcType.name}" and its ${npcs.length} NPC${npcs.length === 1 ? '' : 's'}? Those NPCs will also be deleted.`,
+			npcs.length > 0
+		);
+		if (turnIds === null) return;
+		removeCreaturesAndTurns(creatureIds, turnIds);
 		challenge.npcTypes = challenge.npcTypes.filter((npcType) => npcType.id !== npcTypeId);
 		if (newNpcTypeId === npcTypeId) newNpcTypeId = challenge.npcTypes[0]?.id ?? '';
 	}
 
 	function createTurn(mode: InitiativeRollMode): Turn {
 		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll', mode } };
+	}
+
+	function addTurn(creatureId: StableId) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature) return;
+		creature.turns.push(createTurn(creature.kind === 'character' ? 'manual' : 'app'));
 	}
 
 	function addCharacter(factionId: StableId) {
@@ -191,8 +195,7 @@
 		if (!turn) return;
 
 		const otherTurn = challenge.creatures.find((item) => item.id !== creatureId)?.turns[0];
-		if (choice === 'none') turn.initiative = null;
-		else if (choice === 'roll-app') turn.initiative = { kind: 'roll', mode: 'app' };
+		if (choice === 'roll-app') turn.initiative = { kind: 'roll', mode: 'app' };
 		else if (choice === 'roll-manual') turn.initiative = { kind: 'roll', mode: 'manual' };
 		else if (choice === 'static') turn.initiative = { kind: 'static', value: 0 };
 		else if (choice === 'fixed-top' || choice === 'fixed-bottom') {
@@ -252,8 +255,84 @@
 		if (creature?.kind === 'npc') creature.identifier = identifier;
 	}
 
+	function dependentTurnClosure(initialTurnIds: ReadonlySet<StableId>): Set<StableId> {
+		const turnIds = new Set(initialTurnIds);
+		let hasNewDependentTurn = true;
+
+		while (hasNewDependentTurn) {
+			hasNewDependentTurn = false;
+			for (const creature of challenge.creatures) {
+				for (const turn of creature.turns) {
+					if (
+						turn.initiative.kind === 'relative-position' &&
+						turnIds.has(turn.initiative.targetTurnId) &&
+						!turnIds.has(turn.id)
+					) {
+						turnIds.add(turn.id);
+						hasNewDependentTurn = true;
+					}
+				}
+			}
+		}
+
+		return turnIds;
+	}
+
+	function confirmTurnCascade(
+		initialTurnIds: ReadonlySet<StableId>,
+		message: string,
+		mustConfirm: boolean
+	): Set<StableId> | null {
+		const turnIds = dependentTurnClosure(initialTurnIds);
+		const dependentTurnCount = turnIds.size - initialTurnIds.size;
+		if (dependentTurnCount === 0 && !mustConfirm) return turnIds;
+
+		const dependentTurnMessage =
+			dependentTurnCount === 0
+				? ''
+				: ` All ${dependentTurnCount} dependent turn${dependentTurnCount === 1 ? '' : 's'} that directly or indirectly reference the removed turns will also be deleted.`;
+		return window.confirm(`${message}${dependentTurnMessage}`) ? turnIds : null;
+	}
+
+	function removeCreaturesAndTurns(
+		creatureIds: ReadonlySet<StableId>,
+		turnIds: ReadonlySet<StableId>
+	) {
+		challenge.creatures = challenge.creatures
+			.filter((creature) => !creatureIds.has(creature.id))
+			.map((creature) => ({
+				...creature,
+				turns: creature.turns.filter((turn) => !turnIds.has(turn.id))
+			}));
+
+		if (challenge.runState) {
+			for (const turnId of turnIds) delete challenge.runState.initiativeResults[turnId];
+			if (challenge.runState.generatedTurnOrder) {
+				challenge.runState.generatedTurnOrder = challenge.runState.generatedTurnOrder.filter(
+					(turnId) => !turnIds.has(turnId)
+				);
+			}
+		}
+	}
+
+	function removeTurn(creatureId: StableId, turnId: StableId) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature?.turns.some((turn) => turn.id === turnId)) return;
+
+		const turnIds = confirmTurnCascade(new Set([turnId]), 'Remove this turn?', false);
+		if (turnIds === null) return;
+		removeCreaturesAndTurns(new Set(), turnIds);
+	}
+
 	function removeCreature(creatureId: StableId) {
-		challenge.creatures = challenge.creatures.filter((creature) => creature.id !== creatureId);
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature) return;
+
+		const creatureIds = new Set([creatureId]);
+		const initialTurnIds = new Set(creature.turns.map(({ id }) => id));
+		const turnIds = confirmTurnCascade(initialTurnIds, 'Remove this creature?', false);
+		if (turnIds === null) return;
+		removeCreaturesAndTurns(creatureIds, turnIds);
 	}
 </script>
 
@@ -291,6 +370,8 @@
 			onCharacterNameChange={updateCharacterName}
 			onNpcIdentifierChange={updateNpcIdentifier}
 			onTurnChange={updateTurnInitiative}
+			onAddTurn={addTurn}
+			onRemoveTurn={removeTurn}
 			onRemoveCreature={removeCreature}
 		/>
 	</div>

@@ -17,6 +17,8 @@
 			turnId: StableId,
 			change: Readonly<TurnEditorChange>
 		) => void;
+		onAddTurn: (creatureId: StableId) => void;
+		onRemoveTurn: (creatureId: StableId, turnId: StableId) => void;
 		onRemove: (creatureId: StableId) => void;
 	}
 
@@ -30,6 +32,8 @@
 		onCharacterNameChange,
 		onNpcIdentifierChange,
 		onTurnChange,
+		onAddTurn,
+		onRemoveTurn,
 		onRemove
 	}: Props = $props();
 </script>
@@ -65,13 +69,19 @@
 			/>
 		</label>
 	{/if}
-	{#each creature.turns as turn (turn.id)}
+	{#each creature.turns as turn, index (turn.id)}
 		<TurnEditor
 			{turn}
-			{targetTurns}
+			turnNumber={index + 1}
+			creatureName={name}
+			targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
 			onChange={(change) => onTurnChange(creature.id, turn.id, change)}
+			onRemove={() => onRemoveTurn(creature.id, turn.id)}
 		/>
 	{/each}
+	<button type="button" aria-label={`Add turn for ${name}`} onclick={() => onAddTurn(creature.id)}>
+		Add turn
+	</button>
 	<button
 		class="quiet-button warning-button"
 		type="button"

@@ -1,7 +1,6 @@
 import type { StableId } from '#lib';
 
 export type InitiativeChoice =
-	| 'none'
 	| 'roll-app'
 	| 'roll-manual'
 	| 'static'

@@ -22,6 +22,8 @@
 			turnId: StableId,
 			change: Readonly<TurnEditorChange>
 		) => void;
+		onAddTurn: (creatureId: StableId) => void;
+		onRemoveTurn: (creatureId: StableId, turnId: StableId) => void;
 		onRemoveCreature: (creatureId: StableId) => void;
 	}
 
@@ -40,6 +42,8 @@
 		onCharacterNameChange,
 		onNpcIdentifierChange,
 		onTurnChange,
+		onAddTurn,
+		onRemoveTurn,
 		onRemoveCreature
 	}: Props = $props();
 </script>
@@ -64,6 +68,8 @@
 				{onCharacterNameChange}
 				{onNpcIdentifierChange}
 				{onTurnChange}
+				{onAddTurn}
+				{onRemoveTurn}
 				{onRemoveCreature}
 			/>
 		{/each}

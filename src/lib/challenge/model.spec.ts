@@ -376,6 +376,13 @@ const invalidFieldCases = [
 		message: 'Expected an initiative object.'
 	},
 	{
+		field: 'null turn initiative',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: null,
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative',
+		message: 'Expected an initiative object.'
+	},
+	{
 		field: 'initiative kind',
 		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative', 'kind'],
 		value: 'random',

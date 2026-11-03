@@ -22,6 +22,8 @@
 			turnId: StableId,
 			change: Readonly<TurnEditorChange>
 		) => void;
+		onAddTurn: (creatureId: StableId) => void;
+		onRemoveTurn: (creatureId: StableId, turnId: StableId) => void;
 		onRemoveCreature: (creatureId: StableId) => void;
 	}
 
@@ -40,6 +42,8 @@
 		onCharacterNameChange,
 		onNpcIdentifierChange,
 		onTurnChange,
+		onAddTurn,
+		onRemoveTurn,
 		onRemoveCreature
 	}: Props = $props();
 	let factionCreatures = $derived(
@@ -55,17 +59,16 @@
 		return `${typeName} ${identifier}`.trim();
 	}
 
-	function targetTurns(excludedCreatureId: StableId): TurnTarget[] {
+	function targetTurns(): TurnTarget[] {
 		return creatures.flatMap((creature) => {
-			if (creature.id === excludedCreatureId) return [];
-			const turn = creature.turns[0];
-			if (!turn) return [];
-
 			const name =
 				creature.kind === 'character'
 					? characterName(creature.characterId)
 					: npcName(creature.creatureTypeId, creature.identifier);
-			return [{ id: turn.id, name }];
+			return creature.turns.map((turn, index) => ({
+				id: turn.id,
+				name: `${name} - Turn ${index + 1}`
+			}));
 		});
 	}
 </script>
@@ -103,11 +106,13 @@
 					{name}
 					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
 					{factions}
-					targetTurns={targetTurns(creature.id)}
+					targetTurns={targetTurns()}
 					onFactionChange={onCreatureFactionChange}
 					{onCharacterNameChange}
 					{onNpcIdentifierChange}
 					{onTurnChange}
+					{onAddTurn}
+					{onRemoveTurn}
 					onRemove={onRemoveCreature}
 				/>
 			{/each}

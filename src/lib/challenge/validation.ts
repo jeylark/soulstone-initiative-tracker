@@ -231,9 +231,9 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 
 	let isValidInitiative = true;
 	if (!('initiative' in value)) {
-		addIssue(`${path}.initiative`, 'Expected an initiative rule or null.');
+		addIssue(`${path}.initiative`, 'Expected an initiative rule.');
 		isValidInitiative = false;
-	} else if (value.initiative !== null) {
+	} else {
 		isValidInitiative = validateTurnInitiative(value.initiative, `${path}.initiative`, addIssue);
 	}
 

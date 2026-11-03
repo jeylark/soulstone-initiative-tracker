@@ -252,8 +252,32 @@
 	font-weight: 600;
 }
 
-.challenge-setup .turn-settings {
+.challenge-setup .turn-card {
+	display: grid;
+	grid-column: 1 / -1;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+	align-items: end;
+	gap: 12px;
+	min-width: 0;
+	margin: 0;
+	padding: 12px;
+	border: 1px solid var(--color-border-subtle);
+	border-radius: 4px;
+	background: var(--color-surface-inset);
+}
+
+.challenge-setup .turn-card > legend {
+	padding: 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.challenge-setup .turn-card .turn-settings {
 	display: contents;
+}
+
+.challenge-setup .turn-card > button {
+	justify-self: start;
 }
 
 .challenge-setup .creature > button {

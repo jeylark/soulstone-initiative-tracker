@@ -12,9 +12,7 @@ export type DeepReadonly<T> = T extends readonly (infer U)[]
 			? { readonly [K in keyof T]: DeepReadonly<T[K]> }
 			: T;
 
-function copyInitiative(initiative: DeepReadonly<TurnInitiative> | null): TurnInitiative | null {
-	if (initiative === null) return null;
-
+function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiative {
 	switch (initiative.kind) {
 		case 'roll':
 			return { kind: 'roll', mode: initiative.mode };

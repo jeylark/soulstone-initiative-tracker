@@ -65,8 +65,8 @@ export interface Turn {
 	id: StableId;
 	/** Whether the turn is hidden from read-only viewers. */
 	isHidden: boolean;
-	/** How this turn is placed in the order, or null when it has no initiative. */
-	initiative: TurnInitiative | null;
+	/** How this turn is placed in the order. */
+	initiative: TurnInitiative;
 }
 
 /** Initiative rule that determines a turn's placement in the generated order. */

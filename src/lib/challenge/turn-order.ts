@@ -50,10 +50,6 @@ function filterFactionTurns(
 		const factionTurns = turnsByFaction.getOrInsert(creature.factionId, []);
 
 		for (const turn of creature.turns) {
-			if (turn.initiative === null) {
-				continue;
-			}
-
 			if (turn.initiative.kind === 'roll') {
 				const initiativeValue = initiativeResults[turn.id];
 				if (initiativeValue === undefined) {
