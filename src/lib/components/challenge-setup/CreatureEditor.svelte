@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChallengeCreature, Faction, StableId } from '#lib';
+	import type { ChallengeCreature, Faction, NpcType, StableId } from '#lib';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
 
@@ -8,8 +8,10 @@
 		name: string;
 		characterName: string;
 		factions: readonly Faction[];
+		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
 		onFactionChange: (creatureId: StableId, factionId: StableId) => void;
+		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
 		onTurnChange: (
@@ -27,8 +29,10 @@
 		name,
 		characterName,
 		factions,
+		npcTypes,
 		targetTurns,
 		onFactionChange,
+		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
 		onTurnChange,
@@ -61,6 +65,19 @@
 			/>
 		</label>
 	{:else if creature.kind === 'npc'}
+		<label>
+			<span>NPC type</span>
+			<select
+				aria-label={`NPC type for ${name}`}
+				value={creature.creatureTypeId}
+				onchange={(event) =>
+					onNpcTypeChange(creature.id, event.currentTarget.value as StableId)}
+			>
+				{#each npcTypes as npcType (npcType.id)}
+					<option value={npcType.id}>{npcType.name}</option>
+				{/each}
+			</select>
+		</label>
 		<label>
 			<span>NPC identifier</span>
 			<input

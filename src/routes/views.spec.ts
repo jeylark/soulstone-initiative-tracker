@@ -396,4 +396,61 @@ describe('new challenge setup', () => {
 		expect(screen.queryByRole('group', { name: 'NPC Type 1' })).toBeNull();
 		expect(within(player).queryByRole('group', { name: 'Turn 1' })).toBeNull();
 	});
+
+	it('lets each NPC change type and uses the most recently selected type across factions', async () => {
+		render(newChallengePage);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		const firstNpc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' });
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const typeSelector = within(firstNpc).getByRole('combobox', {
+			name: 'NPC type for NPC Type 1 1'
+		});
+		const typeOption = within(firstNpc).getByRole('option', { name: 'NPC Type 2' });
+		await fireEvent.change(typeSelector, { target: { value: typeOption.getAttribute('value') } });
+		expect(within(enemiesPanel).getByRole('group', { name: 'NPC Type 2 1' })).toBeTruthy();
+		expect(
+			screen.getByRole('button', { name: 'Use NPC type NPC Type 2' }).getAttribute('aria-pressed')
+		).toBe('true');
+
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add NPC' }));
+		expect(within(playersPanel).getByRole('group', { name: 'NPC Type 2 2' })).toBeTruthy();
+	});
+
+	it('changes a colliding NPC identifier but preserves it when the new type has no duplicate', async () => {
+		render(newChallengePage);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		const firstNpc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' });
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Use NPC type NPC Type 2' }));
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		const secondNpc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 2 1' });
+
+		const firstTypeSelector = within(firstNpc).getByRole('combobox', {
+			name: 'NPC type for NPC Type 1 1'
+		});
+		const secondTypeOption = within(firstNpc).getByRole('option', { name: 'NPC Type 2' });
+		await fireEvent.change(firstTypeSelector, {
+			target: { value: secondTypeOption.getAttribute('value') }
+		});
+		const reassignedNpc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 2 2' });
+		expect(reassignedNpc).toBeTruthy();
+
+		const secondNpcSelector = within(secondNpc).getByRole('combobox', {
+			name: 'NPC type for NPC Type 2 1'
+		});
+		const firstTypeOption = within(secondNpc).getByRole('option', { name: 'NPC Type 1' });
+		await fireEvent.change(secondNpcSelector, {
+			target: { value: firstTypeOption.getAttribute('value') }
+		});
+		expect(within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' })).toBeTruthy();
+	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		createUuid,
 		type Challenge,
@@ -177,6 +178,27 @@
 		});
 	}
 
+	function updateNpcType(creatureId: StableId, npcTypeId: StableId) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (
+			creature?.kind !== 'npc' ||
+			!challenge.npcTypes.some((npcType) => npcType.id === npcTypeId)
+		) {
+			return;
+		}
+
+		const destinationIdentifiers = challenge.creatures.flatMap((item) =>
+			item.kind === 'npc' && item.id !== creatureId && item.creatureTypeId === npcTypeId
+				? [item.identifier]
+				: []
+		);
+		if (destinationIdentifiers.includes(creature.identifier)) {
+			creature.identifier = nextNumberedIdentifier(destinationIdentifiers);
+		}
+		creature.creatureTypeId = npcTypeId;
+		newNpcTypeId = npcTypeId;
+	}
+
 	function nextNumberedIdentifier(existingIdentifiers: readonly string[]): string {
 		const identifiers = new Set(existingIdentifiers);
 		let index = 1;
@@ -255,8 +277,8 @@
 		if (creature?.kind === 'npc') creature.identifier = identifier;
 	}
 
-	function dependentTurnClosure(initialTurnIds: ReadonlySet<StableId>): Set<StableId> {
-		const turnIds = new Set(initialTurnIds);
+	function dependentTurnClosure(initialTurnIds: ReadonlySet<StableId>): SvelteSet<StableId> {
+		const turnIds = new SvelteSet(initialTurnIds);
 		let hasNewDependentTurn = true;
 
 		while (hasNewDependentTurn) {
@@ -281,11 +303,11 @@
 	function confirmTurnCascade(
 		initialTurnIds: ReadonlySet<StableId>,
 		message: string,
-		mustConfirm: boolean
-	): Set<StableId> | null {
+		isConfirmationRequired: boolean
+	): SvelteSet<StableId> | null {
 		const turnIds = dependentTurnClosure(initialTurnIds);
 		const dependentTurnCount = turnIds.size - initialTurnIds.size;
-		if (dependentTurnCount === 0 && !mustConfirm) return turnIds;
+		if (dependentTurnCount === 0 && !isConfirmationRequired) return turnIds;
 
 		const dependentTurnMessage =
 			dependentTurnCount === 0
@@ -367,6 +389,7 @@
 			onCreateCharacter={addCharacter}
 			onCreateNpc={addNpc}
 			onCreatureFactionChange={updateCreatureFaction}
+			onNpcTypeChange={updateNpcType}
 			onCharacterNameChange={updateCharacterName}
 			onNpcIdentifierChange={updateNpcIdentifier}
 			onTurnChange={updateTurnInitiative}

@@ -15,6 +15,7 @@
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
+		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
 		onTurnChange: (
@@ -39,6 +40,7 @@
 		onCreateCharacter,
 		onCreateNpc,
 		onCreatureFactionChange,
+		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
 		onTurnChange,
@@ -106,8 +108,10 @@
 					{name}
 					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
 					{factions}
+					{npcTypes}
 					targetTurns={targetTurns()}
 					onFactionChange={onCreatureFactionChange}
+					{onNpcTypeChange}
 					{onCharacterNameChange}
 					{onNpcIdentifierChange}
 					{onTurnChange}
