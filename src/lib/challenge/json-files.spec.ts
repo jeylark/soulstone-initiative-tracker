@@ -30,6 +30,7 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 		factions: [{ id: factionId, name: 'Adventurers' }],
 		npcTypes: [],
 		initiativeRollModes: { characters: 'manual', npcs: 'app' },
+		fairnessWeight: 3,
 		creatures: [
 			{
 				id: createUuid(),

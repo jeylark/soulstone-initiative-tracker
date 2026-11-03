@@ -24,8 +24,9 @@ detailed coding guidelines.
 
 ## Before finishing
 
-- Run the relevant checks. Before submitting a pull request, run `npm test`,
-  `npm run lint`, and `npm run check`; also run `npm run build` when changes
+- For routine changes, run only relevant focused checks; do not run ESLint for
+  every change. Before opening a pull request, run `npm test`, `npm run lint`,
+  and `npm run check`; also run `npm run build` when changes
   affect the production build or deployment.
 - Inspect the final diff and confirm only task-related changes are included.
 - Report the exact checks run and their results. Clearly disclose failures,

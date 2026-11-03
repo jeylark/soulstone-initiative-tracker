@@ -84,6 +84,7 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 			characters: challenge.initiativeRollModes.characters,
 			npcs: challenge.initiativeRollModes.npcs
 		},
+		fairnessWeight: challenge.fairnessWeight,
 		creatures: challenge.creatures.map(copyCreature),
 		...(challenge.runState === undefined
 			? {}
