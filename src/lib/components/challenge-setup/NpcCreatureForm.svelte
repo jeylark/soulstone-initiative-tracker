@@ -1,30 +1,21 @@
 <script lang="ts">
-	import type { Faction, NpcType, StableId } from '#lib';
+	import type { NpcType, StableId } from '#lib';
 
 	interface Props {
-		factions: readonly Faction[];
+		factionName: string;
 		npcTypes: readonly NpcType[];
-		factionId: StableId | '';
 		npcTypeId: StableId | '';
-		onFactionChange: (factionId: StableId) => void;
 		onNpcTypeChange: (npcTypeId: StableId) => void;
 		onCreate: (identifier: string) => void;
+		onCancel: () => void;
 	}
 
-	let {
-		factions,
-		npcTypes,
-		factionId,
-		npcTypeId,
-		onFactionChange,
-		onNpcTypeChange,
-		onCreate
-	}: Props = $props();
+	let { factionName, npcTypes, npcTypeId, onNpcTypeChange, onCreate, onCancel }: Props = $props();
 	let identifier = $state('');
 
 	function submit() {
 		const normalizedIdentifier = identifier.trim();
-		if (!normalizedIdentifier || !factionId || !npcTypeId) return;
+		if (!normalizedIdentifier || !npcTypeId) return;
 
 		onCreate(normalizedIdentifier);
 		identifier = '';
@@ -32,7 +23,7 @@
 </script>
 
 <form
-	class="inline-form"
+	class="inline-form faction-entry-form"
 	onsubmit={(event) => {
 		event.preventDefault();
 		submit();
@@ -55,21 +46,13 @@
 	</label>
 	<label>
 		<span>NPC identifier</span>
-		<input bind:value={identifier} autocomplete="off" required />
-	</label>
-	<label>
-		<span>NPC faction</span>
-		<select
-			value={factionId}
+		<input
+			aria-label={`NPC identifier for ${factionName}`}
+			bind:value={identifier}
+			autocomplete="off"
 			required
-			disabled={!factions.length}
-			onchange={(event) => onFactionChange(event.currentTarget.value as StableId)}
-		>
-			<option value="" disabled>Select a faction</option>
-			{#each factions as faction (faction.id)}
-				<option value={faction.id}>{faction.name}</option>
-			{/each}
-		</select>
+		/>
 	</label>
-	<button type="submit" disabled={!factionId || !npcTypes.length}>Add NPC</button>
+	<button type="submit" disabled={!npcTypeId}>Save NPC</button>
+	<button class="quiet-button" type="button" onclick={onCancel}>Cancel</button>
 </form>

@@ -1,23 +1,20 @@
 <script lang="ts">
 	import type { ChallengeCreature, Faction, NpcType, PlayerCharacter, StableId } from '#lib';
-	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
-	import CharacterCreatureForm from './CharacterCreatureForm.svelte';
-	import CreatureEditor from './CreatureEditor.svelte';
-	import NpcCreatureForm from './NpcCreatureForm.svelte';
+	import type { TurnEditorChange } from './challenge-setup-types';
+	import FactionEditor from './FactionEditor.svelte';
 
 	interface Props {
+		factions: readonly Faction[];
 		creatures: readonly ChallengeCreature[];
 		characters: readonly PlayerCharacter[];
-		factions: readonly Faction[];
 		npcTypes: readonly NpcType[];
-		characterFactionId: StableId | '';
-		npcFactionId: StableId | '';
 		npcTypeId: StableId | '';
-		onCharacterFactionChange: (factionId: StableId) => void;
-		onNpcFactionChange: (factionId: StableId) => void;
 		onNpcTypeChange: (npcTypeId: StableId) => void;
-		onCreateCharacter: (name: string) => void;
-		onCreateNpc: (identifier: string) => void;
+		onCreateFaction: (name: string) => void;
+		onRenameFaction: (factionId: StableId, name: string) => void;
+		onRemoveFaction: (factionId: StableId) => void;
+		onCreateCharacter: (factionId: StableId, name: string) => void;
+		onCreateNpc: (factionId: StableId, identifier: string) => void;
 		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -30,16 +27,15 @@
 	}
 
 	let {
+		factions,
 		creatures,
 		characters,
-		factions,
 		npcTypes,
-		characterFactionId,
-		npcFactionId,
 		npcTypeId,
-		onCharacterFactionChange,
-		onNpcFactionChange,
 		onNpcTypeChange,
+		onCreateFaction,
+		onRenameFaction,
+		onRemoveFaction,
 		onCreateCharacter,
 		onCreateNpc,
 		onCreatureFactionChange,
@@ -48,73 +44,69 @@
 		onTurnChange,
 		onRemoveCreature
 	}: Props = $props();
+	let isAddingFaction = $state(false);
+	let newFactionName = $state('');
 
-	function characterName(characterId: StableId): string {
-		return characters.find((character) => character.id === characterId)?.name ?? 'Character';
-	}
+	function submitFaction() {
+		const name = newFactionName.trim();
+		if (!name) return;
 
-	function npcName(creatureTypeId: StableId, identifier: string): string {
-		const typeName = npcTypes.find((npcType) => npcType.id === creatureTypeId)?.name ?? 'NPC';
-		return `${typeName} ${identifier}`.trim();
-	}
-
-	function targetTurns(excludedCreatureId: StableId): TurnTarget[] {
-		return creatures.flatMap((creature) => {
-			if (creature.id === excludedCreatureId) return [];
-			const turn = creature.turns[0];
-			if (!turn) return [];
-
-			const name =
-				creature.kind === 'character'
-					? characterName(creature.characterId)
-					: npcName(creature.creatureTypeId, creature.identifier);
-			return [{ id: turn.id, name }];
-		});
+		onCreateFaction(name);
+		newFactionName = '';
+		isAddingFaction = false;
 	}
 </script>
 
-<section class="setup-section" aria-labelledby="creatures-heading">
+<section class="setup-section faction-board-section" aria-labelledby="factions-heading">
 	<div class="section-heading">
-		<h2 id="creatures-heading">Creatures</h2>
+		<h2 id="factions-heading">Factions</h2>
+		<button type="button" onclick={() => (isAddingFaction = true)}>Add faction</button>
 	</div>
-	<div class="add-creature-forms">
-		<CharacterCreatureForm
-			{factions}
-			factionId={characterFactionId}
-			onFactionChange={onCharacterFactionChange}
-			onCreate={onCreateCharacter}
-		/>
-		<NpcCreatureForm
-			{factions}
-			{npcTypes}
-			factionId={npcFactionId}
-			{npcTypeId}
-			onFactionChange={onNpcFactionChange}
-			{onNpcTypeChange}
-			onCreate={onCreateNpc}
-		/>
-	</div>
-
-	{#if creatures.length > 0}
-		<div class="creature-list">
-			{#each creatures as creature (creature.id)}
-				{@const name =
-					creature.kind === 'character'
-						? characterName(creature.characterId)
-						: npcName(creature.creatureTypeId, creature.identifier)}
-				<CreatureEditor
-					{creature}
-					{name}
-					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
-					{factions}
-					targetTurns={targetTurns(creature.id)}
-					onFactionChange={onCreatureFactionChange}
-					{onCharacterNameChange}
-					{onNpcIdentifierChange}
-					{onTurnChange}
-					onRemove={onRemoveCreature}
-				/>
-			{/each}
-		</div>
+	{#if isAddingFaction}
+		<form
+			class="inline-form"
+			onsubmit={(event) => {
+				event.preventDefault();
+				submitFaction();
+			}}
+		>
+			<label>
+				<span>New faction name</span>
+				<input bind:value={newFactionName} required />
+			</label>
+			<button type="submit">Save faction</button>
+			<button
+				class="quiet-button"
+				type="button"
+				onclick={() => {
+					newFactionName = '';
+					isAddingFaction = false;
+				}}
+			>
+				Cancel
+			</button>
+		</form>
 	{/if}
+	<div class="faction-board">
+		{#each factions as faction (faction.id)}
+			<FactionEditor
+				{faction}
+				{factions}
+				{creatures}
+				{characters}
+				{npcTypes}
+				{npcTypeId}
+				{onNpcTypeChange}
+				onRename={onRenameFaction}
+				onRemove={onRemoveFaction}
+				onCreateCharacter={(factionId, name) => onCreateCharacter(factionId, name)}
+				{onCreateNpc}
+				{onCreatureFactionChange}
+				{onCharacterNameChange}
+				{onNpcIdentifierChange}
+				{onTurnChange}
+				{onRemoveCreature}
+			/>
+		{/each}
+	</div>
 </section>

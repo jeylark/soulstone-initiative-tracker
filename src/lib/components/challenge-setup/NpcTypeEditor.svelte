@@ -3,15 +3,13 @@
 
 	interface Props {
 		npcTypes: readonly NpcType[];
-		usedNpcTypeIds: ReadonlySet<StableId>;
 		onCreate: (name: string, initiativeStat: number) => void;
 		onRename: (npcTypeId: StableId, name: string) => void;
 		onInitiativeStatChange: (npcTypeId: StableId, initiativeStat: number) => void;
 		onRemove: (npcTypeId: StableId) => void;
 	}
 
-	let { npcTypes, usedNpcTypeIds, onCreate, onRename, onInitiativeStatChange, onRemove }: Props =
-		$props();
+	let { npcTypes, onCreate, onRename, onInitiativeStatChange, onRemove }: Props = $props();
 	let isAdding = $state(false);
 	let newName = $state('');
 	let newInitiativeStat = $state(1);
@@ -27,15 +25,15 @@
 	}
 </script>
 
-<section class="setup-section" aria-labelledby="npc-types-heading">
+<section class="setup-section npc-type-strip-section" aria-labelledby="npc-types-heading">
 	<div class="section-heading">
 		<h2 id="npc-types-heading">NPC types</h2>
 		<button type="button" onclick={() => (isAdding = true)}>Add NPC type</button>
 	</div>
 	{#if npcTypes.length > 0}
-		<ul class="entity-list">
+		<ul class="npc-type-list">
 			{#each npcTypes as npcType (npcType.id)}
-				<li>
+				<li class="npc-type-card">
 					<label>
 						<span>NPC type name</span>
 						<input
@@ -59,9 +57,7 @@
 					<button
 						class="quiet-button"
 						type="button"
-						disabled={usedNpcTypeIds.has(npcType.id)}
 						aria-label={`Remove NPC type ${npcType.name}`}
-						title="Types used by creatures cannot be removed"
 						onclick={() => onRemove(npcType.id)}
 					>
 						Remove

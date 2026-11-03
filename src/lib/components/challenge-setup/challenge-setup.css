@@ -14,8 +14,7 @@
 	font-weight: 600;
 }
 
-.challenge-setup .settings,
-.challenge-setup .add-creature-forms {
+.challenge-setup .settings {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16px 24px;
@@ -42,17 +41,24 @@
 	margin-bottom: 12px;
 }
 
-.challenge-setup .entity-list {
+.challenge-setup .npc-type-list {
+	display: flex;
+	gap: 12px;
+	overflow-x: auto;
 	margin: 0;
-	padding: 0;
+	padding: 0 0 8px;
 	list-style: none;
 }
 
-.challenge-setup .entity-list li {
-	flex-wrap: wrap;
-	padding-block: 8px;
-	min-height: 40px;
-	border-bottom: 1px solid var(--color-border-subtle);
+.challenge-setup .npc-type-card {
+	display: grid;
+	flex: 0 0 min(280px, 82vw);
+	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr) auto;
+	align-items: end;
+	gap: 10px;
+	padding: 12px;
+	border: 1px solid var(--color-border-subtle);
+	border-radius: 4px;
 }
 
 .challenge-setup .inline-form {
@@ -74,6 +80,10 @@
 
 .challenge-setup .inline-form h3 {
 	flex-basis: 100%;
+}
+
+.challenge-setup .npc-type-card label {
+	flex-basis: auto;
 }
 
 .challenge-setup label {
@@ -132,6 +142,59 @@
 	margin-top: 16px;
 }
 
+.challenge-setup .faction-board {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+	align-items: start;
+	gap: 20px;
+}
+
+.challenge-setup .faction-panel {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 14px;
+	padding: 12px;
+	border: 1px solid var(--color-border-subtle);
+	border-radius: 4px;
+}
+
+.challenge-setup .faction-heading {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+	gap: 8px;
+}
+
+.challenge-setup .faction-heading label {
+	flex: initial;
+}
+
+.challenge-setup .faction-creatures {
+	display: grid;
+	gap: 12px;
+}
+
+.challenge-setup .faction-panel .creature {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 12px;
+	padding: 12px 0 0;
+}
+
+.challenge-setup .faction-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.challenge-setup .faction-entry-form {
+	margin-top: 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border-subtle);
+}
+
 .challenge-setup .creature {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -160,7 +223,6 @@
 
 @media (max-width: 640px) {
 	.challenge-setup .settings,
-	.challenge-setup .add-creature-forms,
 	.challenge-setup .creature {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -169,8 +231,20 @@
 		flex: 1 1 auto;
 	}
 
-	.challenge-setup .add-creature-forms .inline-form > label,
-	.challenge-setup .add-creature-forms .inline-form > button {
+	.challenge-setup .faction-entry-form > label,
+	.challenge-setup .faction-entry-form > button {
 		flex-basis: 100%;
+	}
+
+	.challenge-setup .faction-board {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.challenge-setup .npc-type-card {
+		grid-template-columns: minmax(0, 1fr) 82px;
+	}
+
+	.challenge-setup .npc-type-card > button {
+		grid-column: 1 / -1;
 	}
 }

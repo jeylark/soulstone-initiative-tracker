@@ -13,7 +13,6 @@
 	} from '#lib';
 	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
 	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
-	import FactionEditor from '#lib/components/challenge-setup/FactionEditor.svelte';
 	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 	import type {
@@ -35,17 +34,7 @@
 		creatures: []
 	});
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
-	let newCharacterFactionId = $state<StableId | ''>('');
-	let newNpcFactionId = $state<StableId | ''>('');
 	let newNpcTypeId = $state<StableId | ''>('');
-	let usedFactionIds = $derived(new Set(challenge.creatures.map((creature) => creature.factionId)));
-	let usedNpcTypeIds = $derived(
-		new Set(
-			challenge.creatures.flatMap((creature) =>
-				creature.kind === 'npc' ? [creature.creatureTypeId] : []
-			)
-		)
-	);
 
 	function updateChallengeName(name: string) {
 		challenge.name = name;
@@ -65,8 +54,6 @@
 
 		const faction = { id: createUuid(), name: normalizedName } satisfies Faction;
 		challenge.factions.push(faction);
-		newCharacterFactionId ||= faction.id;
-		newNpcFactionId ||= faction.id;
 	}
 
 	function renameFaction(factionId: StableId, name: string) {
@@ -75,12 +62,24 @@
 	}
 
 	function removeFaction(factionId: StableId) {
-		if (challenge.creatures.some((creature) => creature.factionId === factionId)) return;
-		challenge.factions = challenge.factions.filter((faction) => faction.id !== factionId);
-		if (newCharacterFactionId === factionId) {
-			newCharacterFactionId = challenge.factions[0]?.id ?? '';
+		const faction = challenge.factions.find((item) => item.id === factionId);
+		if (!faction) return;
+
+		const creatureCount = challenge.creatures.filter(
+			(creature) => creature.factionId === factionId
+		).length;
+		if (
+			creatureCount > 0 &&
+			!window.confirm(
+				`Remove faction "${faction.name}" and its ${creatureCount} creature${creatureCount === 1 ? '' : 's'}? Its creatures will also be deleted.`
+			)
+		) {
+			return;
 		}
-		if (newNpcFactionId === factionId) newNpcFactionId = challenge.factions[0]?.id ?? '';
+		challenge.creatures = challenge.creatures.filter(
+			(creature) => creature.factionId !== factionId
+		);
+		challenge.factions = challenge.factions.filter((faction) => faction.id !== factionId);
 	}
 
 	function addNpcType(name: string, initiativeStat: number) {
@@ -107,13 +106,23 @@
 	}
 
 	function removeNpcType(npcTypeId: StableId) {
+		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
+		if (!npcType) return;
+
+		const npcCount = challenge.creatures.filter(
+			(creature) => creature.kind === 'npc' && creature.creatureTypeId === npcTypeId
+		).length;
 		if (
-			challenge.creatures.some(
-				(creature) => creature.kind === 'npc' && creature.creatureTypeId === npcTypeId
+			npcCount > 0 &&
+			!window.confirm(
+				`Remove NPC type "${npcType.name}" and its ${npcCount} NPC${npcCount === 1 ? '' : 's'}? Those NPCs will also be deleted.`
 			)
 		) {
 			return;
 		}
+		challenge.creatures = challenge.creatures.filter(
+			(creature) => creature.kind !== 'npc' || creature.creatureTypeId !== npcTypeId
+		);
 		challenge.npcTypes = challenge.npcTypes.filter((npcType) => npcType.id !== npcTypeId);
 		if (newNpcTypeId === npcTypeId) newNpcTypeId = challenge.npcTypes[0]?.id ?? '';
 	}
@@ -122,9 +131,9 @@
 		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll' } };
 	}
 
-	function addCharacter(name: string) {
+	function addCharacter(factionId: StableId, name: string) {
 		const normalizedName = name.trim();
-		if (!normalizedName || !newCharacterFactionId) return;
+		if (!normalizedName) return;
 
 		const character = { id: createUuid(), name: normalizedName } satisfies PlayerCharacter;
 		reusableCharacters.push(character);
@@ -132,21 +141,21 @@
 			id: createUuid(),
 			kind: 'character',
 			characterId: character.id,
-			factionId: newCharacterFactionId,
+			factionId,
 			turns: [createTurn()]
 		});
 	}
 
-	function addNpc(identifier: string) {
+	function addNpc(factionId: StableId, identifier: string) {
 		const normalizedIdentifier = identifier.trim();
-		if (!normalizedIdentifier || !newNpcTypeId || !newNpcFactionId) return;
+		if (!normalizedIdentifier || !newNpcTypeId) return;
 
 		challenge.creatures.push({
 			id: createUuid(),
 			kind: 'npc',
 			creatureTypeId: newNpcTypeId,
 			identifier: normalizedIdentifier,
-			factionId: newNpcFactionId,
+			factionId,
 			turns: [createTurn()]
 		});
 	}
@@ -238,17 +247,8 @@
 			onRollModeChange={updateInitiativeRollMode}
 		/>
 
-		<FactionEditor
-			factions={challenge.factions}
-			{usedFactionIds}
-			onCreate={addFaction}
-			onRename={renameFaction}
-			onRemove={removeFaction}
-		/>
-
 		<NpcTypeEditor
 			npcTypes={challenge.npcTypes}
-			{usedNpcTypeIds}
 			onCreate={addNpcType}
 			onRename={renameNpcType}
 			onInitiativeStatChange={updateNpcTypeInitiativeStat}
@@ -256,16 +256,15 @@
 		/>
 
 		<CreatureSetup
+			factions={challenge.factions}
 			creatures={challenge.creatures}
 			characters={reusableCharacters}
-			factions={challenge.factions}
 			npcTypes={challenge.npcTypes}
-			characterFactionId={newCharacterFactionId}
-			npcFactionId={newNpcFactionId}
 			npcTypeId={newNpcTypeId}
-			onCharacterFactionChange={(factionId) => (newCharacterFactionId = factionId)}
-			onNpcFactionChange={(factionId) => (newNpcFactionId = factionId)}
 			onNpcTypeChange={(npcTypeId) => (newNpcTypeId = npcTypeId)}
+			onCreateFaction={addFaction}
+			onRenameFaction={renameFaction}
+			onRemoveFaction={removeFaction}
 			onCreateCharacter={addCharacter}
 			onCreateNpc={addNpc}
 			onCreatureFactionChange={updateCreatureFaction}
