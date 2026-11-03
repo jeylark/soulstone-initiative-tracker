@@ -27,11 +27,16 @@ describe('landing page', () => {
 		expect(container.querySelector('.app-shell')?.classList.contains('theme-dark')).toBe(false);
 	});
 
-	it('shows the available actions as buttons', () => {
+	it('links the available actions to their views', () => {
 		render(LandingPage);
 
-		expect(screen.getByRole('button', { name: 'New challenge' })).toBeTruthy();
-		expect(screen.getByRole('button', { name: 'Open saved challenge' })).toBeTruthy();
-		expect(screen.getByRole('button', { name: 'Join a live session' })).toBeTruthy();
+		const links = [
+			{ name: 'New challenge', href: '/challenges/new' },
+			{ name: 'Open saved challenge', href: '/challenges' },
+			{ name: 'Join a live session', href: '/join' }
+		];
+		for (const { name, href } of links) {
+			expect(screen.getByRole('link', { name }).getAttribute('href')).toBe(href);
+		}
 	});
 });

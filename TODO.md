@@ -8,7 +8,7 @@ foundations.
 
 ## 1. Challenge navigation and setup
 
-- [ ] Connect the landing-page actions to create a challenge, open a saved
+- [x] Connect the landing-page actions to create a challenge, open a saved
       challenge, and join a live session.
 - [ ] Build challenge setup and editing for factions, reusable characters, NPC
       types, creatures, turns, initiative settings, and fairness weight.

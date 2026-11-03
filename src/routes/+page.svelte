@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+
 	let isDarkMode = $state(false);
 </script>
 
@@ -22,22 +24,22 @@
 
 			<ul aria-label="Available actions">
 				<li>
-					<button class="action-button" type="button">
+					<a class="action-button" href={resolve('/challenges/new')}>
 						<span>New challenge</span>
 						<span aria-hidden="true">→</span>
-					</button>
+					</a>
 				</li>
 				<li>
-					<button class="action-button" type="button">
+					<a class="action-button" href={resolve('/challenges')}>
 						<span>Open saved challenge</span>
 						<span aria-hidden="true">→</span>
-					</button>
+					</a>
 				</li>
 				<li>
-					<button class="action-button" type="button">
+					<a class="action-button" href={resolve('/join')}>
 						<span>Join a live session</span>
 						<span aria-hidden="true">→</span>
-					</button>
+					</a>
 				</li>
 			</ul>
 		</section>
@@ -137,6 +139,7 @@
 		font: inherit;
 		font-size: 15px;
 		text-align: left;
+		text-decoration: none;
 	}
 
 	.action-button span:last-child {
