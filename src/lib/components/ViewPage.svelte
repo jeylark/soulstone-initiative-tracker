@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { resolve } from '$app/paths';
 
 	let { title, children }: { title: string; children: Snippet } = $props();
 </script>
@@ -10,7 +9,6 @@
 </svelte:head>
 
 <section>
-	<a class="back" href={resolve('/')}>Back</a>
 	<h1>{title}</h1>
 	{@render children()}
 </section>
@@ -20,20 +18,8 @@
 		padding-block: 24px 64px;
 	}
 
-	.back {
-		display: inline-block;
-		min-height: 24px;
-		color: var(--color-accent);
-		font-size: 14px;
-	}
-
-	.back:focus-visible {
-		outline: var(--focus-ring);
-		outline-offset: var(--focus-ring-offset);
-	}
-
 	h1 {
-		margin: 32px 0 16px;
+		margin: 24px 0 16px;
 		font-family: var(--font-family-heading);
 		font-size: clamp(28px, 6vw, 48px);
 		font-weight: 400;

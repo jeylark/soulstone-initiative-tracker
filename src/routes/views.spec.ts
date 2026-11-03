@@ -21,7 +21,6 @@ describe.each(views)('$name view', ({ page, heading }) => {
 		render(page);
 
 		expect(screen.getByRole('heading', { level: 1, name: heading })).toBeTruthy();
-		expect(screen.getByRole('link', { name: 'Back' }).getAttribute('href')).toBe('/');
 	});
 });
 
@@ -30,113 +29,108 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		expect(screen.getByRole('textbox', { name: 'Challenge name' })).toBeTruthy();
-		expect(screen.getByRole('spinbutton', { name: 'Fairness weight' })).toBeTruthy();
+		const fairnessWeight = screen.getByRole('slider', { name: 'Fairness weight' });
+		expect(fairnessWeight.getAttribute('min')).toBe('0');
+		expect(fairnessWeight.getAttribute('max')).toBe('10');
+		expect(fairnessWeight.getAttribute('step')).toBe('0.01');
+		expect(screen.getByText('0.00', { selector: 'output' })).toBeTruthy();
 		expect(screen.getByRole('combobox', { name: 'Character initiative' })).toBeTruthy();
 		expect(screen.getByRole('combobox', { name: 'NPC initiative' })).toBeTruthy();
 		expect(screen.getByRole('heading', { level: 2, name: 'NPC types' })).toBeTruthy();
 		expect(screen.getByRole('heading', { level: 2, name: 'Factions' })).toBeTruthy();
+		expect(screen.getByRole('region', { name: 'Players' })).toBeTruthy();
+		expect(screen.getByRole('region', { name: 'Enemies' })).toBeTruthy();
 	});
 
-	it('adds players and NPCs from their faction panels', async () => {
+	it('updates the visible fairness value as the slider moves', async () => {
 		render(newChallengePage);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Add faction' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'New faction name' }), {
-			target: { value: 'Outlaws' }
+		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight' }), {
+			target: { value: '4.25' }
 		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Save faction' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC type' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'New NPC type name' }), {
-			target: { value: 'Warden' }
-		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Save NPC type' }));
+		expect(screen.getByText('4.25', { selector: 'output' })).toBeTruthy();
+	});
 
-		const factionPanel = screen.getByRole('region', { name: 'Outlaws' });
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add Player' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Character name for Outlaws' }), {
-			target: { value: 'Aria' }
-		});
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Save Player' }));
+	it('adds factions and NPC types immediately with sensible defaults', async () => {
+		render(newChallengePage);
 
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add NPC' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'NPC identifier for Outlaws' }), {
-			target: { value: 'A' }
-		});
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Save NPC' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
+		expect(screen.getByRole('region', { name: 'Faction 1' })).toBeTruthy();
+		expect(screen.queryByRole('textbox', { name: 'New faction name' })).toBeNull();
 
-		const ariaCreature = within(factionPanel).getByRole('group', { name: 'Aria' });
-		const npcCreature = within(factionPanel).getByRole('group', { name: 'Warden A' });
-		expect(ariaCreature).toBeTruthy();
-		expect(npcCreature).toBeTruthy();
-		expect(within(ariaCreature).getByRole('combobox', { name: 'Turn initiative' })).toBeTruthy();
-		const npcInitiative = within(npcCreature).getByRole('combobox', { name: 'Turn initiative' });
-		expect(npcInitiative).toBeTruthy();
-		await fireEvent.change(npcInitiative, { target: { value: 'static' } });
-		expect(within(npcCreature).getByRole('spinbutton', { name: 'Static initiative' })).toBeTruthy();
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Character name: Aria' }), {
-			target: { value: 'Aria II' }
-		});
-		expect(within(factionPanel).getByRole('group', { name: 'Aria II' })).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		expect(screen.getByRole('textbox', { name: 'NPC type name: NPC Type 1' })).toBeTruthy();
+		expect(screen.getByRole('spinbutton', { name: 'Initiative stat for NPC Type 1' })).toBeTruthy();
+		expect(
+			screen.getByRole('button', { name: 'Use NPC type NPC Type 1' }).getAttribute('aria-pressed')
+		).toBe('true');
+		expect(screen.queryByRole('textbox', { name: 'New NPC type name' })).toBeNull();
+	});
+
+	it('adds players and NPCs to their faction without opening forms', async () => {
+		render(newChallengePage);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const playersPanel = screen.getByRole('region', { name: 'Players' });
+		const enemiesPanel = screen.getByRole('region', { name: 'Enemies' });
+
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
+		expect(player).toBeTruthy();
+		expect(
+			within(playersPanel).queryByRole('textbox', { name: 'Character name for Players' })
+		).toBeNull();
+
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		expect(within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' })).toBeTruthy();
+		expect(
+			within(enemiesPanel).queryByRole('textbox', { name: 'NPC identifier for Enemies' })
+		).toBeNull();
 	});
 
 	it('confirms removing a faction and its creatures', async () => {
 		render(newChallengePage);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Add faction' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'New faction name' }), {
-			target: { value: 'Outlaws' }
-		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Save faction' }));
-
-		const factionPanel = screen.getByRole('region', { name: 'Outlaws' });
+		const factionPanel = screen.getByRole('region', { name: 'Players' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add Player' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Character name for Outlaws' }), {
-			target: { value: 'Aria' }
-		});
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Save Player' }));
+		const player = within(factionPanel).getByRole('group', { name: 'Player 1' });
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove faction Outlaws' }));
-		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Outlaws"'));
+		await fireEvent.click(
+			within(factionPanel).getByRole('button', { name: 'Remove faction Players' })
+		);
+		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
-		expect(screen.getByRole('group', { name: 'Aria' })).toBeTruthy();
+		expect(player).toBeTruthy();
 
 		confirmation.mockReturnValue(true);
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove faction Outlaws' }));
-		expect(screen.queryByRole('region', { name: 'Outlaws' })).toBeNull();
-		expect(screen.queryByRole('group', { name: 'Aria' })).toBeNull();
+		await fireEvent.click(
+			within(factionPanel).getByRole('button', { name: 'Remove faction Players' })
+		);
+		expect(screen.queryByRole('region', { name: 'Players' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Player 1' })).toBeNull();
 	});
 
 	it('confirms removing an NPC type and its creatures', async () => {
 		render(newChallengePage);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Add faction' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'New faction name' }), {
-			target: { value: 'Outlaws' }
-		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Save faction' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC type' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'New NPC type name' }), {
-			target: { value: 'Warden' }
-		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Save NPC type' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 
-		const factionPanel = screen.getByRole('region', { name: 'Outlaws' });
+		const factionPanel = screen.getByRole('region', { name: 'Enemies' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add NPC' }));
-		await fireEvent.input(screen.getByRole('textbox', { name: 'NPC identifier for Outlaws' }), {
-			target: { value: 'A' }
-		});
-		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Save NPC' }));
+		const npc = within(factionPanel).getByRole('group', { name: 'NPC Type 1 1' });
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type Warden' }));
-		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove NPC type "Warden"'));
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type NPC Type 1' }));
+		expect(confirmation).toHaveBeenCalledWith(
+			expect.stringContaining('Remove NPC type "NPC Type 1"')
+		);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 NPC'));
-		expect(screen.getByRole('group', { name: 'Warden A' })).toBeTruthy();
+		expect(npc).toBeTruthy();
 
 		confirmation.mockReturnValue(true);
-		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type Warden' }));
-		expect(screen.queryByRole('group', { name: 'Warden A' })).toBeNull();
-		expect(screen.queryByRole('textbox', { name: 'NPC type name: Warden' })).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove NPC type NPC Type 1' }));
+		expect(screen.queryByRole('group', { name: 'NPC Type 1 1' })).toBeNull();
+		expect(screen.queryByRole('textbox', { name: 'NPC type name: NPC Type 1' })).toBeNull();
 	});
 });

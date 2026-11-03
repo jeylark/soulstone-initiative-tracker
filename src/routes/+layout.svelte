@@ -33,6 +33,7 @@
 		</button>
 	</header>
 	<nav aria-label="Page navigation">
+		<a href={resolve('/')}>Back</a>
 		<a href={resolve('/challenges/new')}>New Challenge</a>
 		<a href={resolve('/challenges')}>Saved Challenges</a>
 		<a href={resolve('/join')}>Join</a>

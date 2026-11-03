@@ -27,7 +27,10 @@
 		name: '',
 		createdAt,
 		updatedAt: createdAt,
-		factions: [],
+		factions: [
+			{ id: createUuid(), name: 'Players' },
+			{ id: createUuid(), name: 'Enemies' }
+		],
 		npcTypes: [],
 		initiativeRollModes: { ...DEFAULT_INITIATIVE_ROLL_MODES },
 		fairnessWeight: 0,
@@ -48,12 +51,20 @@
 		challenge.initiativeRollModes = { ...challenge.initiativeRollModes, [category]: mode };
 	}
 
-	function addFaction(name: string) {
-		const normalizedName = name.trim();
-		if (!normalizedName) return;
-
-		const faction = { id: createUuid(), name: normalizedName } satisfies Faction;
+	function addFaction() {
+		const name = nextNumberedName(
+			'Faction',
+			challenge.factions.map((faction) => faction.name)
+		);
+		const faction = { id: createUuid(), name } satisfies Faction;
 		challenge.factions.push(faction);
+	}
+
+	function nextNumberedName(prefix: string, existingNames: readonly string[]): string {
+		const names = new Set(existingNames);
+		let index = 1;
+		while (names.has(`${prefix} ${index}`)) index += 1;
+		return `${prefix} ${index}`;
 	}
 
 	function renameFaction(factionId: StableId, name: string) {
@@ -82,14 +93,15 @@
 		challenge.factions = challenge.factions.filter((faction) => faction.id !== factionId);
 	}
 
-	function addNpcType(name: string, initiativeStat: number) {
-		const normalizedName = name.trim();
-		if (!normalizedName || !Number.isSafeInteger(initiativeStat) || initiativeStat < 1) return;
-
+	function addNpcType() {
+		const name = nextNumberedName(
+			'NPC Type',
+			challenge.npcTypes.map((npcType) => npcType.name)
+		);
 		const npcType = {
 			id: createUuid(),
-			name: normalizedName,
-			initiativeStat
+			name,
+			initiativeStat: 1
 		} satisfies NpcType;
 		challenge.npcTypes.push(npcType);
 		newNpcTypeId ||= npcType.id;
@@ -131,11 +143,13 @@
 		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll' } };
 	}
 
-	function addCharacter(factionId: StableId, name: string) {
-		const normalizedName = name.trim();
-		if (!normalizedName) return;
+	function addCharacter(factionId: StableId) {
+		const name = nextNumberedName(
+			'Player',
+			reusableCharacters.map((character) => character.name)
+		);
 
-		const character = { id: createUuid(), name: normalizedName } satisfies PlayerCharacter;
+		const character = { id: createUuid(), name } satisfies PlayerCharacter;
 		reusableCharacters.push(character);
 		challenge.creatures.push({
 			id: createUuid(),
@@ -146,18 +160,31 @@
 		});
 	}
 
-	function addNpc(factionId: StableId, identifier: string) {
-		const normalizedIdentifier = identifier.trim();
-		if (!normalizedIdentifier || !newNpcTypeId) return;
+	function addNpc(factionId: StableId) {
+		if (!newNpcTypeId) return;
+
+		const existingIdentifiers = challenge.creatures.flatMap((creature) =>
+			creature.kind === 'npc' && creature.creatureTypeId === newNpcTypeId
+				? [creature.identifier]
+				: []
+		);
+		const identifier = nextNumberedIdentifier(existingIdentifiers);
 
 		challenge.creatures.push({
 			id: createUuid(),
 			kind: 'npc',
 			creatureTypeId: newNpcTypeId,
-			identifier: normalizedIdentifier,
+			identifier,
 			factionId,
 			turns: [createTurn()]
 		});
+	}
+
+	function nextNumberedIdentifier(existingIdentifiers: readonly string[]): string {
+		const identifiers = new Set(existingIdentifiers);
+		let index = 1;
+		while (identifiers.has(String(index))) index += 1;
+		return String(index);
 	}
 
 	function updateCharacterName(characterId: StableId, name: string) {
@@ -249,7 +276,9 @@
 
 		<NpcTypeEditor
 			npcTypes={challenge.npcTypes}
+			selectedNpcTypeId={newNpcTypeId}
 			onCreate={addNpcType}
+			onSelect={(npcTypeId) => (newNpcTypeId = npcTypeId)}
 			onRename={renameNpcType}
 			onInitiativeStatChange={updateNpcTypeInitiativeStat}
 			onRemove={removeNpcType}
@@ -261,7 +290,6 @@
 			characters={reusableCharacters}
 			npcTypes={challenge.npcTypes}
 			npcTypeId={newNpcTypeId}
-			onNpcTypeChange={(npcTypeId) => (newNpcTypeId = npcTypeId)}
 			onCreateFaction={addFaction}
 			onRenameFaction={renameFaction}
 			onRemoveFaction={removeFaction}

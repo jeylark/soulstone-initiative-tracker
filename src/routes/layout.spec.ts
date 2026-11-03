@@ -63,6 +63,7 @@ describe('app layout', () => {
 		expect(within(header).getByRole('button', { name: 'Dark mode' })).toBeTruthy();
 		const navigation = screen.getByRole('navigation', { name: 'Page navigation' });
 		for (const link of [
+			{ name: 'Back', href: '/' },
 			{ name: 'New Challenge', href: '/challenges/new' },
 			{ name: 'Saved Challenges', href: '/challenges' },
 			{ name: 'Join', href: '/join' }

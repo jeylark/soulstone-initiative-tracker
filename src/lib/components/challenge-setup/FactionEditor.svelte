@@ -1,9 +1,7 @@
 <script lang="ts">
 	import type { ChallengeCreature, Faction, NpcType, PlayerCharacter, StableId } from '#lib';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
-	import CharacterCreatureForm from './CharacterCreatureForm.svelte';
 	import CreatureEditor from './CreatureEditor.svelte';
-	import NpcCreatureForm from './NpcCreatureForm.svelte';
 
 	interface Props {
 		faction: Readonly<Faction>;
@@ -12,11 +10,10 @@
 		characters: readonly PlayerCharacter[];
 		npcTypes: readonly NpcType[];
 		npcTypeId: StableId | '';
-		onNpcTypeChange: (npcTypeId: StableId) => void;
 		onRename: (factionId: StableId, name: string) => void;
 		onRemove: (factionId: StableId) => void;
-		onCreateCharacter: (factionId: StableId, name: string) => void;
-		onCreateNpc: (factionId: StableId, identifier: string) => void;
+		onCreateCharacter: (factionId: StableId) => void;
+		onCreateNpc: (factionId: StableId) => void;
 		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -35,7 +32,6 @@
 		characters,
 		npcTypes,
 		npcTypeId,
-		onNpcTypeChange,
 		onRename,
 		onRemove,
 		onCreateCharacter,
@@ -46,8 +42,6 @@
 		onTurnChange,
 		onRemoveCreature
 	}: Props = $props();
-	let isAddingPlayer = $state(false);
-	let isAddingNpc = $state(false);
 	let factionCreatures = $derived(
 		creatures.filter((creature) => creature.factionId === faction.id)
 	);
@@ -73,16 +67,6 @@
 					: npcName(creature.creatureTypeId, creature.identifier);
 			return [{ id: turn.id, name }];
 		});
-	}
-
-	function savePlayer(name: string) {
-		onCreateCharacter(faction.id, name);
-		isAddingPlayer = false;
-	}
-
-	function saveNpc(identifier: string) {
-		onCreateNpc(faction.id, identifier);
-		isAddingNpc = false;
 	}
 </script>
 
@@ -130,27 +114,9 @@
 	{/if}
 
 	<div class="faction-actions">
-		<button type="button" onclick={() => (isAddingPlayer = true)}>Add Player</button>
-		<button type="button" disabled={!npcTypes.length} onclick={() => (isAddingNpc = true)}>
+		<button type="button" onclick={() => onCreateCharacter(faction.id)}>Add Player</button>
+		<button type="button" disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
 			Add NPC
 		</button>
 	</div>
-
-	{#if isAddingPlayer}
-		<CharacterCreatureForm
-			factionName={faction.name}
-			onCreate={savePlayer}
-			onCancel={() => (isAddingPlayer = false)}
-		/>
-	{/if}
-	{#if isAddingNpc}
-		<NpcCreatureForm
-			factionName={faction.name}
-			{npcTypes}
-			{npcTypeId}
-			{onNpcTypeChange}
-			onCreate={saveNpc}
-			onCancel={() => (isAddingNpc = false)}
-		/>
-	{/if}
 </section>

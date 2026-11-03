@@ -3,32 +3,29 @@
 
 	interface Props {
 		npcTypes: readonly NpcType[];
-		onCreate: (name: string, initiativeStat: number) => void;
+		selectedNpcTypeId: StableId | '';
+		onCreate: () => void;
+		onSelect: (npcTypeId: StableId) => void;
 		onRename: (npcTypeId: StableId, name: string) => void;
 		onInitiativeStatChange: (npcTypeId: StableId, initiativeStat: number) => void;
 		onRemove: (npcTypeId: StableId) => void;
 	}
 
-	let { npcTypes, onCreate, onRename, onInitiativeStatChange, onRemove }: Props = $props();
-	let isAdding = $state(false);
-	let newName = $state('');
-	let newInitiativeStat = $state(1);
-
-	function submit() {
-		const name = newName.trim();
-		if (!name || !Number.isSafeInteger(newInitiativeStat) || newInitiativeStat < 1) return;
-
-		onCreate(name, newInitiativeStat);
-		newName = '';
-		newInitiativeStat = 1;
-		isAdding = false;
-	}
+	let {
+		npcTypes,
+		selectedNpcTypeId,
+		onCreate,
+		onSelect,
+		onRename,
+		onInitiativeStatChange,
+		onRemove
+	}: Props = $props();
 </script>
 
 <section class="setup-section npc-type-strip-section" aria-labelledby="npc-types-heading">
 	<div class="section-heading">
 		<h2 id="npc-types-heading">NPC types</h2>
-		<button type="button" onclick={() => (isAdding = true)}>Add NPC type</button>
+		<button type="button" onclick={onCreate}>Add NPC Type</button>
 	</div>
 	{#if npcTypes.length > 0}
 		<ul class="npc-type-list">
@@ -54,46 +51,27 @@
 								onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
 						/>
 					</label>
-					<button
-						class="quiet-button"
-						type="button"
-						aria-label={`Remove NPC type ${npcType.name}`}
-						onclick={() => onRemove(npcType.id)}
-					>
-						Remove
-					</button>
+					<div class="npc-type-actions">
+						<button
+							class="quiet-button"
+							type="button"
+							aria-pressed={selectedNpcTypeId === npcType.id}
+							aria-label={`Use NPC type ${npcType.name}`}
+							onclick={() => onSelect(npcType.id)}
+						>
+							{selectedNpcTypeId === npcType.id ? 'Selected' : 'Use'}
+						</button>
+						<button
+							class="quiet-button"
+							type="button"
+							aria-label={`Remove NPC type ${npcType.name}`}
+							onclick={() => onRemove(npcType.id)}
+						>
+							Remove
+						</button>
+					</div>
 				</li>
 			{/each}
 		</ul>
-	{/if}
-	{#if isAdding}
-		<form
-			class="inline-form"
-			onsubmit={(event) => {
-				event.preventDefault();
-				submit();
-			}}
-		>
-			<label>
-				<span>New NPC type name</span>
-				<input bind:value={newName} required />
-			</label>
-			<label>
-				<span>Initiative stat (d6)</span>
-				<input bind:value={newInitiativeStat} type="number" min="1" step="1" required />
-			</label>
-			<button type="submit">Save NPC type</button>
-			<button
-				class="quiet-button"
-				type="button"
-				onclick={() => {
-					newName = '';
-					newInitiativeStat = 1;
-					isAdding = false;
-				}}
-			>
-				Cancel
-			</button>
-		</form>
 	{/if}
 </section>

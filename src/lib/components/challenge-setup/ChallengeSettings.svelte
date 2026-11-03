@@ -30,15 +30,21 @@
 			oninput={(event) => onNameChange(event.currentTarget.value)}
 		/>
 	</label>
-	<label>
+	<label class="fairness-setting">
 		<span>Fairness weight</span>
-		<input
-			value={fairnessWeight}
-			type="number"
-			min="0"
-			step="1"
-			oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
-		/>
+		<div class="fairness-control">
+			<input
+				id="fairness-weight"
+				aria-label="Fairness weight"
+				value={fairnessWeight}
+				type="range"
+				min="0"
+				max="10"
+				step="0.01"
+				oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
+			/>
+			<output for="fairness-weight">{fairnessWeight.toFixed(2)}</output>
+		</div>
 	</label>
 	<label>
 		<span>Character initiative</span>
