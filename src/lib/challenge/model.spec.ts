@@ -29,7 +29,8 @@ const initiativeResults = {
 const generatedTurnOrder = [ids.turn, ids.secondTurn] satisfies GeneratedTurnOrder;
 
 const initiativeExamples = [
-	{ kind: 'roll' },
+	{ kind: 'roll', mode: 'app' },
+	{ kind: 'roll', mode: 'manual' },
 	{ kind: 'static', value: 8 },
 	{ kind: 'fixed-position', from: 'top', position: 2 },
 	{ kind: 'fixed-position', from: 'bottom', position: 1 },
@@ -65,8 +66,8 @@ const library = {
 			npcTypes: [{ id: ids.npcType, name: 'Skeleton', initiativeStat: 2 }],
 			fairnessWeight: 3,
 			runState: {
-				initiativeResults: { [ids.turn]: 12 },
-				generatedTurnOrder: [ids.turn, ids.secondTurn]
+				initiativeResults: { [ids.turn]: 12, [ids.secondTurnId]: 8 },
+				generatedTurnOrder: [ids.turn, ids.secondTurn, ids.secondTurnId]
 			},
 			creatures: [
 				{
@@ -78,7 +79,7 @@ const library = {
 						{
 							id: ids.turn,
 							isHidden: false,
-							initiative: { kind: 'roll' }
+							initiative: { kind: 'roll', mode: 'manual' }
 						},
 						{
 							id: ids.secondTurn,
@@ -101,7 +102,7 @@ const library = {
 						{
 							id: ids.secondTurnId,
 							isHidden: false,
-							initiative: null
+							initiative: { kind: 'roll', mode: 'app' }
 						}
 					]
 				}
@@ -380,6 +381,20 @@ const invalidFieldCases = [
 		value: 'random',
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.kind',
 		message: 'Expected a supported initiative kind.'
+	},
+	{
+		field: 'initiative roll mode',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: { kind: 'roll', mode: 'automatic' },
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.mode',
+		message: 'Expected "app" or "manual".'
+	},
+	{
+		field: 'missing initiative roll mode',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: { kind: 'roll' },
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.mode',
+		message: 'Expected "app" or "manual".'
 	},
 	{
 		field: 'static initiative value',
@@ -821,8 +836,13 @@ describe('challenge domain models', () => {
 		expect(initiativeResults[ids.turn]).toBe(12);
 		expect(generatedTurnOrder).toEqual([ids.turn, ids.secondTurn]);
 		expect(challenge.runState.initiativeResults[ids.turn]).toBe(12);
-		expect(challenge.runState.generatedTurnOrder).toEqual([ids.turn, ids.secondTurn]);
+		expect(challenge.runState.generatedTurnOrder).toEqual([
+			ids.turn,
+			ids.secondTurn,
+			ids.secondTurnId
+		]);
 		expect(initiativeExamples.map(({ kind }) => kind)).toEqual([
+			'roll',
 			'roll',
 			'static',
 			'fixed-position',

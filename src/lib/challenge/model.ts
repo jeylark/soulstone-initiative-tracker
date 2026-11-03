@@ -9,6 +9,9 @@ export type StableId = Uuid;
 /** Rolled initiative values, keyed by turn ID; turns without a result are omitted. */
 export type InitiativeResults = Partial<Record<StableId, number>>;
 
+/** Whether the app calculates a turn's initiative or the DM enters its result. */
+export type InitiativeRollMode = 'app' | 'manual';
+
 /** Turn IDs in their generated play order. */
 export type GeneratedTurnOrder = StableId[];
 
@@ -69,8 +72,10 @@ export interface Turn {
 /** Initiative rule that determines a turn's placement in the generated order. */
 export type TurnInitiative =
 	| {
-			/** Roll or enter an initiative value for this turn. */
+			/** Collect an initiative result for this turn. */
 			kind: 'roll';
+			/** Whether the app calculates the result or the DM enters it. */
+			mode: InitiativeRollMode;
 	  }
 	| {
 			/** Use a predetermined initiative value for this turn. */

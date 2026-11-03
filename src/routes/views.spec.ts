@@ -37,8 +37,8 @@ describe('new challenge setup', () => {
 			(screen.getByRole('spinbutton', { name: 'Fairness weight' }) as HTMLInputElement).value
 		).toBe('3');
 		expect(screen.getByText('Initiative and faction balance have similar influence.')).toBeTruthy();
-		expect(screen.queryByRole('combobox', { name: 'Character initiative' })).toBeNull();
-		expect(screen.queryByRole('combobox', { name: 'NPC initiative' })).toBeNull();
+		expect(screen.queryByRole('combobox', { name: 'Character initiative default' })).toBeNull();
+		expect(screen.queryByRole('combobox', { name: 'NPC initiative default' })).toBeNull();
 		expect(screen.getByRole('group', { name: 'Challenge settings' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'NPC types' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'Factions' })).toBeTruthy();
@@ -117,14 +117,66 @@ describe('new challenge setup', () => {
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
 		expect(player).toBeTruthy();
 		expect(
+			(within(player).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement).value
+		).toBe('roll-manual');
+		expect(within(player).getByRole('option', { name: 'Calculate roll' })).toBeTruthy();
+		expect(within(player).getByRole('option', { name: 'Enter a result' })).toBeTruthy();
+		expect(
 			within(playersPanel).queryByRole('textbox', { name: 'Character name for Players' })
 		).toBeNull();
 
 		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
-		expect(within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' })).toBeTruthy();
+		const npc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' });
+		expect(npc).toBeTruthy();
+		expect(
+			(within(npc).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement).value
+		).toBe('roll-app');
 		expect(
 			within(enemiesPanel).queryByRole('textbox', { name: 'NPC identifier for Enemies' })
 		).toBeNull();
+	});
+
+	it('uses hard-coded initiative modes for new creatures and allows independent turn overrides', async () => {
+		render(newChallengePage);
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		const firstPlayer = within(playersPanel).getByRole('group', { name: 'Player 1' });
+		const secondPlayer = within(playersPanel).getByRole('group', { name: 'Player 2' });
+		expect(
+			(within(firstPlayer).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement)
+				.value
+		).toBe('roll-manual');
+		expect(
+			(within(secondPlayer).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement)
+				.value
+		).toBe('roll-manual');
+
+		await fireEvent.change(within(firstPlayer).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'roll-app' }
+		});
+		await fireEvent.change(
+			within(secondPlayer).getByRole('combobox', { name: 'Turn initiative' }),
+			{
+				target: { value: 'roll-manual' }
+			}
+		);
+		expect(
+			(within(firstPlayer).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement)
+				.value
+		).toBe('roll-app');
+		expect(
+			(within(secondPlayer).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement)
+				.value
+		).toBe('roll-manual');
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		const npc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' });
+		expect(
+			(within(npc).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement).value
+		).toBe('roll-app');
 	});
 
 	it('confirms removing a faction and its creatures', async () => {

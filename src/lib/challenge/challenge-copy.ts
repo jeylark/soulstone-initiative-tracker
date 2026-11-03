@@ -17,7 +17,7 @@ function copyInitiative(initiative: DeepReadonly<TurnInitiative> | null): TurnIn
 
 	switch (initiative.kind) {
 		case 'roll':
-			return { kind: 'roll' };
+			return { kind: 'roll', mode: initiative.mode };
 		case 'static':
 			return { kind: 'static', value: initiative.value };
 		case 'fixed-position':

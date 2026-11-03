@@ -46,7 +46,7 @@ function createChallenge(
 }
 
 function rolledTurn(): Turn {
-	return createTurn({ kind: 'roll' });
+	return createTurn({ kind: 'roll', mode: 'app' });
 }
 
 function staticTurn(value: number): Turn {

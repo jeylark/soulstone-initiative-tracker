@@ -48,7 +48,7 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 							targetTurnId: secondTurnId
 						}
 					},
-					{ id: secondTurnId, isHidden: false, initiative: { kind: 'roll' } }
+					{ id: secondTurnId, isHidden: false, initiative: { kind: 'roll', mode: 'app' } }
 				]
 			}
 		],

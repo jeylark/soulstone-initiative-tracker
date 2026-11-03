@@ -12,7 +12,8 @@
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative> | null): InitiativeChoice {
 		if (!initiative) return 'none';
-		if (initiative.kind === 'roll' || initiative.kind === 'static') return initiative.kind;
+		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
+		if (initiative.kind === 'static') return initiative.kind;
 		if (initiative.kind === 'fixed-position') {
 			return initiative.from === 'top' ? 'fixed-top' : 'fixed-bottom';
 		}
@@ -29,7 +30,8 @@
 				onChange({ kind: 'choice', choice: event.currentTarget.value as InitiativeChoice })}
 		>
 			<option value="none">No initiative</option>
-			<option value="roll">Roll or enter a result</option>
+			<option value="roll-app">Calculate roll</option>
+			<option value="roll-manual">Enter a result</option>
 			<option value="static">Static value</option>
 			<option value="fixed-top">Fixed position from top</option>
 			<option value="fixed-bottom">Fixed position from bottom</option>

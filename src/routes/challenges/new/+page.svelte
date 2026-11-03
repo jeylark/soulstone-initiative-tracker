@@ -3,6 +3,7 @@
 		createUuid,
 		type Challenge,
 		type Faction,
+		type InitiativeRollMode,
 		type NpcType,
 		type PlayerCharacter,
 		type StableId,
@@ -131,8 +132,8 @@
 		if (newNpcTypeId === npcTypeId) newNpcTypeId = challenge.npcTypes[0]?.id ?? '';
 	}
 
-	function createTurn(): Turn {
-		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll' } };
+	function createTurn(mode: InitiativeRollMode): Turn {
+		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll', mode } };
 	}
 
 	function addCharacter(factionId: StableId) {
@@ -148,7 +149,7 @@
 			kind: 'character',
 			characterId: character.id,
 			factionId,
-			turns: [createTurn()]
+			turns: [createTurn('manual')]
 		});
 	}
 
@@ -168,7 +169,7 @@
 			creatureTypeId: newNpcTypeId,
 			identifier,
 			factionId,
-			turns: [createTurn()]
+			turns: [createTurn('app')]
 		});
 	}
 
@@ -191,7 +192,8 @@
 
 		const otherTurn = challenge.creatures.find((item) => item.id !== creatureId)?.turns[0];
 		if (choice === 'none') turn.initiative = null;
-		else if (choice === 'roll') turn.initiative = { kind: 'roll' };
+		else if (choice === 'roll-app') turn.initiative = { kind: 'roll', mode: 'app' };
+		else if (choice === 'roll-manual') turn.initiative = { kind: 'roll', mode: 'manual' };
 		else if (choice === 'static') turn.initiative = { kind: 'static', value: 0 };
 		else if (choice === 'fixed-top' || choice === 'fixed-bottom') {
 			turn.initiative = {

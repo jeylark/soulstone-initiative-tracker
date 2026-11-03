@@ -1,7 +1,14 @@
 import type { StableId } from '#lib';
 
 export type InitiativeChoice =
-	'none' | 'roll' | 'static' | 'fixed-top' | 'fixed-bottom' | 'relative-before' | 'relative-after';
+	| 'none'
+	| 'roll-app'
+	| 'roll-manual'
+	| 'static'
+	| 'fixed-top'
+	| 'fixed-bottom'
+	| 'relative-before'
+	| 'relative-after';
 
 export type TurnEditorChange =
 	| { kind: 'choice'; choice: InitiativeChoice }

@@ -6,6 +6,7 @@ import type {
 	ChallengeRunState,
 	CharacterCreature,
 	Faction,
+	InitiativeRollMode,
 	NpcCreature,
 	NpcType,
 	PlayerCharacter,
@@ -150,6 +151,16 @@ function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder):
 	return isValidId && isValidName && isValidInitiativeStat;
 }
 
+function validateInitiativeRollMode(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder
+): value is InitiativeRollMode {
+	if (value === 'app' || value === 'manual') return true;
+	addIssue(path, 'Expected "app" or "manual".');
+	return false;
+}
+
 function validateTurnInitiative(
 	value: unknown,
 	path: string,
@@ -162,7 +173,7 @@ function validateTurnInitiative(
 
 	switch (value.kind) {
 		case 'roll':
-			return true;
+			return validateInitiativeRollMode(value.mode, `${path}.mode`, addIssue);
 		case 'static':
 			if (typeof value.value === 'number' && Number.isFinite(value.value)) return true;
 			addIssue(`${path}.value`, 'Expected a finite initiative value.');
