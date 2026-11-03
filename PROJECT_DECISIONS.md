@@ -36,6 +36,9 @@ The DM can then run the encounter. At the end of each round, the DM handles the 
   - Create a new challenge.
   - Load an existing challenge.
   - Display a running challenge in read-only mode.
+- Landing-page actions are links to their views: `/challenges/new` (create a challenge), `/challenges` (load a saved challenge), and `/join` (join a live session as a viewer). Until their workflows are built, these views are placeholders with a heading and a link back to the landing page.
+- All views share one app shell provided by the root layout: the Soulstone header, the page content area, and the light/dark theme toggle. Pages render only their own content and reuse the shared view layout component rather than repeating the shell.
+- The light/dark theme can be toggled from every view. The preference is app-wide, defaults to light, and is stored in the browser's `localStorage` (key `soulstone-theme`) so it persists across reloads. It is a display preference, not challenge data, so it is not part of the IndexedDB challenge library or its export formats. Server-side rendering uses the light theme, so a returning dark-mode user may briefly see light until the page loads in the browser.
 - The app will use **SvelteKit** and **TypeScript**, organized into components, with strict typing enabled.
 - The DM manages the challenge. A read-only view on another device shows the running turn order without editing capabilities.
 - The read-only view updates during play using Server-Sent Events (SSE). Viewers join using a random, case-insensitive code made from numbers and letters, avoiding easily confused characters. The same code can be entered manually or embedded in a QR code that links directly to the read-only view.

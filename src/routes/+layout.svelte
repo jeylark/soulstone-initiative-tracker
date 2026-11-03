@@ -1,17 +1,16 @@
 <script lang="ts">
 	import '../app.css';
+	import { theme } from '#lib/theme.svelte.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
-
-	let isDarkMode = $state(false);
 </script>
 
 <svelte:head>
 	<link rel="icon" type="image/png" href="/soulstone-logo.png" />
 </svelte:head>
 
-<div class:theme-dark={isDarkMode} class="app-shell">
+<div class:theme-dark={theme.isDarkMode} class="app-shell">
 	<header>
 		<img src="/soulstone-logo.png" alt="" width="40" height="40" />
 		<span>Soulstone</span>
@@ -22,8 +21,8 @@
 	</main>
 
 	<footer>
-		<button type="button" aria-pressed={isDarkMode} onclick={() => (isDarkMode = !isDarkMode)}>
-			{#if isDarkMode}
+		<button type="button" aria-pressed={theme.isDarkMode} onclick={() => theme.toggle()}>
+			{#if theme.isDarkMode}
 				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
 					<circle cx="10" cy="10" r="3.5" />
 					<path
