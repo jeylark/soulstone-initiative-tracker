@@ -36,7 +36,8 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 				kind: 'character',
 				characterId,
 				factionId,
-				turns: [{ id: turnId, isHidden: false, initiative: { kind: 'roll', mode: 'manual' } }]
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
 			}
 		],
 		runState: {

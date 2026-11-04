@@ -29,6 +29,9 @@
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
+		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
+		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -55,6 +58,9 @@
 		onCreateCharacter,
 		onCreateNpc,
 		onCreatureFactionChange,
+		onCreatureVisibilityChange,
+		onMoveTurn,
+		onMoveCreature,
 		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
@@ -130,7 +136,7 @@
 					Add NPC
 				</ActionButton>
 			{/snippet}
-			{#each factionCreatures as creature (creature.id)}
+			{#each factionCreatures as creature, index (creature.id)}
 				{@const name =
 					creature.kind === 'character'
 						? characterName(creature.characterId)
@@ -138,11 +144,17 @@
 				<CreatureEditor
 					{creature}
 					{name}
+					factionName={faction.name}
+					canMoveUp={index > 0}
+					canMoveDown={index < factionCreatures.length - 1}
 					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
 					{factions}
 					{npcTypes}
 					targetTurns={targetTurns()}
 					onFactionChange={onCreatureFactionChange}
+					onVisibilityChange={onCreatureVisibilityChange}
+					{onMoveTurn}
+					onMove={(direction) => onMoveCreature(creature.id, direction)}
 					{onNpcTypeChange}
 					{onCharacterNameChange}
 					{onNpcIdentifierChange}

@@ -37,10 +37,10 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 				kind: 'character',
 				characterId,
 				factionId,
+				isHidden: true,
 				turns: [
 					{
 						id: turnId,
-						isHidden: false,
 						initiative: {
 							kind: 'relative-position',
 							relation: 'before',
@@ -48,7 +48,7 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 							targetTurnId: secondTurnId
 						}
 					},
-					{ id: secondTurnId, isHidden: false, initiative: { kind: 'roll', mode: 'app' } }
+					{ id: secondTurnId, initiative: { kind: 'roll', mode: 'app' } }
 				]
 			}
 		],
@@ -261,6 +261,7 @@ describe('challenge file workflows', () => {
 		expect(copiedChallenge.updatedAt.getTime()).toBe(copiedChallenge.createdAt.getTime());
 		expect(copiedChallenge.createdAt).not.toBe(copiedChallenge.updatedAt);
 		expect(copiedChallenge.creatures[0]?.id).not.toBe(creatureId);
+		expect(copiedChallenge.creatures[0]?.isHidden).toBe(true);
 		expect(copiedChallenge.creatures[0]?.turns[0]?.id).not.toBe(turnId);
 		expect(copiedChallenge.runState?.initiativeResults).toEqual({
 			[copiedChallenge.creatures[0]?.turns[1]?.id ?? '']: 13
