@@ -2,6 +2,7 @@
 import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './challenges/+page.svelte';
+import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
 import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
@@ -53,6 +54,7 @@ beforeEach(() => {
 
 const views: { name: string; page: Component; heading: string }[] = [
 	{ name: 'challenge setup', page: setupChallengePage, heading: 'Challenge setup' },
+	{ name: 'running challenge', page: rollChallengePage, heading: 'Running challenge' },
 	{ name: 'saved challenges', page: savedChallengesPage, heading: 'Saved challenges' },
 	{ name: 'join session', page: joinSessionPage, heading: 'Join a live session' }
 ];
@@ -121,6 +123,42 @@ describe('challenge setup route state', () => {
 			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
 				'/challenges/new'
 			);
+		}
+	);
+});
+
+describe('running challenge route state', () => {
+	it('shows the challenge name when page state matches the route', () => {
+		const challenge = { ...createSetupChallenge(), name: 'Ashen Company' };
+		mockedPage.state = { challenge };
+
+		render(rollChallengePage);
+
+		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
+		expect(screen.getByText('Ashen Company')).toBeTruthy();
+	});
+
+	it.each([
+		{ state: {}, message: 'The running challenge state is missing.' },
+		{
+			state: {
+				challenge: {
+					...createSetupChallenge(),
+					id: '00000000-0000-4000-8000-000000000099' as StableId
+				}
+			},
+			message: 'The challenge in page state does not match this URL.'
+		}
+	] as const)(
+		'explains unavailable state and offers landing-page recovery',
+		({ state, message }) => {
+			mockedPage.state = state;
+
+			render(rollChallengePage);
+
+			expect(screen.getByRole('heading', { name: 'Challenge unavailable' })).toBeTruthy();
+			expect(screen.getByText(message)).toBeTruthy();
+			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 		}
 	);
 });

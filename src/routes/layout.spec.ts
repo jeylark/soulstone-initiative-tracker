@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
 import SavedChallengesPage from './challenges/+page.svelte';
+import RollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
 import ChallengeSetupPage from './challenges/[challengeId]/setup/+page.svelte';
 import NewChallengePage from './challenges/new/+page.svelte';
 import JoinSessionPage from './join/+page.svelte';
@@ -37,6 +38,7 @@ const views: { name: string; page: Component }[] = [
 	{ name: 'landing', page: LandingPage },
 	{ name: 'new challenge', page: NewChallengePage },
 	{ name: 'challenge setup', page: ChallengeSetupPage },
+	{ name: 'running challenge', page: RollChallengePage },
 	{ name: 'saved challenges', page: SavedChallengesPage },
 	{ name: 'join session', page: JoinSessionPage }
 ];
