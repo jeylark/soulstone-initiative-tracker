@@ -392,14 +392,14 @@ describe('new challenge setup', () => {
 		expect(
 			within(player)
 				.getByRole('button', { name: 'Remove Player 1' })
-				.classList.contains('warning-button')
+				.classList.contains('action-button--danger')
 		).toBe(true);
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const removeFactionButton = within(factionPanel).getByRole('button', {
 			name: 'Remove faction Players'
 		});
-		expect(removeFactionButton.classList.contains('warning-button')).toBe(true);
+		expect(removeFactionButton.classList.contains('action-button--danger')).toBe(true);
 		await fireEvent.click(removeFactionButton);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
@@ -433,7 +433,7 @@ describe('new challenge setup', () => {
 		const removeNpcTypeButton = screen.getByRole('button', {
 			name: 'Remove NPC type NPC Type 1'
 		});
-		expect(removeNpcTypeButton.classList.contains('warning-button')).toBe(true);
+		expect(removeNpcTypeButton.classList.contains('action-button--danger')).toBe(true);
 		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')

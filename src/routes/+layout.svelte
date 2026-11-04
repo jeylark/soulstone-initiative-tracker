@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { theme } from '#lib/theme.svelte.ts';
 	import { resolve } from '$app/paths';
+	import ActionButton from '#lib/components/ActionButton.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -15,7 +16,12 @@
 	<header>
 		<img src="/soulstone-logo.png" alt="" width="40" height="40" />
 		<span>Soulstone</span>
-		<button type="button" aria-pressed={theme.isDarkMode} onclick={() => theme.toggle()}>
+		<ActionButton
+			variant="neutral"
+			class="theme-toggle"
+			aria-pressed={theme.isDarkMode}
+			onclick={() => theme.toggle()}
+		>
 			{#if theme.isDarkMode}
 				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
 					<circle cx="10" cy="10" r="3.5" />
@@ -30,7 +36,7 @@
 				</svg>
 				Dark mode
 			{/if}
-		</button>
+		</ActionButton>
 	</header>
 	<nav aria-label="Page navigation">
 		<a href={resolve('/')}>Back</a>
@@ -82,33 +88,16 @@
 		display: block;
 	}
 
-	header button {
-		display: inline-flex;
-		min-height: 40px;
-		align-items: center;
-		gap: 8px;
+	header :global(.theme-toggle) {
 		margin-left: auto;
-		padding: 0 12px;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		background: transparent;
-		color: var(--color-foreground);
-		cursor: pointer;
-		font: inherit;
-		font-size: 13px;
 	}
 
-	header button:hover {
-		border-color: var(--color-accent);
-	}
-
-	header button:focus-visible,
 	nav a:focus-visible {
 		outline: var(--focus-ring);
 		outline-offset: var(--focus-ring-offset);
 	}
 
-	header button svg {
+	header :global(.theme-toggle svg) {
 		width: 17px;
 		stroke: var(--color-accent);
 		stroke-linecap: round;

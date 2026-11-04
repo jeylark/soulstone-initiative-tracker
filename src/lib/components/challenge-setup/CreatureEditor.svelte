@@ -2,6 +2,7 @@
 	import type { ChallengeCreature, Faction, NpcType, StableId } from '#lib';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
+	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 
 	interface Props {
@@ -98,20 +99,15 @@
 				onRemove={() => onRemoveTurn(creature.id, turn.id)}
 			/>
 		{/each}
-		<button
-			type="button"
-			aria-label={`Add turn for ${name}`}
-			onclick={() => onAddTurn(creature.id)}
-		>
+		<ActionButton aria-label={`Add turn for ${name}`} onclick={() => onAddTurn(creature.id)}>
 			Add turn
-		</button>
-		<button
-			class="quiet-button warning-button"
-			type="button"
+		</ActionButton>
+		<ActionButton
+			variant="danger"
 			aria-label={`Remove ${name}`}
 			onclick={() => onRemove(creature.id)}
 		>
 			Remove creature
-		</button>
+		</ActionButton>
 	</fieldset>
 </Card>

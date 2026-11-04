@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { NpcType, StableId } from '#lib';
+	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 
 	interface Props {
@@ -16,7 +17,7 @@
 <Card title="NPC types" headerSize="large">
 	<fieldset class="setup-section npc-type-strip-section">
 		<legend>NPC types</legend>
-		<button class="add-entity-button" type="button" onclick={onCreate}>Add NPC Type</button>
+		<ActionButton class="add-entity-button" onclick={onCreate}>Add NPC Type</ActionButton>
 		{#if npcTypes.length > 0}
 			<ul class="npc-type-list">
 				{#each npcTypes as npcType (npcType.id)}
@@ -50,14 +51,13 @@
 											onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
 									/>
 								</label>
-								<button
-									class="quiet-button warning-button"
-									type="button"
+								<ActionButton
+									variant="danger"
 									aria-label={`Remove NPC type ${npcType.name}`}
 									onclick={() => onRemove(npcType.id)}
 								>
 									Remove
-								</button>
+								</ActionButton>
 							</fieldset>
 						</Card>
 					</li>

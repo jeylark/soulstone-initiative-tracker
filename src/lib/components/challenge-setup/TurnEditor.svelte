@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Turn, TurnInitiative } from '#lib';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
+	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 
 	interface Props {
@@ -129,13 +130,12 @@
 				</label>
 			{/if}
 		</div>
-		<button
-			class="quiet-button warning-button"
-			type="button"
+		<ActionButton
+			variant="danger"
 			aria-label={`Remove Turn ${turnNumber} for ${creatureName}`}
 			onclick={onRemove}
 		>
 			Remove turn
-		</button>
+		</ActionButton>
 	</fieldset>
 </Card>

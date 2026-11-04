@@ -10,6 +10,7 @@
 	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
+	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 
 	interface Props {
@@ -98,14 +99,13 @@
 					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
 				/>
 			</label>
-			<button
-				class="quiet-button warning-button"
-				type="button"
+			<ActionButton
+				variant="danger"
 				aria-label={`Remove faction ${faction.name}`}
 				onclick={() => onRemove(faction.id)}
 			>
 				Remove
-			</button>
+			</ActionButton>
 		</div>
 		<fieldset class="faction-colors">
 			<legend>Faction color for {faction.name}</legend>
@@ -155,10 +155,10 @@
 		{/if}
 
 		<div class="faction-actions">
-			<button type="button" onclick={() => onCreateCharacter(faction.id)}>Add Player</button>
-			<button type="button" disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
+			<ActionButton onclick={() => onCreateCharacter(faction.id)}>Add Player</ActionButton>
+			<ActionButton disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
 				Add NPC
-			</button>
+			</ActionButton>
 		</div>
 	</fieldset>
 </Card>
