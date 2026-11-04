@@ -15,7 +15,7 @@ foundations.
 - [x] 1.3: Finish removing NPC type `Use`/`Selected` controls now that each NPC can
       select its own type; verify the first-type fallback and remembered
       cross-faction default for newly added NPCs.
-- [ ] 1.4: Let NPC type forms wrap onto multiple rows when they no longer fit
+- [x] 1.4: Let NPC type forms wrap onto multiple rows when they no longer fit
       horizontally on the screen.
 - [ ] 1.5: Add a faction color property and accessible palette selector. Keep
       colors distinguishable from each other and from app surfaces in light

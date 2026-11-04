@@ -74,10 +74,10 @@
 
 .challenge-setup .npc-type-list {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 12px;
-	overflow-x: auto;
 	margin: 0;
-	padding: 0 0 8px;
+	padding: 0;
 	list-style: none;
 }
 
@@ -96,7 +96,7 @@
 
 .challenge-setup .npc-type-list li {
 	display: flex;
-	flex: 0 0 min(280px, 82vw);
+	flex: 0 1 min(280px, 100%);
 	min-width: 0;
 }
 
