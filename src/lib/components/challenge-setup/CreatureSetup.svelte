@@ -8,8 +8,8 @@
 		StableId
 	} from '#lib';
 	import type { TurnEditorChange } from './challenge-setup-types';
+	import EntityList from '../EntityList.svelte';
 	import FactionEditor from './FactionEditor.svelte';
-	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 
 	interface Props {
@@ -64,8 +64,7 @@
 <Card title="Factions" headerSize="large">
 	<fieldset class="setup-section faction-board-section">
 		<legend>Factions</legend>
-		<ActionButton class="add-entity-button" onclick={onCreateFaction}>Add Faction</ActionButton>
-		<div class="faction-board">
+		<EntityList addLabel="Add Faction" onAdd={onCreateFaction} layout="grid">
 			{#each factions as faction (faction.id)}
 				<FactionEditor
 					{faction}
@@ -89,6 +88,6 @@
 					{onRemoveCreature}
 				/>
 			{/each}
-		</div>
+		</EntityList>
 	</fieldset>
 </Card>

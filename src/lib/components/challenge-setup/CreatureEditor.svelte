@@ -2,8 +2,9 @@
 	import type { ChallengeCreature, Faction, NpcType, StableId } from '#lib';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
-	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import EntityList from '../EntityList.svelte';
+	import EntityListItem from '../EntityListItem.svelte';
 	import SelectInput from '../forms/SelectInput.svelte';
 	import TextInput from '../forms/TextInput.svelte';
 
@@ -47,8 +48,14 @@
 </script>
 
 <Card title={name} headingLevel="h4" headerSize="medium" spacing="compact">
-	<fieldset class="creature" aria-label={name}>
-		<legend>{name}</legend>
+	<EntityListItem
+		class="creature"
+		aria-label={name}
+		legend={name}
+		removeLabel={`Remove ${name}`}
+		removeText="Remove creature"
+		onRemove={() => onRemove(creature.id)}
+	>
 		<SelectInput
 			label="Faction"
 			value={creature.factionId}
@@ -82,25 +89,21 @@
 				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
 			/>
 		{/if}
-		{#each creature.turns as turn, index (turn.id)}
-			<TurnEditor
-				{turn}
-				turnNumber={index + 1}
-				creatureName={name}
-				targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
-				onChange={(change) => onTurnChange(creature.id, turn.id, change)}
-				onRemove={() => onRemoveTurn(creature.id, turn.id)}
-			/>
-		{/each}
-		<ActionButton aria-label={`Add turn for ${name}`} onclick={() => onAddTurn(creature.id)}>
-			Add turn
-		</ActionButton>
-		<ActionButton
-			variant="danger"
-			aria-label={`Remove ${name}`}
-			onclick={() => onRemove(creature.id)}
+		<EntityList
+			addLabel="Add turn"
+			addAriaLabel={`Add turn for ${name}`}
+			onAdd={() => onAddTurn(creature.id)}
 		>
-			Remove creature
-		</ActionButton>
-	</fieldset>
+			{#each creature.turns as turn, index (turn.id)}
+				<TurnEditor
+					{turn}
+					turnNumber={index + 1}
+					creatureName={name}
+					targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
+					onChange={(change) => onTurnChange(creature.id, turn.id, change)}
+					onRemove={() => onRemoveTurn(creature.id, turn.id)}
+				/>
+			{/each}
+		</EntityList>
+	</EntityListItem>
 </Card>

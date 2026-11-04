@@ -82,17 +82,8 @@
 	font-weight: 600;
 }
 
-.challenge-setup .add-entity-button {
-	margin-bottom: 12px;
-}
-
-.challenge-setup .npc-type-list {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
+.challenge-setup .creature > .entity-list {
+	grid-column: 1 / -1;
 }
 
 .challenge-setup .npc-type-card {
@@ -102,12 +93,6 @@
 	gap: 10px;
 	min-width: 0;
 	margin: 0;
-}
-
-.challenge-setup .npc-type-list li {
-	display: flex;
-	flex: 0 1 min(280px, 100%);
-	min-width: 0;
 }
 
 .challenge-setup .npc-type-card legend {
@@ -120,11 +105,6 @@
 	flex-basis: auto;
 }
 
-.challenge-setup .npc-type-card > button {
-	grid-column: 1 / -1;
-	justify-self: start;
-}
-
 .challenge-setup .form-field {
 	flex: 1 1 180px;
 }
@@ -132,13 +112,6 @@
 .challenge-setup .faction-color-option input:focus-visible {
 	outline: var(--focus-ring);
 	outline-offset: var(--focus-ring-offset);
-}
-
-.challenge-setup .faction-board {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-	align-items: start;
-	gap: 20px;
 }
 
 .challenge-setup .faction-panel {
@@ -154,17 +127,6 @@
 	padding: 0 8px;
 	font-size: 17px;
 	font-weight: 600;
-}
-
-.challenge-setup .faction-heading {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: end;
-	gap: 8px;
-}
-
-.challenge-setup .faction-heading .form-field {
-	flex: initial;
 }
 
 .challenge-setup .faction-colors {
@@ -223,23 +185,10 @@
 	background: var(--faction-color);
 }
 
-.challenge-setup .faction-creatures {
-	display: grid;
-	gap: 12px;
-}
-
 .challenge-setup .faction-panel .creature {
 	grid-template-columns: minmax(0, 1fr);
 	gap: 12px;
 	padding: 12px;
-}
-
-.challenge-setup .faction-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	padding-top: 12px;
-	border-top: 1px solid var(--color-border-subtle);
 }
 
 .challenge-setup .creature {
@@ -266,10 +215,6 @@
 	margin: 0;
 }
 
-.challenge-setup .creature > .turn-card-wrapper {
-	grid-column: 1 / -1;
-}
-
 .challenge-setup .turn-card > legend {
 	padding: 0 6px;
 	font-size: 14px;
@@ -280,21 +225,9 @@
 	display: contents;
 }
 
-.challenge-setup .turn-card > button {
-	justify-self: start;
-}
-
-.challenge-setup .creature > button {
-	justify-self: start;
-}
-
 @media (max-width: 640px) {
 	.challenge-setup .settings,
 	.challenge-setup .creature {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.challenge-setup .faction-board {
 		grid-template-columns: minmax(0, 1fr);
 	}
 

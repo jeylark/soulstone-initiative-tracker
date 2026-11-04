@@ -10,6 +10,8 @@
 	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
+	import EntityList from '../EntityList.svelte';
+	import EntityListItem from '../EntityListItem.svelte';
 	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 	import TextInput from '../forms/TextInput.svelte';
@@ -89,23 +91,18 @@
 </script>
 
 <Card title={faction.name} headingLevel="h3" headerSize="medium" variant="inset" spacing="compact">
-	<fieldset class="faction-panel">
-		<legend>{faction.name}</legend>
-		<div class="faction-heading">
-			<TextInput
-				label="Faction name"
-				aria-label={`Faction name: ${faction.name}`}
-				value={faction.name}
-				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-			/>
-			<ActionButton
-				variant="danger"
-				aria-label={`Remove faction ${faction.name}`}
-				onclick={() => onRemove(faction.id)}
-			>
-				Remove
-			</ActionButton>
-		</div>
+	<EntityListItem
+		class="faction-panel"
+		legend={faction.name}
+		removeLabel={`Remove faction ${faction.name}`}
+		onRemove={() => onRemove(faction.id)}
+	>
+		<TextInput
+			label="Faction name"
+			aria-label={`Faction name: ${faction.name}`}
+			value={faction.name}
+			oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+		/>
 		<fieldset class="faction-colors">
 			<legend>Faction color for {faction.name}</legend>
 			<div class="faction-color-options">
@@ -126,38 +123,35 @@
 			</div>
 		</fieldset>
 
-		{#if factionCreatures.length > 0}
-			<div class="faction-creatures">
-				{#each factionCreatures as creature (creature.id)}
-					{@const name =
-						creature.kind === 'character'
-							? characterName(creature.characterId)
-							: npcName(creature.creatureTypeId, creature.identifier)}
-					<CreatureEditor
-						{creature}
-						{name}
-						characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
-						{factions}
-						{npcTypes}
-						targetTurns={targetTurns()}
-						onFactionChange={onCreatureFactionChange}
-						{onNpcTypeChange}
-						{onCharacterNameChange}
-						{onNpcIdentifierChange}
-						{onTurnChange}
-						{onAddTurn}
-						{onRemoveTurn}
-						onRemove={onRemoveCreature}
-					/>
-				{/each}
-			</div>
-		{/if}
-
-		<div class="faction-actions">
-			<ActionButton onclick={() => onCreateCharacter(faction.id)}>Add Player</ActionButton>
-			<ActionButton disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
-				Add NPC
-			</ActionButton>
-		</div>
-	</fieldset>
+		<EntityList>
+			{#snippet actions()}
+				<ActionButton onclick={() => onCreateCharacter(faction.id)}>Add Player</ActionButton>
+				<ActionButton disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
+					Add NPC
+				</ActionButton>
+			{/snippet}
+			{#each factionCreatures as creature (creature.id)}
+				{@const name =
+					creature.kind === 'character'
+						? characterName(creature.characterId)
+						: npcName(creature.creatureTypeId, creature.identifier)}
+				<CreatureEditor
+					{creature}
+					{name}
+					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
+					{factions}
+					{npcTypes}
+					targetTurns={targetTurns()}
+					onFactionChange={onCreatureFactionChange}
+					{onNpcTypeChange}
+					{onCharacterNameChange}
+					{onNpcIdentifierChange}
+					{onTurnChange}
+					{onAddTurn}
+					{onRemoveTurn}
+					onRemove={onRemoveCreature}
+				/>
+			{/each}
+		</EntityList>
+	</EntityListItem>
 </Card>

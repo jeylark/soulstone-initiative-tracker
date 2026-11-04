@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Turn, TurnInitiative } from '#lib';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
-	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import EntityListItem from '../EntityListItem.svelte';
 	import NumberInput from '../forms/NumberInput.svelte';
 	import SelectInput from '../forms/SelectInput.svelte';
 
@@ -35,8 +35,14 @@
 	spacing="compact"
 	class="turn-card-wrapper"
 >
-	<fieldset class="turn-card" aria-label={`Turn ${turnNumber}`}>
-		<legend>Turn {turnNumber}</legend>
+	<EntityListItem
+		class="turn-card"
+		aria-label={`Turn ${turnNumber}`}
+		legend={`Turn ${turnNumber}`}
+		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
+		removeText="Remove turn"
+		{onRemove}
+	>
 		<div class="turn-settings">
 			<SelectInput
 				label="Turn initiative"
@@ -114,12 +120,5 @@
 				</SelectInput>
 			{/if}
 		</div>
-		<ActionButton
-			variant="danger"
-			aria-label={`Remove Turn ${turnNumber} for ${creatureName}`}
-			onclick={onRemove}
-		>
-			Remove turn
-		</ActionButton>
-	</fieldset>
+	</EntityListItem>
 </Card>
