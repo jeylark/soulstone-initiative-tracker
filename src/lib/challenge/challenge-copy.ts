@@ -1,16 +1,5 @@
+import type { DeepReadonly } from '../DeepReadonly';
 import type { Challenge, ChallengeCreature, TurnInitiative } from './model';
-
-/**
- * Recursively marks a value and its nested properties as readonly.
- * @typeParam T Type whose nested properties should be readonly.
- */
-export type DeepReadonly<T> = T extends readonly (infer U)[]
-	? readonly DeepReadonly<U>[]
-	: T extends Date
-		? Date
-		: T extends object
-			? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-			: T;
 
 function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiative {
 	switch (initiative.kind) {

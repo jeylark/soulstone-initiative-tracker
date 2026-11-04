@@ -9,7 +9,7 @@ import type {
 } from './model';
 import { createUuid } from './uuid';
 import { generateTurnOrder } from './turn-order';
-import type { DeepReadonly } from './challenge-copy';
+import type { DeepReadonly } from '../DeepReadonly';
 
 function createTurn(initiative: Readonly<TurnInitiative>): Turn {
 	return { id: createUuid(), isHidden: false, initiative };

@@ -1,5 +1,6 @@
 import type { Challenge, ChallengeLibrary, PlayerCharacter, StableId } from './model';
-import { sanitizeChallenge, type DeepReadonly } from './challenge-copy';
+import { sanitizeChallenge } from './challenge-copy';
+import { type DeepReadonly } from '../DeepReadonly';
 import { downloadChallengeJson, type ChallengeFileReadResult } from './json-files';
 import type { ValidationIssue } from './validation';
 import { createUuid, parseUuid } from './uuid';

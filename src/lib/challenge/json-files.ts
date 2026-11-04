@@ -1,5 +1,6 @@
 import type { ChallengeLibrary, StableId } from './model';
-import { sanitizeChallenge, type DeepReadonly } from './challenge-copy';
+import { sanitizeChallenge } from './challenge-copy';
+import { type DeepReadonly } from '../DeepReadonly';
 import { validateChallengeLibrary, type ValidationIssue } from './validation';
 
 const JSON_FILE_MIME_TYPE = 'application/json';
