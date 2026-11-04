@@ -26,7 +26,6 @@ function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiativ
 function copyCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreature {
 	const turns = creature.turns.map((turn) => ({
 		id: turn.id,
-		isHidden: turn.isHidden,
 		initiative: copyInitiative(turn.initiative)
 	}));
 
@@ -36,6 +35,7 @@ function copyCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreat
 			kind: 'character',
 			characterId: creature.characterId,
 			factionId: creature.factionId,
+			isHidden: creature.isHidden,
 			turns
 		};
 	}
@@ -46,6 +46,7 @@ function copyCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreat
 		creatureTypeId: creature.creatureTypeId,
 		identifier: creature.identifier,
 		factionId: creature.factionId,
+		isHidden: creature.isHidden,
 		turns
 	};
 }

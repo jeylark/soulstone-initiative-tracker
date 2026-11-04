@@ -145,7 +145,7 @@
 	}
 
 	function createTurn(mode: InitiativeRollMode): Turn {
-		return { id: createUuid(), isHidden: false, initiative: { kind: 'roll', mode } };
+		return { id: createUuid(), initiative: { kind: 'roll', mode } };
 	}
 
 	function addTurn(creatureId: StableId) {
@@ -167,6 +167,7 @@
 			kind: 'character',
 			characterId: character.id,
 			factionId,
+			isHidden: false,
 			turns: [createTurn('manual')]
 		});
 	}
@@ -187,6 +188,7 @@
 			creatureTypeId: newNpcTypeId,
 			identifier,
 			factionId,
+			isHidden: false,
 			turns: [createTurn('app')]
 		});
 	}

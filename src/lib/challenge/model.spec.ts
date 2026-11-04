@@ -75,15 +75,14 @@ const library = {
 					kind: 'character',
 					characterId: ids.character,
 					factionId: ids.faction,
+					isHidden: true,
 					turns: [
 						{
 							id: ids.turn,
-							isHidden: false,
 							initiative: { kind: 'roll', mode: 'manual' }
 						},
 						{
 							id: ids.secondTurn,
-							isHidden: true,
 							initiative: {
 								kind: 'fixed-position',
 								from: 'bottom',
@@ -98,10 +97,10 @@ const library = {
 					creatureTypeId: ids.npcType,
 					identifier: 'A',
 					factionId: ids.faction,
+					isHidden: false,
 					turns: [
 						{
 							id: ids.secondTurnId,
-							isHidden: false,
 							initiative: { kind: 'roll', mode: 'app' }
 						}
 					]
@@ -348,6 +347,20 @@ const invalidFieldCases = [
 		message: 'Expected a valid UUID.'
 	},
 	{
+		field: 'character creature visibility',
+		path: ['challenges', 0, 'creatures', 0, 'isHidden'],
+		value: 'no',
+		issuePath: '$.challenges[0].creatures[0].isHidden',
+		message: 'Expected a boolean.'
+	},
+	{
+		field: 'NPC creature visibility',
+		path: ['challenges', 0, 'creatures', 1, 'isHidden'],
+		value: 'no',
+		issuePath: '$.challenges[0].creatures[1].isHidden',
+		message: 'Expected a boolean.'
+	},
+	{
 		field: 'character creature turns',
 		path: ['challenges', 0, 'creatures', 0, 'turns'],
 		value: null,
@@ -367,13 +380,6 @@ const invalidFieldCases = [
 		value: 'invalid',
 		issuePath: '$.challenges[0].creatures[0].turns[0].id',
 		message: 'Expected a valid UUID.'
-	},
-	{
-		field: 'turn visibility',
-		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'isHidden'],
-		value: 'no',
-		issuePath: '$.challenges[0].creatures[0].turns[0].isHidden',
-		message: 'Expected a boolean.'
 	},
 	{
 		field: 'turn initiative',

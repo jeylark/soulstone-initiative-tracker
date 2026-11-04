@@ -65,12 +65,10 @@ export interface NpcType {
 	initiativeStat: number;
 }
 
-/** A creature's individual turn and its visibility and initiative setup. */
+/** A creature's individual turn and its initiative setup. */
 export interface Turn {
 	/** Unique turn identifier, also used to associate initiative results. */
 	id: StableId;
-	/** Whether the turn is hidden from read-only viewers. */
-	isHidden: boolean;
 	/** How this turn is placed in the order. */
 	initiative: TurnInitiative;
 }
@@ -118,6 +116,8 @@ export interface CharacterCreature {
 	characterId: StableId;
 	/** ID of the faction this creature belongs to. */
 	factionId: StableId;
+	/** Whether this creature and all its turns are hidden from read-only viewers. */
+	isHidden: boolean;
 	/** Turns taken by this creature in the challenge. */
 	turns: Turn[];
 }
@@ -134,6 +134,8 @@ export interface NpcCreature {
 	identifier: string;
 	/** ID of the faction this creature belongs to. */
 	factionId: StableId;
+	/** Whether this creature and all its turns are hidden from read-only viewers. */
+	isHidden: boolean;
 	/** Turns taken by this creature in the challenge. */
 	turns: Turn[];
 }
