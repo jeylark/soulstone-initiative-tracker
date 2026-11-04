@@ -21,7 +21,7 @@ foundations.
       colors distinguishable from each other and from app surfaces in light
       and dark themes; prefer unused defaults, allow reuse, and preserve colors
       through challenge copies and file workflows. No data migration is needed.
-- [ ] 1.6: Support creature and turn ordering, zero or multiple turns per creature,
+- [x] 1.6: Support creature and turn ordering, zero or multiple turns per creature,
       and hide/show settings.
 - [ ] 1.7: Reuse saved characters and support copying a challenge with fresh stable
       IDs and updated references.
