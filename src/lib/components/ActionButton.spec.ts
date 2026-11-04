@@ -36,13 +36,16 @@ describe('ActionButton', () => {
 	});
 
 	it('can be disabled', () => {
+		// eslint-disable-next-line @typescript-eslint/naming-convention -- native attribute name
 		render(ActionButton, { disabled: true, children: label });
 
 		expect(screen.getByRole('button', { name: 'Save' }).hasAttribute('disabled')).toBe(true);
 	});
 
 	it('passes through aria attributes', () => {
+		/* eslint-disable @typescript-eslint/naming-convention -- native attribute names */
 		render(ActionButton, { 'aria-label': 'Remove thing', 'aria-pressed': true, children: label });
+		/* eslint-enable @typescript-eslint/naming-convention */
 
 		const button = screen.getByRole('button', { name: 'Remove thing' });
 		expect(button.getAttribute('aria-pressed')).toBe('true');

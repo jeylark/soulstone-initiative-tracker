@@ -45,6 +45,7 @@ describe('new challenge setup', () => {
 	it('uses shared card surfaces while preserving named form groups', async () => {
 		render(newChallengePage);
 
+		// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- DOM elements are not readonly
 		const expectCard = (group: HTMLElement, variant: string, spacing: string) => {
 			const card = group.parentElement;
 			expect(card?.classList.contains('card')).toBe(true);
