@@ -23,12 +23,11 @@ vi.mock('$app/state', () => ({
 				npcTypes: [],
 				fairnessWeight: 3,
 				creatures: []
-			},
-			reusableCharacters: []
+			}
 		}
 	}
 }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn(), snapshot: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 afterEach(() => {
 	cleanup();

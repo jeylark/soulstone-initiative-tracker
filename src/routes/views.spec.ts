@@ -1,4 +1,5 @@
-﻿import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+﻿import { IDBFactory } from 'fake-indexeddb';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './challenges/+page.svelte';
@@ -6,9 +7,12 @@ import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
 import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
-import type { Challenge, StableId } from '#lib';
+import { loadChallengeLibrary, saveChallengeToLibrary, type Challenge, type StableId } from '#lib';
 
-const newChallengePage = setupChallengePage;
+async function renderSetup() {
+	render(setupChallengePage);
+	await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+}
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: {
@@ -19,7 +23,7 @@ const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 }));
 
 vi.mock('$app/state', () => ({ page: mockedPage }));
-vi.mock('$app/navigation', () => ({ goto: mockedGoto, snapshot: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
 
 afterEach(() => {
 	cleanup();
@@ -46,10 +50,12 @@ function createSetupChallenge(): Challenge {
 	};
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+	vi.stubGlobal('indexedDB', new IDBFactory());
 	const challenge = createSetupChallenge();
+	await saveChallengeToLibrary(challenge, []);
 	mockedPage.params = { challengeId: challenge.id };
-	mockedPage.state = { challenge, reusableCharacters: [] };
+	mockedPage.state = { challenge };
 });
 
 const views: { name: string; page: Component; heading: string }[] = [
@@ -77,49 +83,81 @@ async function setRelativeTarget(
 }
 
 describe.each(views)('$name view', ({ page, heading }) => {
-	it('has a heading and a link back to the landing page', () => {
+	it('has a heading and a link back to the landing page', async () => {
 		render(page);
 
-		expect(screen.getByRole('heading', { level: 1, name: heading })).toBeTruthy();
+		expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
 	});
 });
 
 describe('new challenge entry', () => {
-	it('creates a draft and redirects to its setup route with page state', async () => {
+	it('saves a draft and redirects to its setup route without page state', async () => {
 		render(newChallengeEntryPage);
 
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
 
 		const [href, options] = mockedGoto.mock.calls[0] as [string, Record<string, unknown>];
-		const state = options.state as { challenge: Challenge; reusableCharacters: unknown[] };
 		expect(href).toMatch(/^\/challenges\/[0-9a-f-]+\/setup$/i);
 		expect(options['replace']).toBe(true);
-		expect(options['persistState']).toBe(true);
-		expect(state.challenge.id).toBe(href.split('/')[2]);
-		expect(state.challenge.creatures).toEqual([]);
-		expect(state.reusableCharacters).toEqual([]);
+		expect(options['state']).toBeUndefined();
+		const saved = (await loadChallengeLibrary()).challenges.find(
+			(challenge) => challenge.id === href.split('/')[2]
+		);
+		expect(saved?.creatures).toEqual([]);
+	});
+
+	it('stays on the page with a retry when saving fails', async () => {
+		vi.stubGlobal('indexedDB', undefined);
+
+		render(newChallengeEntryPage);
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 });
 
-describe('challenge setup route state', () => {
-	it.each(['missing', 'mismatched'] as const)(
-		'shows a recovery link when challenge state is %s',
-		(kind) => {
-			if (kind === 'missing') {
-				mockedPage.state = {};
+describe('challenge setup persistence', () => {
+	it('loads the challenge from IndexedDB, ignoring page state', async () => {
+		await saveChallengeToLibrary({ ...createSetupChallenge(), name: 'Stored name' }, []);
+		mockedPage.state = {};
+
+		await renderSetup();
+
+		expect(
+			(screen.getByRole('textbox', { name: 'Challenge name' }) as HTMLInputElement).value
+		).toBe('Stored name');
+	});
+
+	it('saves edits to IndexedDB', async () => {
+		await renderSetup();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Edited' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Edited');
+			expect(saved?.npcTypes).toHaveLength(1);
+		});
+	});
+
+	it.each(['unknown', 'unreadable'] as const)(
+		'shows a recovery link when the stored challenge is %s',
+		async (kind) => {
+			if (kind === 'unknown') {
+				mockedPage.params = { challengeId: '00000000-0000-4000-8000-000000000099' };
 			} else {
-				mockedPage.state = {
-					challenge: {
-						...createSetupChallenge(),
-						id: '00000000-0000-4000-8000-000000000099' as StableId
-					},
-					reusableCharacters: []
-				};
+				vi.stubGlobal('indexedDB', undefined);
 			}
 
 			render(setupChallengePage);
 
-			expect(screen.getByRole('heading', { name: 'Challenge setup unavailable' })).toBeTruthy();
+			expect(
+				await screen.findByRole('heading', { name: 'Challenge setup unavailable' })
+			).toBeTruthy();
 			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
 				'/challenges/new'
 			);
@@ -165,7 +203,7 @@ describe('running challenge route state', () => {
 
 describe('new challenge setup', () => {
 	it('uses shared card surfaces while preserving named form groups', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- DOM elements are not readonly
 		const expectCard = (group: HTMLElement, variant: string, spacing: string) => {
@@ -202,8 +240,8 @@ describe('new challenge setup', () => {
 		expect(screen.getByRole('heading', { name: 'Turn 1', level: 5 })).toBeTruthy();
 	});
 
-	it('shows challenge settings, the NPC type strip, and faction board', () => {
-		render(newChallengePage);
+	it('shows challenge settings, the NPC type strip, and faction board', async () => {
+		await renderSetup();
 
 		expect(screen.getByRole('textbox', { name: 'Challenge name' })).toBeTruthy();
 		const fairnessWeight = screen.getByRole('slider', { name: 'Fairness weight slider' });
@@ -224,7 +262,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('updates the visible fairness value as the slider moves', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight slider' }), {
 			target: { value: '4.25' }
@@ -235,7 +273,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('accepts a fairness weight above the slider range and keeps the slider at its maximum', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const numericInput = screen.getByRole('spinbutton', {
 			name: 'Fairness weight value'
@@ -260,7 +298,7 @@ describe('new challenge setup', () => {
 		['5', 'Faction balance has a stronger influence than initiative.'],
 		['10', 'Turn order approaches a proportional round-robin across factions.']
 	])('describes fairness weight %s', async (value, description) => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight slider' }), {
 			target: { value }
@@ -269,7 +307,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('adds factions and NPC types immediately with sensible defaults', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
 		expect(screen.getByRole('group', { name: 'Faction 1' })).toBeTruthy();
@@ -284,7 +322,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('prefers unused faction colors and allows color reuse', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersColors = screen.getByRole('group', { name: 'Faction color for Players' });
 		const enemiesColors = screen.getByRole('group', { name: 'Faction color for Enemies' });
@@ -321,7 +359,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('adds players and NPCs to their faction without opening forms', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
@@ -361,7 +399,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('uses hard-coded initiative modes for new creatures and allows independent turn overrides', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
@@ -404,7 +442,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('hides a creature with zero turns and keeps its visibility when turns are added', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
@@ -434,7 +472,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('reorders turns without changing relative target IDs or initiative rules', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
@@ -505,7 +543,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('reorders creatures within their faction without changing turn references', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
@@ -567,7 +605,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('adds and removes turn cards, renumbers them, and represents no initiative with zero turns', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
@@ -603,7 +641,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('labels target turns and confirms transitive removal when deleting a referenced turn', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		for (let index = 0; index < 3; index += 1) {
@@ -645,7 +683,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('confirms deleting a creature will also delete turns that reference it', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
@@ -668,7 +706,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('confirms removing a faction and its creatures', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		const factionPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(factionPanel).getByRole('button', { name: 'Add Player' }));
@@ -705,7 +743,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('confirms removing an NPC type and its creatures', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 
@@ -739,7 +777,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('lets each NPC change type and uses the most recently selected type across factions', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
@@ -761,7 +799,7 @@ describe('new challenge setup', () => {
 	});
 
 	it('changes a colliding NPC identifier but preserves it when the new type has no duplicate', async () => {
-		render(newChallengePage);
+		await renderSetup();
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });

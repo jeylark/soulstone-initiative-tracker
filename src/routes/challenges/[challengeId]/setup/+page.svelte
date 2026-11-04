@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { snapshot } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		createUuid,
+		loadChallengeLibrary,
+		saveChallengeToLibrary,
 		type Challenge,
 		type Faction,
 		type FactionColor,
@@ -25,29 +27,58 @@
 	} from '#lib/components/challenge-setup/challenge-setup-types.js';
 	import '#lib/components/challenge-setup/challenge-setup.css';
 
-	const routeChallenge = page.state.challenge;
-	const routeCharacters = page.state.reusableCharacters;
-	const isChallengeAvailable =
-		routeChallenge !== undefined &&
-		routeChallenge.id === page.params.challengeId &&
-		Array.isArray(routeCharacters);
-	let challenge = $state<Challenge>(
-		routeChallenge ? structuredClone(routeChallenge) : ({} as Challenge)
-	);
-	let reusableCharacters = $state<PlayerCharacter[]>(
-		isChallengeAvailable ? structuredClone(routeCharacters) : []
-	);
-	let newNpcTypeId = $state<StableId | ''>('');
+	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
-	snapshot({
-		capture: () => ({
-			challenge: $state.snapshot(challenge),
-			reusableCharacters: $state.snapshot(reusableCharacters)
-		}),
-		restore: (state) => {
-			challenge = state.challenge;
-			reusableCharacters = state.reusableCharacters;
+	let loadStatus = $state<LoadStatus>('loading');
+	let hasSaveError = $state(false);
+	let challenge = $state<Challenge>({} as Challenge);
+	let reusableCharacters = $state<PlayerCharacter[]>([]);
+	let newNpcTypeId = $state<StableId | ''>('');
+	let saveQueue: Promise<void> = Promise.resolve();
+	let isFirstRun = true;
+
+	onMount(() => {
+		void (async () => {
+			try {
+				const library = await loadChallengeLibrary();
+				const saved = library.challenges.find((item) => item.id === page.params.challengeId);
+				if (!saved) {
+					loadStatus = 'not-found';
+					return;
+				}
+				challenge = saved;
+				reusableCharacters = library.characters;
+				loadStatus = 'ready';
+			} catch {
+				loadStatus = 'error';
+			}
+		})();
+	});
+
+	$effect(() => {
+		if (loadStatus !== 'ready') return;
+
+		const snapshotChallenge = $state.snapshot(challenge);
+		const snapshotCharacters = $state.snapshot(reusableCharacters);
+		// The first run only reflects the just-loaded data.
+		if (isFirstRun) {
+			isFirstRun = false;
+			return;
 		}
+		const timeout = setTimeout(() => {
+			const toSave = { ...snapshotChallenge, updatedAt: new Date() };
+			saveQueue = saveQueue
+				.then(() => saveChallengeToLibrary(toSave, snapshotCharacters))
+				.then(
+					() => {
+						hasSaveError = false;
+					},
+					() => {
+						hasSaveError = true;
+					}
+				);
+		}, 300);
+		return () => clearTimeout(timeout);
 	});
 
 	function updateChallengeName(name: string) {
@@ -415,8 +446,19 @@
 	}
 </script>
 
-<ViewPage title={isChallengeAvailable ? 'Challenge setup' : 'Challenge setup unavailable'}>
-	{#if isChallengeAvailable}
+<ViewPage
+	title={loadStatus === 'ready'
+		? 'Challenge setup'
+		: loadStatus === 'loading'
+			? 'Loading challenge setup'
+			: 'Challenge setup unavailable'}
+>
+	{#if loadStatus === 'loading'}
+		<p>Loading challenge setup.</p>
+	{:else if loadStatus === 'ready'}
+		{#if hasSaveError}
+			<p role="alert">Changes could not be saved.</p>
+		{/if}
 		<div class="challenge-setup">
 			<ChallengeSettings
 				name={challenge.name}
@@ -459,7 +501,11 @@
 			/>
 		</div>
 	{:else}
-		<p>The challenge draft is unavailable or does not match this setup URL.</p>
+		{#if loadStatus === 'error'}
+			<p>The saved challenges could not be loaded.</p>
+		{:else}
+			<p>No saved challenge matches this setup URL.</p>
+		{/if}
 		<a href={resolve('/challenges/new')}>Start a new challenge</a>
 	{/if}
 </ViewPage>
