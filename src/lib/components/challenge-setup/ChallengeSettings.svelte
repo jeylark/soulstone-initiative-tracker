@@ -1,5 +1,8 @@
 <script lang="ts">
 	import Card from '../Card.svelte';
+	import NumberInput from '../forms/NumberInput.svelte';
+	import RangeInput from '../forms/RangeInput.svelte';
+	import TextInput from '../forms/TextInput.svelte';
 
 	interface Props {
 		name: string;
@@ -22,31 +25,30 @@
 <Card title="Challenge settings" headerSize="large">
 	<fieldset class="settings">
 		<legend>Challenge settings</legend>
-		<label>
-			<span>Challenge name</span>
-			<input
-				value={name}
-				autocomplete="off"
-				oninput={(event) => onNameChange(event.currentTarget.value)}
-			/>
-		</label>
-		<label>
-			<span>Fairness weight</span>
+		<TextInput
+			label="Challenge name"
+			value={name}
+			autocomplete="off"
+			oninput={(event) => onNameChange(event.currentTarget.value)}
+		/>
+		<fieldset class="fairness-setting">
+			<legend>Fairness weight</legend>
 			<div class="fairness-control">
-				<input
+				<RangeInput
+					label="Fairness weight slider"
+					isLabelVisuallyHidden
 					id="fairness-weight"
-					type="range"
 					min="0"
 					max="10"
 					step="0.01"
-					aria-label="Fairness weight"
 					value={Math.min(fairnessWeight, 10)}
 					oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
 				/>
-				<input
-					aria-label="Fairness weight"
+				<NumberInput
+					label="Fairness weight value"
+					isLabelVisuallyHidden
+					class="fairness-weight-input"
 					value={fairnessWeight}
-					type="number"
 					min="0"
 					step="any"
 					oninput={(event) => {
@@ -58,6 +60,6 @@
 			<p class="fairness-description" aria-live="polite">
 				{getFairnessDescription(fairnessWeight)}
 			</p>
-		</label>
+		</fieldset>
 	</fieldset>
 </Card>

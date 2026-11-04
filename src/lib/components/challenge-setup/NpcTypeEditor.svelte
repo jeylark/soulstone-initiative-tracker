@@ -2,6 +2,8 @@
 	import type { NpcType, StableId } from '#lib';
 	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import NumberInput from '../forms/NumberInput.svelte';
+	import TextInput from '../forms/TextInput.svelte';
 
 	interface Props {
 		npcTypes: readonly NpcType[];
@@ -31,26 +33,21 @@
 						>
 							<fieldset class="npc-type-card">
 								<legend>{npcType.name}</legend>
-								<label>
-									<span>NPC type name</span>
-									<input
-										aria-label={`NPC type name: ${npcType.name}`}
-										value={npcType.name}
-										oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
-									/>
-								</label>
-								<label>
-									<span>Initiative stat (d6)</span>
-									<input
-										aria-label={`Initiative stat for ${npcType.name}`}
-										value={npcType.initiativeStat}
-										type="number"
-										min="1"
-										step="1"
-										oninput={(event) =>
-											onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
-									/>
-								</label>
+								<TextInput
+									label="NPC type name"
+									aria-label={`NPC type name: ${npcType.name}`}
+									value={npcType.name}
+									oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
+								/>
+								<NumberInput
+									label="Initiative stat (d6)"
+									aria-label={`Initiative stat for ${npcType.name}`}
+									value={npcType.initiativeStat}
+									min="1"
+									step="1"
+									oninput={(event) =>
+										onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
+								/>
 								<ActionButton
 									variant="danger"
 									aria-label={`Remove NPC type ${npcType.name}`}

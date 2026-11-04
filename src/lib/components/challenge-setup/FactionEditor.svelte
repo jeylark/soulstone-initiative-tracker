@@ -12,6 +12,7 @@
 	import CreatureEditor from './CreatureEditor.svelte';
 	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import TextInput from '../forms/TextInput.svelte';
 
 	interface Props {
 		faction: Readonly<Faction>;
@@ -91,14 +92,12 @@
 	<fieldset class="faction-panel">
 		<legend>{faction.name}</legend>
 		<div class="faction-heading">
-			<label>
-				<span>Faction name</span>
-				<input
-					aria-label={`Faction name: ${faction.name}`}
-					value={faction.name}
-					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-				/>
-			</label>
+			<TextInput
+				label="Faction name"
+				aria-label={`Faction name: ${faction.name}`}
+				value={faction.name}
+				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+			/>
 			<ActionButton
 				variant="danger"
 				aria-label={`Remove faction ${faction.name}`}

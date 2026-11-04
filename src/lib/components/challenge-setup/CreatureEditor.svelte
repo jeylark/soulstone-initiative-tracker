@@ -4,6 +4,8 @@
 	import TurnEditor from './TurnEditor.svelte';
 	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import SelectInput from '../forms/SelectInput.svelte';
+	import TextInput from '../forms/TextInput.svelte';
 
 	interface Props {
 		creature: ChallengeCreature;
@@ -47,47 +49,38 @@
 <Card title={name} headingLevel="h4" headerSize="medium" spacing="compact">
 	<fieldset class="creature" aria-label={name}>
 		<legend>{name}</legend>
-		<label>
-			<span>Faction</span>
-			<select
-				value={creature.factionId}
-				onchange={(event) => onFactionChange(creature.id, event.currentTarget.value as StableId)}
-			>
-				{#each factions as faction (faction.id)}
-					<option value={faction.id}>{faction.name}</option>
-				{/each}
-			</select>
-		</label>
+		<SelectInput
+			label="Faction"
+			value={creature.factionId}
+			onchange={(event) => onFactionChange(creature.id, event.currentTarget.value as StableId)}
+		>
+			{#each factions as faction (faction.id)}
+				<option value={faction.id}>{faction.name}</option>
+			{/each}
+		</SelectInput>
 		{#if creature.kind === 'character'}
-			<label>
-				<span>Character name</span>
-				<input
-					aria-label={`Character name: ${characterName}`}
-					value={characterName}
-					oninput={(event) =>
-						onCharacterNameChange(creature.characterId, event.currentTarget.value)}
-				/>
-			</label>
+			<TextInput
+				label="Character name"
+				aria-label={`Character name: ${characterName}`}
+				value={characterName}
+				oninput={(event) => onCharacterNameChange(creature.characterId, event.currentTarget.value)}
+			/>
 		{:else if creature.kind === 'npc'}
-			<label>
-				<span>NPC type</span>
-				<select
-					aria-label={`NPC type for ${name}`}
-					value={creature.creatureTypeId}
-					onchange={(event) => onNpcTypeChange(creature.id, event.currentTarget.value as StableId)}
-				>
-					{#each npcTypes as npcType (npcType.id)}
-						<option value={npcType.id}>{npcType.name}</option>
-					{/each}
-				</select>
-			</label>
-			<label>
-				<span>NPC identifier</span>
-				<input
-					value={creature.identifier}
-					oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
-				/>
-			</label>
+			<SelectInput
+				label="NPC type"
+				aria-label={`NPC type for ${name}`}
+				value={creature.creatureTypeId}
+				onchange={(event) => onNpcTypeChange(creature.id, event.currentTarget.value as StableId)}
+			>
+				{#each npcTypes as npcType (npcType.id)}
+					<option value={npcType.id}>{npcType.name}</option>
+				{/each}
+			</SelectInput>
+			<TextInput
+				label="NPC identifier"
+				value={creature.identifier}
+				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
+			/>
 		{/if}
 		{#each creature.turns as turn, index (turn.id)}
 			<TurnEditor

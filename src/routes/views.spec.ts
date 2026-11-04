@@ -83,12 +83,12 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		expect(screen.getByRole('textbox', { name: 'Challenge name' })).toBeTruthy();
-		const fairnessWeight = screen.getByRole('slider', { name: 'Fairness weight' });
+		const fairnessWeight = screen.getByRole('slider', { name: 'Fairness weight slider' });
 		expect(fairnessWeight.getAttribute('min')).toBe('0');
 		expect(fairnessWeight.getAttribute('max')).toBe('10');
 		expect(fairnessWeight.getAttribute('step')).toBe('0.01');
 		expect(
-			(screen.getByRole('spinbutton', { name: 'Fairness weight' }) as HTMLInputElement).value
+			(screen.getByRole('spinbutton', { name: 'Fairness weight value' }) as HTMLInputElement).value
 		).toBe('3');
 		expect(screen.getByText('Initiative and faction balance have similar influence.')).toBeTruthy();
 		expect(screen.queryByRole('combobox', { name: 'Character initiative default' })).toBeNull();
@@ -103,11 +103,11 @@ describe('new challenge setup', () => {
 	it('updates the visible fairness value as the slider moves', async () => {
 		render(newChallengePage);
 
-		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight' }), {
+		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight slider' }), {
 			target: { value: '4.25' }
 		});
 		expect(
-			(screen.getByRole('spinbutton', { name: 'Fairness weight' }) as HTMLInputElement).value
+			(screen.getByRole('spinbutton', { name: 'Fairness weight value' }) as HTMLInputElement).value
 		).toBe('4.25');
 	});
 
@@ -115,9 +115,11 @@ describe('new challenge setup', () => {
 		render(newChallengePage);
 
 		const numericInput = screen.getByRole('spinbutton', {
-			name: 'Fairness weight'
+			name: 'Fairness weight value'
 		}) as HTMLInputElement;
-		const slider = screen.getByRole('slider', { name: 'Fairness weight' }) as HTMLInputElement;
+		const slider = screen.getByRole('slider', {
+			name: 'Fairness weight slider'
+		}) as HTMLInputElement;
 		expect(numericInput.getAttribute('min')).toBe('0');
 		expect(numericInput.getAttribute('max')).toBeNull();
 
@@ -137,7 +139,7 @@ describe('new challenge setup', () => {
 	])('describes fairness weight %s', async (value, description) => {
 		render(newChallengePage);
 
-		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight' }), {
+		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight slider' }), {
 			target: { value }
 		});
 		expect(screen.getByText(description)).toBeTruthy();
