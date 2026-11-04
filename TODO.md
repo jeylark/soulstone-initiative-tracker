@@ -10,7 +10,7 @@ foundations.
 
 - [x] 1.1: Connect the landing-page actions to create a challenge, open a saved
       challenge, and join a live session.
-- [ ] 1.2: Build challenge setup and editing for factions, reusable characters, NPC
+- [x] 1.2: Build challenge setup and editing for factions, reusable characters, NPC
       types, creatures, turns, initiative placement, and fairness weight.
 - [x] 1.3: Finish removing NPC type `Use`/`Selected` controls now that each NPC can
       select its own type; verify the first-type fallback and remembered
@@ -21,7 +21,7 @@ foundations.
       colors distinguishable from each other and from app surfaces in light
       and dark themes; prefer unused defaults, allow reuse, and preserve colors
       through challenge copies and file workflows. No data migration is needed.
-- [ ] 1.6: Support creature and turn ordering, zero or multiple turns per creature,
+- [x] 1.6: Support creature and turn ordering, zero or multiple turns per creature,
       and hide/show settings.
 - [ ] 1.7: Reuse saved characters and support copying a challenge with fresh stable
       IDs and updated references.

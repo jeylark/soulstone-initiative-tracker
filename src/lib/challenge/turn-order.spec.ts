@@ -12,7 +12,7 @@ import { generateTurnOrder } from './turn-order';
 import type { DeepReadonly } from '../DeepReadonly';
 
 function createTurn(initiative: Readonly<TurnInitiative>): Turn {
-	return { id: createUuid(), isHidden: false, initiative };
+	return { id: createUuid(), initiative };
 }
 
 function createCreature(
@@ -25,6 +25,7 @@ function createCreature(
 		creatureTypeId: createUuid(),
 		identifier: 'A',
 		factionId,
+		isHidden: false,
 		turns: [...turns]
 	};
 }
@@ -292,12 +293,16 @@ describe('generateTurnOrder', () => {
 		);
 	});
 
-	it('keeps hidden turns in the generated order', () => {
+	it('keeps turns of hidden creatures in the generated order', () => {
 		const factionId = createUuid();
 		const visible = staticTurn(5);
-		const hidden = { ...staticTurn(8), isHidden: true };
+		const hidden = staticTurn(8);
+		const hiddenCreature = { ...createCreature(factionId, [hidden]), isHidden: true };
 
-		expect(order([createCreature(factionId, [visible, hidden])])).toEqual([hidden.id, visible.id]);
+		expect(order([createCreature(factionId, [visible]), hiddenCreature])).toEqual([
+			hidden.id,
+			visible.id
+		]);
 	});
 
 	it('merges more than two factions by value when fairness weight is zero', () => {

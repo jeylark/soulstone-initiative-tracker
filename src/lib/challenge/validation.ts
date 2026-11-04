@@ -229,8 +229,6 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 	}
 
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
-	const isValidHidden = typeof value.isHidden === 'boolean';
-	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 
 	let isValidInitiative: boolean;
 	if (!('initiative' in value)) {
@@ -240,7 +238,7 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 		isValidInitiative = validateTurnInitiative(value.initiative, `${path}.initiative`, addIssue);
 	}
 
-	return isValidId && isValidHidden && isValidInitiative;
+	return isValidId && isValidInitiative;
 }
 
 function validateTurns(value: unknown, path: string, addIssue: IssueRecorder): value is Turn[] {
@@ -255,8 +253,10 @@ function validateCharacterCreature(
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidCharacterId = validateStableId(value.characterId, `${path}.characterId`, addIssue);
 	const isValidFactionId = validateStableId(value.factionId, `${path}.factionId`, addIssue);
+	const isValidHidden = typeof value.isHidden === 'boolean';
+	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue);
-	return isValidId && isValidCharacterId && isValidFactionId && isValidTurns;
+	return isValidId && isValidCharacterId && isValidFactionId && isValidHidden && isValidTurns;
 }
 
 function validateNpcCreature(
@@ -268,8 +268,17 @@ function validateNpcCreature(
 	const isValidTypeId = validateStableId(value.creatureTypeId, `${path}.creatureTypeId`, addIssue);
 	const isValidIdentifier = validateString(value.identifier, `${path}.identifier`, addIssue);
 	const isValidFactionId = validateStableId(value.factionId, `${path}.factionId`, addIssue);
+	const isValidHidden = typeof value.isHidden === 'boolean';
+	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue);
-	return isValidId && isValidTypeId && isValidIdentifier && isValidFactionId && isValidTurns;
+	return (
+		isValidId &&
+		isValidTypeId &&
+		isValidIdentifier &&
+		isValidFactionId &&
+		isValidHidden &&
+		isValidTurns
+	);
 }
 
 function validateCreature(

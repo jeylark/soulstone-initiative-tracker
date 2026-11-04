@@ -206,6 +206,33 @@
 	font-weight: 600;
 }
 
+.challenge-setup .creature-visibility {
+	display: flex;
+	min-height: 40px;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+}
+
+.challenge-setup .creature-visibility input {
+	width: 18px;
+	min-height: 18px;
+	margin: 0;
+	accent-color: var(--color-accent);
+}
+
+.challenge-setup .creature-visibility input:focus-visible {
+	outline: var(--focus-ring);
+	outline-offset: var(--focus-ring-offset);
+}
+
+.challenge-setup .creature-order-controls {
+	display: flex;
+	grid-column: 1 / -1;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 .challenge-setup .turn-card {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
@@ -223,6 +250,13 @@
 
 .challenge-setup .turn-card .turn-settings {
 	display: contents;
+}
+
+.challenge-setup .turn-order-controls {
+	display: flex;
+	grid-column: 1 / -1;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 @media (max-width: 640px) {

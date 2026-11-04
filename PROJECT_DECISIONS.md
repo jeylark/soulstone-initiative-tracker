@@ -21,7 +21,7 @@ This document records the product and architecture decisions discussed so far. I
 - New player-character turns default to manual initiative entry; new NPC turns default to app-calculated initiative. These defaults are hard-coded at creation time, while every turn stores its own mode and can be changed independently.
 - Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
 - When two turns in the same faction have the same initiative, they keep creature and turn setup order; the DM decides which goes first by reordering the creatures or turns. Other initiative tie-break criteria are not decided yet.
-- The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.
+- The DM can hide or show a creature as a whole. Visibility is stored on the creature and applies to all its turns, including turns added later. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
 
 ## Challenge workflow
