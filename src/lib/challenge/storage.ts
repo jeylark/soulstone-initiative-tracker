@@ -162,6 +162,7 @@ export async function loadChallengeLibrary(
  * Validates and saves the supplied challenge library, replacing the stored library.
  * @param value Candidate library data to validate and persist.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
+ * @returns A promise that resolves when the replacement library has been saved.
  * @throws {ChallengeLibraryValidationError} If `value` does not match the library schema.
  * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened or the write fails.
  */

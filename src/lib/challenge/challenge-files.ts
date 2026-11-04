@@ -373,6 +373,7 @@ function mergeImportedCharacters(
  * Saves a challenge snapshot, including its current run state, as a JSON file.
  * @param library Library containing the challenge to export.
  * @param challengeId Stable ID of the challenge to save.
+ * @returns No value; starts the browser download.
  * @throws If the challenge is missing, the library is invalid, or the browser download fails.
  */
 export function saveChallengeToJsonFile(

@@ -311,6 +311,7 @@ export function parseChallengeLibraryJson(json: string): ChallengeLibrary {
 /**
  * Downloads a readable JSON backup of the complete challenge library.
  * @param value Candidate library data to validate and download.
+ * @returns No value; starts the browser download.
  * @throws {ChallengeJsonFileError} If the value is invalid or the browser cannot download the file.
  */
 export function downloadChallengeLibraryJson(value: unknown): void {
@@ -351,6 +352,7 @@ export function parseChallengeJson(json: string): ChallengeLibrary {
  * Downloads one challenge and the reusable characters it references as JSON.
  * @param value Candidate library containing the challenge and reusable characters.
  * @param challengeId Stable ID of the challenge to download.
+ * @returns No value; starts the browser download.
  * @throws {ChallengeJsonFileError} If the library is invalid, the challenge is missing, or download fails.
  */
 export function downloadChallengeJson(value: unknown, challengeId: StableId): void {
