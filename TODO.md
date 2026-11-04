@@ -26,9 +26,9 @@ foundations.
 - [ ] 1.8: Add controls to hide and show a creature's turns.
 - [ ] 1.9: Reuse saved characters when setting up a challenge.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
-       references, including turn IDs in saved tie decisions.
+      references, including turn IDs in saved tie decisions.
 - [ ] 1.11: Persist setup changes to the local challenge library and restore saved
-       setup when reopening a challenge.
+      setup when reopening a challenge.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
 
 ## 2. Initiative and encounter play
@@ -48,7 +48,7 @@ foundations.
       can be resumed.
 - [ ] 2.10: Add the end-of-round Spawn step for adding or removing creatures.
 - [ ] 2.11: After Spawn changes, recollect initiatives as needed and regenerate
-       the order.
+      the order.
 - [ ] 2.12: Detect same-faction initiative ties and block turn-order generation
       until the DM has resolved them. Ties across factions stay with the
       fairness algorithm.
