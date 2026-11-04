@@ -1,17 +1,58 @@
-﻿import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+﻿import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import type { Component } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './challenges/+page.svelte';
-import newChallengePage from './challenges/new/+page.svelte';
+import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
+import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
+import type { Challenge, StableId } from '#lib';
+
+const newChallengePage = setupChallengePage;
+
+const { mockedPage, mockedGoto } = vi.hoisted(() => ({
+	mockedPage: {
+		params: {} as Record<string, string>,
+		state: {} as Record<string, unknown>
+	},
+	mockedGoto: vi.fn()
+}));
+
+vi.mock('$app/state', () => ({ page: mockedPage }));
+vi.mock('$app/navigation', () => ({ goto: mockedGoto, snapshot: vi.fn() }));
 
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.clearAllMocks();
+});
+
+const setupChallengeId = '00000000-0000-4000-8000-000000000001' as StableId;
+
+function createSetupChallenge(): Challenge {
+	const createdAt = new Date('2026-01-01T00:00:00.000Z');
+	return {
+		id: setupChallengeId,
+		name: '',
+		createdAt,
+		updatedAt: createdAt,
+		factions: [
+			{ id: '00000000-0000-4000-8000-000000000002' as StableId, name: 'Players', color: 'blue' },
+			{ id: '00000000-0000-4000-8000-000000000003' as StableId, name: 'Enemies', color: 'red' }
+		],
+		npcTypes: [],
+		fairnessWeight: 3,
+		creatures: []
+	};
+}
+
+beforeEach(() => {
+	const challenge = createSetupChallenge();
+	mockedPage.params = { challengeId: challenge.id };
+	mockedPage.state = { challenge, reusableCharacters: [] };
 });
 
 const views: { name: string; page: Component; heading: string }[] = [
-	{ name: 'new challenge', page: newChallengePage, heading: 'New challenge' },
+	{ name: 'challenge setup', page: setupChallengePage, heading: 'Challenge setup' },
 	{ name: 'saved challenges', page: savedChallengesPage, heading: 'Saved challenges' },
 	{ name: 'join session', page: joinSessionPage, heading: 'Join a live session' }
 ];
@@ -39,6 +80,49 @@ describe.each(views)('$name view', ({ page, heading }) => {
 
 		expect(screen.getByRole('heading', { level: 1, name: heading })).toBeTruthy();
 	});
+});
+
+describe('new challenge entry', () => {
+	it('creates a draft and redirects to its setup route with page state', async () => {
+		render(newChallengeEntryPage);
+
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+
+		const [href, options] = mockedGoto.mock.calls[0] as [string, Record<string, unknown>];
+		const state = options.state as { challenge: Challenge; reusableCharacters: unknown[] };
+		expect(href).toMatch(/^\/challenges\/[0-9a-f-]+\/setup$/i);
+		expect(options['replace']).toBe(true);
+		expect(options['persistState']).toBe(true);
+		expect(state.challenge.id).toBe(href.split('/')[2]);
+		expect(state.challenge.creatures).toEqual([]);
+		expect(state.reusableCharacters).toEqual([]);
+	});
+});
+
+describe('challenge setup route state', () => {
+	it.each(['missing', 'mismatched'] as const)(
+		'shows a recovery link when challenge state is %s',
+		(kind) => {
+			if (kind === 'missing') {
+				mockedPage.state = {};
+			} else {
+				mockedPage.state = {
+					challenge: {
+						...createSetupChallenge(),
+						id: '00000000-0000-4000-8000-000000000099' as StableId
+					},
+					reusableCharacters: []
+				};
+			}
+
+			render(setupChallengePage);
+
+			expect(screen.getByRole('heading', { name: 'Challenge setup unavailable' })).toBeTruthy();
+			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
+				'/challenges/new'
+			);
+		}
+	);
 });
 
 describe('new challenge setup', () => {
