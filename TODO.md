@@ -10,7 +10,7 @@ foundations.
 
 - [x] 1.1: Connect the landing-page actions to create a challenge, open a saved
       challenge, and join a live session.
-- [ ] 1.2: Build challenge setup and editing for factions, reusable characters, NPC
+- [x] 1.2: Build challenge setup and editing for factions, reusable characters, NPC
       types, creatures, turns, initiative placement, and fairness weight.
 - [x] 1.3: Finish removing NPC type `Use`/`Selected` controls now that each NPC can
       select its own type; verify the first-type fallback and remembered
