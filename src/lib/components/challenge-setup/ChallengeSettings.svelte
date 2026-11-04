@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Card from '../Card.svelte';
+
 	interface Props {
 		name: string;
 		fairnessWeight: number;
@@ -17,41 +19,45 @@
 	}
 </script>
 
-<fieldset class="settings">
-	<legend>Challenge settings</legend>
-	<label>
-		<span>Challenge name</span>
-		<input
-			value={name}
-			autocomplete="off"
-			oninput={(event) => onNameChange(event.currentTarget.value)}
-		/>
-	</label>
-	<label>
-		<span>Fairness weight</span>
-		<div class="fairness-control">
+<Card title="Challenge settings" headerSize="large">
+	<fieldset class="settings">
+		<legend>Challenge settings</legend>
+		<label>
+			<span>Challenge name</span>
 			<input
-				id="fairness-weight"
-				type="range"
-				min="0"
-				max="10"
-				step="0.01"
-				aria-label="Fairness weight"
-				value={Math.min(fairnessWeight, 10)}
-				oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
+				value={name}
+				autocomplete="off"
+				oninput={(event) => onNameChange(event.currentTarget.value)}
 			/>
-			<input
-				aria-label="Fairness weight"
-				value={fairnessWeight}
-				type="number"
-				min="0"
-				step="any"
-				oninput={(event) => {
-					const weight = event.currentTarget.valueAsNumber;
-					if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
-				}}
-			/>
-		</div>
-		<p class="fairness-description" aria-live="polite">{getFairnessDescription(fairnessWeight)}</p>
-	</label>
-</fieldset>
+		</label>
+		<label>
+			<span>Fairness weight</span>
+			<div class="fairness-control">
+				<input
+					id="fairness-weight"
+					type="range"
+					min="0"
+					max="10"
+					step="0.01"
+					aria-label="Fairness weight"
+					value={Math.min(fairnessWeight, 10)}
+					oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
+				/>
+				<input
+					aria-label="Fairness weight"
+					value={fairnessWeight}
+					type="number"
+					min="0"
+					step="any"
+					oninput={(event) => {
+						const weight = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
+					}}
+				/>
+			</div>
+			<p class="fairness-description" aria-live="polite">
+				{getFairnessDescription(fairnessWeight)}
+			</p>
+		</label>
+	</fieldset>
+</Card>

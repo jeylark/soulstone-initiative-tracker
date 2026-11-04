@@ -42,6 +42,43 @@ describe.each(views)('$name view', ({ page, heading }) => {
 });
 
 describe('new challenge setup', () => {
+	it('uses shared card surfaces while preserving named form groups', async () => {
+		render(newChallengePage);
+
+		const expectCard = (group: HTMLElement, variant: string, spacing: string) => {
+			const card = group.parentElement;
+			expect(card?.classList.contains('card')).toBe(true);
+			expect(card?.classList.contains(`card--${variant}`)).toBe(true);
+			expect(card?.classList.contains(`card--${spacing}`)).toBe(true);
+		};
+
+		const settings = screen.getByRole('group', { name: 'Challenge settings' });
+		expectCard(settings, 'surface', 'standard');
+		expect(screen.getByRole('heading', { name: 'Challenge settings', level: 2 })).toBeTruthy();
+
+		const npcTypes = screen.getByRole('group', { name: 'NPC types' });
+		expectCard(npcTypes, 'surface', 'standard');
+		expect(screen.getByRole('heading', { name: 'NPC types', level: 2 })).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const npcType = screen.getByRole('group', { name: 'NPC Type 1' });
+		expectCard(npcType, 'subtle', 'compact');
+		expect(screen.getByRole('heading', { name: 'NPC Type 1', level: 3 })).toBeTruthy();
+
+		const factions = screen.getByRole('group', { name: 'Factions' });
+		expectCard(factions, 'surface', 'standard');
+		expect(screen.getByRole('heading', { name: 'Factions', level: 2 })).toBeTruthy();
+		const players = within(factions).getByRole('group', { name: 'Players' });
+		expectCard(players, 'inset', 'compact');
+		expect(screen.getByRole('heading', { name: 'Players', level: 3 })).toBeTruthy();
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		expectCard(player, 'surface', 'compact');
+		expect(screen.getByRole('heading', { name: 'Player 1', level: 4 })).toBeTruthy();
+		const turn = within(player).getByRole('group', { name: 'Turn 1' });
+		expectCard(turn, 'inset', 'compact');
+		expect(screen.getByRole('heading', { name: 'Turn 1', level: 5 })).toBeTruthy();
+	});
+
 	it('shows challenge settings, the NPC type strip, and faction board', () => {
 		render(newChallengePage);
 

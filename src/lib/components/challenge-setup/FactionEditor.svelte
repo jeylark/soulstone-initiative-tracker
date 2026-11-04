@@ -10,6 +10,7 @@
 	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
+	import Card from '../Card.svelte';
 
 	interface Props {
 		faction: Readonly<Faction>;
@@ -85,76 +86,79 @@
 	}
 </script>
 
-<fieldset class="faction-panel">
-	<legend>{faction.name}</legend>
-	<div class="faction-heading">
-		<label>
-			<span>Faction name</span>
-			<input
-				aria-label={`Faction name: ${faction.name}`}
-				value={faction.name}
-				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-			/>
-		</label>
-		<button
-			class="quiet-button warning-button"
-			type="button"
-			aria-label={`Remove faction ${faction.name}`}
-			onclick={() => onRemove(faction.id)}
-		>
-			Remove
-		</button>
-	</div>
-	<fieldset class="faction-colors">
-		<legend>Faction color for {faction.name}</legend>
-		<div class="faction-color-options">
-			{#each FACTION_COLORS as paletteColor (paletteColor.value)}
-				<label class="faction-color-option">
-					<input
-						type="radio"
-						name={`faction-color-${faction.id}`}
-						value={paletteColor.value}
-						checked={faction.color === paletteColor.value}
-						onchange={() => onColorChange(faction.id, paletteColor.value)}
+<Card title={faction.name} headingLevel="h3" headerSize="medium" variant="inset" spacing="compact">
+	<fieldset class="faction-panel">
+		<legend>{faction.name}</legend>
+		<div class="faction-heading">
+			<label>
+				<span>Faction name</span>
+				<input
+					aria-label={`Faction name: ${faction.name}`}
+					value={faction.name}
+					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+				/>
+			</label>
+			<button
+				class="quiet-button warning-button"
+				type="button"
+				aria-label={`Remove faction ${faction.name}`}
+				onclick={() => onRemove(faction.id)}
+			>
+				Remove
+			</button>
+		</div>
+		<fieldset class="faction-colors">
+			<legend>Faction color for {faction.name}</legend>
+			<div class="faction-color-options">
+				{#each FACTION_COLORS as paletteColor (paletteColor.value)}
+					<label class="faction-color-option">
+						<input
+							type="radio"
+							name={`faction-color-${faction.id}`}
+							value={paletteColor.value}
+							checked={faction.color === paletteColor.value}
+							onchange={() => onColorChange(faction.id, paletteColor.value)}
+						/>
+						<span class="faction-color-swatch" style={`--faction-color: ${paletteColor.hex}`}
+						></span>
+						<span>{paletteColor.label}</span>
+					</label>
+				{/each}
+			</div>
+		</fieldset>
+
+		{#if factionCreatures.length > 0}
+			<div class="faction-creatures">
+				{#each factionCreatures as creature (creature.id)}
+					{@const name =
+						creature.kind === 'character'
+							? characterName(creature.characterId)
+							: npcName(creature.creatureTypeId, creature.identifier)}
+					<CreatureEditor
+						{creature}
+						{name}
+						characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
+						{factions}
+						{npcTypes}
+						targetTurns={targetTurns()}
+						onFactionChange={onCreatureFactionChange}
+						{onNpcTypeChange}
+						{onCharacterNameChange}
+						{onNpcIdentifierChange}
+						{onTurnChange}
+						{onAddTurn}
+						{onRemoveTurn}
+						onRemove={onRemoveCreature}
 					/>
-					<span class="faction-color-swatch" style={`--faction-color: ${paletteColor.hex}`}></span>
-					<span>{paletteColor.label}</span>
-				</label>
-			{/each}
+				{/each}
+			</div>
+		{/if}
+
+		<div class="faction-actions">
+			<button type="button" onclick={() => onCreateCharacter(faction.id)}>Add Player</button>
+			<button type="button" disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
+				Add NPC
+			</button>
 		</div>
 	</fieldset>
-
-	{#if factionCreatures.length > 0}
-		<div class="faction-creatures">
-			{#each factionCreatures as creature (creature.id)}
-				{@const name =
-					creature.kind === 'character'
-						? characterName(creature.characterId)
-						: npcName(creature.creatureTypeId, creature.identifier)}
-				<CreatureEditor
-					{creature}
-					{name}
-					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
-					{factions}
-					{npcTypes}
-					targetTurns={targetTurns()}
-					onFactionChange={onCreatureFactionChange}
-					{onNpcTypeChange}
-					{onCharacterNameChange}
-					{onNpcIdentifierChange}
-					{onTurnChange}
-					{onAddTurn}
-					{onRemoveTurn}
-					onRemove={onRemoveCreature}
-				/>
-			{/each}
-		</div>
-	{/if}
-
-	<div class="faction-actions">
-		<button type="button" onclick={() => onCreateCharacter(faction.id)}>Add Player</button>
-		<button type="button" disabled={!npcTypeId} onclick={() => onCreateNpc(faction.id)}>
-			Add NPC
-		</button>
-	</div>
-</fieldset>
+</Card>

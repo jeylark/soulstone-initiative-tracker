@@ -9,6 +9,7 @@
 	} from '#lib';
 	import type { TurnEditorChange } from './challenge-setup-types';
 	import FactionEditor from './FactionEditor.svelte';
+	import Card from '../Card.svelte';
 
 	interface Props {
 		factions: readonly Faction[];
@@ -59,32 +60,34 @@
 	}: Props = $props();
 </script>
 
-<fieldset class="setup-section faction-board-section">
-	<legend>Factions</legend>
-	<button class="add-entity-button" type="button" onclick={onCreateFaction}>Add Faction</button>
-	<div class="faction-board">
-		{#each factions as faction (faction.id)}
-			<FactionEditor
-				{faction}
-				{factions}
-				{creatures}
-				{characters}
-				{npcTypes}
-				{npcTypeId}
-				onRename={onRenameFaction}
-				onColorChange={onFactionColorChange}
-				onRemove={onRemoveFaction}
-				{onCreateCharacter}
-				{onCreateNpc}
-				{onCreatureFactionChange}
-				{onNpcTypeChange}
-				{onCharacterNameChange}
-				{onNpcIdentifierChange}
-				{onTurnChange}
-				{onAddTurn}
-				{onRemoveTurn}
-				{onRemoveCreature}
-			/>
-		{/each}
-	</div>
-</fieldset>
+<Card title="Factions" headerSize="large">
+	<fieldset class="setup-section faction-board-section">
+		<legend>Factions</legend>
+		<button class="add-entity-button" type="button" onclick={onCreateFaction}>Add Faction</button>
+		<div class="faction-board">
+			{#each factions as faction (faction.id)}
+				<FactionEditor
+					{faction}
+					{factions}
+					{creatures}
+					{characters}
+					{npcTypes}
+					{npcTypeId}
+					onRename={onRenameFaction}
+					onColorChange={onFactionColorChange}
+					onRemove={onRemoveFaction}
+					{onCreateCharacter}
+					{onCreateNpc}
+					{onCreatureFactionChange}
+					{onNpcTypeChange}
+					{onCharacterNameChange}
+					{onNpcIdentifierChange}
+					{onTurnChange}
+					{onAddTurn}
+					{onRemoveTurn}
+					{onRemoveCreature}
+				/>
+			{/each}
+		</div>
+	</fieldset>
+</Card>
