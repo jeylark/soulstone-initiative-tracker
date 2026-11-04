@@ -16,6 +16,7 @@
 		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
 		onFactionChange: (creatureId: StableId, factionId: StableId) => void;
+		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -37,6 +38,7 @@
 		npcTypes,
 		targetTurns,
 		onFactionChange,
+		onVisibilityChange,
 		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
@@ -89,6 +91,14 @@
 				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
 			/>
 		{/if}
+		<label class="creature-visibility">
+			<input
+				type="checkbox"
+				checked={creature.isHidden}
+				onchange={(event) => onVisibilityChange(creature.id, event.currentTarget.checked)}
+			/>
+			Hidden from viewers: {name}
+		</label>
 		<EntityList
 			addLabel="Add turn"
 			addAriaLabel={`Add turn for ${name}`}

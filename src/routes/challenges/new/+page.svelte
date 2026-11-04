@@ -287,6 +287,11 @@
 		if (creature) creature.factionId = factionId;
 	}
 
+	function updateCreatureVisibility(creatureId: StableId, isHidden: boolean) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (creature) creature.isHidden = isHidden;
+	}
+
 	function updateNpcIdentifier(creatureId: StableId, identifier: string) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature?.kind === 'npc') creature.identifier = identifier;
@@ -403,6 +408,7 @@
 			onCreateCharacter={addCharacter}
 			onCreateNpc={addNpc}
 			onCreatureFactionChange={updateCreatureFaction}
+			onCreatureVisibilityChange={updateCreatureVisibility}
 			onNpcTypeChange={updateNpcType}
 			onCharacterNameChange={updateCharacterName}
 			onNpcIdentifierChange={updateNpcIdentifier}

@@ -281,6 +281,36 @@ describe('new challenge setup', () => {
 		).toBe('roll-app');
 	});
 
+	it('hides a creature with zero turns and keeps its visibility when turns are added', async () => {
+		render(newChallengePage);
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
+		const visibility = within(player).getByRole('checkbox', {
+			name: 'Hidden from viewers: Player 1'
+		}) as HTMLInputElement;
+
+		expect(visibility.checked).toBe(false);
+		await fireEvent.click(visibility);
+		expect(visibility.checked).toBe(true);
+
+		await fireEvent.click(
+			within(player).getByRole('button', { name: 'Remove Turn 1 for Player 1' })
+		);
+		expect(within(player).queryByRole('group', { name: 'Turn 1' })).toBeNull();
+		expect(visibility.checked).toBe(true);
+
+		await fireEvent.click(within(player).getByRole('button', { name: 'Add turn for Player 1' }));
+		expect(within(player).getByRole('group', { name: 'Turn 1' })).toBeTruthy();
+		await fireEvent.click(within(player).getByRole('button', { name: 'Add turn for Player 1' }));
+		expect(within(player).getByRole('group', { name: 'Turn 2' })).toBeTruthy();
+		expect(visibility.checked).toBe(true);
+
+		await fireEvent.click(visibility);
+		expect(visibility.checked).toBe(false);
+	});
+
 	it('adds and removes turn cards, renumbers them, and represents no initiative with zero turns', async () => {
 		render(newChallengePage);
 
