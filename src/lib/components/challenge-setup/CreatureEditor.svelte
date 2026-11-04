@@ -17,6 +17,7 @@
 		targetTurns: readonly TurnTarget[];
 		onFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -39,6 +40,7 @@
 		targetTurns,
 		onFactionChange,
 		onVisibilityChange,
+		onMoveTurn,
 		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
@@ -110,7 +112,10 @@
 					turnNumber={index + 1}
 					creatureName={name}
 					targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
+					canMoveUp={index > 0}
+					canMoveDown={index < creature.turns.length - 1}
 					onChange={(change) => onTurnChange(creature.id, turn.id, change)}
+					onMove={(direction) => onMoveTurn(creature.id, turn.id, direction)}
 					onRemove={() => onRemoveTurn(creature.id, turn.id)}
 				/>
 			{/each}

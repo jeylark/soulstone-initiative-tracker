@@ -311,6 +311,77 @@ describe('new challenge setup', () => {
 		expect(visibility.checked).toBe(false);
 	});
 
+	it('reorders turns without changing relative target IDs or initiative rules', async () => {
+		render(newChallengePage);
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		const dependentCreature = within(playersPanel).getByRole('group', { name: 'Player 1' });
+		const targetCreature = within(playersPanel).getByRole('group', { name: 'Player 2' });
+		await fireEvent.click(
+			within(targetCreature).getByRole('button', { name: 'Add turn for Player 2' })
+		);
+		await setRelativeTarget('Player 1', 'Turn 1', 'before', 'Player 2 - Turn 1');
+
+		const dependentTurn = within(dependentCreature).getByRole('group', { name: 'Turn 1' });
+		const originalTarget = within(targetCreature).getByRole('group', { name: 'Turn 1' });
+		const originalLastTurn = within(targetCreature).getByRole('group', { name: 'Turn 2' });
+		const targetSelector = within(dependentTurn).getByRole('combobox', {
+			name: 'Target turn'
+		}) as HTMLSelectElement;
+		const targetId = targetSelector.value;
+
+		expect(
+			(
+				within(originalTarget).getByRole('button', {
+					name: 'Move Turn 1 up for Player 2'
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+		expect(
+			(
+				within(originalLastTurn).getByRole('button', {
+					name: 'Move Turn 2 down for Player 2'
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+
+		await fireEvent.click(
+			within(originalTarget).getByRole('button', { name: 'Move Turn 1 down for Player 2' })
+		);
+
+		const reorderedFirst = within(targetCreature).getByRole('group', { name: 'Turn 1' });
+		const reorderedLast = within(targetCreature).getByRole('group', { name: 'Turn 2' });
+		const reorderedTarget = within(dependentTurn).getByRole('combobox', {
+			name: 'Target turn'
+		}) as HTMLSelectElement;
+
+		expect(
+			(
+				within(dependentTurn).getByRole('combobox', {
+					name: 'Turn initiative'
+				}) as HTMLSelectElement
+			).value
+		).toBe('relative-before');
+		expect(reorderedTarget.value).toBe(targetId);
+		expect(reorderedTarget.selectedOptions[0]?.textContent).toBe('Player 2 - Turn 2');
+		expect(
+			(
+				within(reorderedFirst).getByRole('button', {
+					name: 'Move Turn 1 up for Player 2'
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+		expect(
+			(
+				within(reorderedLast).getByRole('button', {
+					name: 'Move Turn 2 down for Player 2'
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+	});
+
 	it('adds and removes turn cards, renumbers them, and represents no initiative with zero turns', async () => {
 		render(newChallengePage);
 

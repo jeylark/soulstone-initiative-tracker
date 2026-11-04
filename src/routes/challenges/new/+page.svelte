@@ -154,6 +154,16 @@
 		creature.turns.push(createTurn(creature.kind === 'character' ? 'manual' : 'app'));
 	}
 
+	function moveTurn(creatureId: StableId, turnId: StableId, direction: 'up' | 'down') {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		const turnIndex = creature?.turns.findIndex((turn) => turn.id === turnId) ?? -1;
+		const nextIndex = turnIndex + (direction === 'up' ? -1 : 1);
+		if (!creature || turnIndex < 0 || nextIndex < 0 || nextIndex >= creature.turns.length) return;
+
+		const [turn] = creature.turns.splice(turnIndex, 1);
+		if (turn) creature.turns.splice(nextIndex, 0, turn);
+	}
+
 	function addCharacter(factionId: StableId) {
 		const name = nextNumberedName(
 			'Player',
@@ -409,6 +419,7 @@
 			onCreateNpc={addNpc}
 			onCreatureFactionChange={updateCreatureFaction}
 			onCreatureVisibilityChange={updateCreatureVisibility}
+			onMoveTurn={moveTurn}
 			onNpcTypeChange={updateNpcType}
 			onCharacterNameChange={updateCharacterName}
 			onNpcIdentifierChange={updateNpcIdentifier}

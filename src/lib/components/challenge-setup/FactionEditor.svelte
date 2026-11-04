@@ -30,6 +30,7 @@
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -57,6 +58,7 @@
 		onCreateNpc,
 		onCreatureFactionChange,
 		onCreatureVisibilityChange,
+		onMoveTurn,
 		onNpcTypeChange,
 		onCharacterNameChange,
 		onNpcIdentifierChange,
@@ -146,6 +148,7 @@
 					targetTurns={targetTurns()}
 					onFactionChange={onCreatureFactionChange}
 					onVisibilityChange={onCreatureVisibilityChange}
+					{onMoveTurn}
 					{onNpcTypeChange}
 					{onCharacterNameChange}
 					{onNpcIdentifierChange}

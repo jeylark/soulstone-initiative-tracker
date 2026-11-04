@@ -245,6 +245,13 @@
 	display: contents;
 }
 
+.challenge-setup .turn-order-controls {
+	display: flex;
+	grid-column: 1 / -1;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
 @media (max-width: 640px) {
 	.challenge-setup .settings,
 	.challenge-setup .creature {
