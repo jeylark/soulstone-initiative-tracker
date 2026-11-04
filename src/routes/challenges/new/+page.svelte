@@ -164,6 +164,24 @@
 		if (turn) creature.turns.splice(nextIndex, 0, turn);
 	}
 
+	function moveCreature(creatureId: StableId, direction: 'up' | 'down') {
+		const creatureIndex = challenge.creatures.findIndex((item) => item.id === creatureId);
+		const creature = challenge.creatures[creatureIndex];
+		if (!creature) return;
+
+		const factionCreatureIndices = challenge.creatures.flatMap((item, index) =>
+			item.factionId === creature.factionId ? [index] : []
+		);
+		const factionPosition = factionCreatureIndices.indexOf(creatureIndex);
+		const neighborPosition = factionPosition + (direction === 'up' ? -1 : 1);
+		const neighborIndex = factionCreatureIndices[neighborPosition];
+		const neighbor = neighborIndex === undefined ? undefined : challenge.creatures[neighborIndex];
+		if (neighborIndex === undefined || !neighbor) return;
+
+		challenge.creatures[creatureIndex] = neighbor;
+		challenge.creatures[neighborIndex] = creature;
+	}
+
 	function addCharacter(factionId: StableId) {
 		const name = nextNumberedName(
 			'Player',
@@ -420,6 +438,7 @@
 			onCreatureFactionChange={updateCreatureFaction}
 			onCreatureVisibilityChange={updateCreatureVisibility}
 			onMoveTurn={moveTurn}
+			onMoveCreature={moveCreature}
 			onNpcTypeChange={updateNpcType}
 			onCharacterNameChange={updateCharacterName}
 			onNpcIdentifierChange={updateNpcIdentifier}
