@@ -1,5 +1,5 @@
 import type { Challenge, GeneratedTurnOrder, InitiativeResults, StableId } from './model';
-import type { DeepReadonly } from './challenge-copy';
+import type { DeepReadonly } from '../DeepReadonly';
 
 type InitiativeTurn = {
 	readonly id: StableId;
@@ -50,10 +50,6 @@ function filterFactionTurns(
 		const factionTurns = turnsByFaction.getOrInsert(creature.factionId, []);
 
 		for (const turn of creature.turns) {
-			if (turn.initiative === null) {
-				continue;
-			}
-
 			if (turn.initiative.kind === 'roll') {
 				const initiativeValue = initiativeResults[turn.id];
 				if (initiativeValue === undefined) {

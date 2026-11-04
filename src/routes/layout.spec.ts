@@ -1,5 +1,6 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
+import type { Component } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
@@ -11,7 +12,7 @@ afterEach(() => {
 	cleanup();
 });
 
-const views = [
+const views: { name: string; page: Component }[] = [
 	{ name: 'landing', page: LandingPage },
 	{ name: 'new challenge', page: NewChallengePage },
 	{ name: 'saved challenges', page: SavedChallengesPage },
@@ -51,6 +52,26 @@ describe('app layout', () => {
 
 		expect(container.querySelector('header')?.textContent).toContain('Soulstone');
 		expect(screen.getByText('content')).toBeTruthy();
+	});
+
+	it('shows page navigation and the theme control in the header', () => {
+		const { container } = renderLayout();
+		const header = container.querySelector('header');
+		expect(header).not.toBeNull();
+		if (!header) return;
+
+		expect(within(header).getByRole('button', { name: 'Dark mode' })).toBeTruthy();
+		const navigation = screen.getByRole('navigation', { name: 'Page navigation' });
+		for (const link of [
+			{ name: 'Back', href: '/' },
+			{ name: 'New Challenge', href: '/challenges/new' },
+			{ name: 'Saved Challenges', href: '/challenges' },
+			{ name: 'Join', href: '/join' }
+		]) {
+			expect(within(navigation).getByRole('link', { name: link.name }).getAttribute('href')).toBe(
+				link.href
+			);
+		}
 	});
 
 	it.each(views)('does not duplicate the shell in the $name page', ({ page }) => {

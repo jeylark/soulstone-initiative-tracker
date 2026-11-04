@@ -1,4 +1,5 @@
 import { parseUuid } from './uuid';
+import { isFactionColor } from './faction-colors';
 import type {
 	Challenge,
 	ChallengeCreature,
@@ -7,7 +8,6 @@ import type {
 	CharacterCreature,
 	Faction,
 	InitiativeRollMode,
-	InitiativeRollModes,
 	NpcCreature,
 	NpcType,
 	PlayerCharacter,
@@ -131,7 +131,9 @@ function validateFaction(value: unknown, path: string, addIssue: IssueRecorder):
 
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
-	return isValidId && isValidName;
+	const isValidColor = isFactionColor(value.color);
+	if (!isValidColor) addIssue(`${path}.color`, 'Expected a supported faction color.');
+	return isValidId && isValidName && isValidColor;
 }
 
 function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder): value is NpcType {
@@ -152,6 +154,16 @@ function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder):
 	return isValidId && isValidName && isValidInitiativeStat;
 }
 
+function validateInitiativeRollMode(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder
+): value is InitiativeRollMode {
+	if (value === 'app' || value === 'manual') return true;
+	addIssue(path, 'Expected "app" or "manual".');
+	return false;
+}
+
 function validateTurnInitiative(
 	value: unknown,
 	path: string,
@@ -164,7 +176,7 @@ function validateTurnInitiative(
 
 	switch (value.kind) {
 		case 'roll':
-			return true;
+			return validateInitiativeRollMode(value.mode, `${path}.mode`, addIssue);
 		case 'static':
 			if (typeof value.value === 'number' && Number.isFinite(value.value)) return true;
 			addIssue(`${path}.value`, 'Expected a finite initiative value.');
@@ -220,11 +232,11 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 	const isValidHidden = typeof value.isHidden === 'boolean';
 	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 
-	let isValidInitiative = true;
+	let isValidInitiative: boolean;
 	if (!('initiative' in value)) {
-		addIssue(`${path}.initiative`, 'Expected an initiative rule or null.');
+		addIssue(`${path}.initiative`, 'Expected an initiative rule.');
 		isValidInitiative = false;
-	} else if (value.initiative !== null) {
+	} else {
 		isValidInitiative = validateTurnInitiative(value.initiative, `${path}.initiative`, addIssue);
 	}
 
@@ -274,35 +286,6 @@ function validateCreature(
 
 	addIssue(`${path}.kind`, 'Expected "character" or "npc".');
 	return false;
-}
-
-function validateInitiativeRollMode(
-	value: unknown,
-	path: string,
-	addIssue: IssueRecorder
-): value is InitiativeRollMode {
-	if (value === 'manual' || value === 'app') return true;
-	addIssue(path, 'Expected "manual" or "app".');
-	return false;
-}
-
-function validateInitiativeRollModes(
-	value: unknown,
-	path: string,
-	addIssue: IssueRecorder
-): value is InitiativeRollModes {
-	if (!isRecord(value)) {
-		addIssue(path, 'Expected an initiative roll modes object.');
-		return false;
-	}
-
-	const isValidCharacters = validateInitiativeRollMode(
-		value.characters,
-		`${path}.characters`,
-		addIssue
-	);
-	const isValidNpcs = validateInitiativeRollMode(value.npcs, `${path}.npcs`, addIssue);
-	return isValidCharacters && isValidNpcs;
 }
 
 function validateRunState(
@@ -370,11 +353,6 @@ function validateChallenge(
 		addIssue,
 		validateNpcType
 	);
-	const isValidRollModes = validateInitiativeRollModes(
-		value.initiativeRollModes,
-		`${path}.initiativeRollModes`,
-		addIssue
-	);
 	const isValidFairnessWeight =
 		typeof value.fairnessWeight === 'number' &&
 		Number.isFinite(value.fairnessWeight) &&
@@ -400,7 +378,6 @@ function validateChallenge(
 		isValidUpdatedAt &&
 		isValidFactions &&
 		isValidNpcTypes &&
-		isValidRollModes &&
 		isValidFairnessWeight &&
 		isValidCreatures &&
 		isValidRunState

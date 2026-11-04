@@ -9,9 +9,9 @@ import type {
 } from './model';
 import { createUuid } from './uuid';
 import { generateTurnOrder } from './turn-order';
-import type { DeepReadonly } from './challenge-copy';
+import type { DeepReadonly } from '../DeepReadonly';
 
-function createTurn(initiative: Readonly<TurnInitiative> | null): Turn {
+function createTurn(initiative: Readonly<TurnInitiative>): Turn {
 	return { id: createUuid(), isHidden: false, initiative };
 }
 
@@ -40,14 +40,13 @@ function createChallenge(
 		updatedAt: new Date(),
 		factions: [],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight,
 		creatures: [...creatures]
 	};
 }
 
 function rolledTurn(): Turn {
-	return createTurn({ kind: 'roll' });
+	return createTurn({ kind: 'roll', mode: 'app' });
 }
 
 function staticTurn(value: number): Turn {
@@ -68,15 +67,14 @@ describe('generateTurnOrder', () => {
 		expect(order([createCreature(createUuid(), [])])).toEqual([]);
 	});
 
-	it('omits turns without an initiative and rolled turns without a result', () => {
+	it('omits rolling turns without a result', () => {
 		const factionId = createUuid();
-		const noInitiative = createTurn(null);
 		const missingResult = rolledTurn();
 		const staticInitiative = staticTurn(4);
 
-		expect(
-			order([createCreature(factionId, [noInitiative, missingResult, staticInitiative])])
-		).toEqual([staticInitiative.id]);
+		expect(order([createCreature(factionId, [missingResult, staticInitiative])])).toEqual([
+			staticInitiative.id
+		]);
 	});
 
 	it('sorts rolling and static initiatives from highest to lowest', () => {

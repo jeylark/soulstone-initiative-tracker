@@ -17,10 +17,14 @@ detailed coding guidelines.
   add or update tests before changing implementation. For documentation-only
   changes, tests are not needed unless the repository provides documentation
   tests.
-- Public API documentation is mandatory: document every symbol exported from
-  `src/lib/index.ts`, including each public type property's meaning and every
-  function or constructor parameter. Document return values and thrown errors
-  where applicable. Keep this documentation updated whenever the API changes.
+- Public API documentation is mandatory for every symbol exported from any
+  module under `src/lib`, whether or not it is re-exported from `src/lib/index.ts`.
+  For each public type, document the meaning of every property. For functions
+  and constructors, document every parameter and return value, and document
+  thrown errors where applicable. For exported constants containing structured data, document
+  the meaning of each public field. Keep documentation updated whenever the API
+  changes, and keep helpers module-private when they are not intended for use
+  outside their module.
 
 ## Before finishing
 

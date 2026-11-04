@@ -1,23 +1,10 @@
+import type { DeepReadonly } from '../DeepReadonly';
 import type { Challenge, ChallengeCreature, TurnInitiative } from './model';
 
-/**
- * Recursively marks a value and its nested properties as readonly.
- * @typeParam T Type whose nested properties should be readonly.
- */
-export type DeepReadonly<T> = T extends readonly (infer U)[]
-	? readonly DeepReadonly<U>[]
-	: T extends Date
-		? Date
-		: T extends object
-			? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-			: T;
-
-function copyInitiative(initiative: DeepReadonly<TurnInitiative> | null): TurnInitiative | null {
-	if (initiative === null) return null;
-
+function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiative {
 	switch (initiative.kind) {
 		case 'roll':
-			return { kind: 'roll' };
+			return { kind: 'roll', mode: initiative.mode };
 		case 'static':
 			return { kind: 'static', value: initiative.value };
 		case 'fixed-position':
@@ -74,16 +61,12 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 		name: challenge.name,
 		createdAt: new Date(challenge.createdAt.getTime()),
 		updatedAt: new Date(challenge.updatedAt.getTime()),
-		factions: challenge.factions.map(({ id, name }) => ({ id, name })),
+		factions: challenge.factions.map(({ id, name, color }) => ({ id, name, color })),
 		npcTypes: challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
 			id,
 			name,
 			initiativeStat
 		})),
-		initiativeRollModes: {
-			characters: challenge.initiativeRollModes.characters,
-			npcs: challenge.initiativeRollModes.npcs
-		},
 		fairnessWeight: challenge.fairnessWeight,
 		creatures: challenge.creatures.map(copyCreature),
 		...(challenge.runState === undefined

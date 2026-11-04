@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../app.css';
 	import { theme } from '#lib/theme.svelte.ts';
+	import { resolve } from '$app/paths';
+	import ActionButton from '#lib/components/ActionButton.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -14,14 +16,12 @@
 	<header>
 		<img src="/soulstone-logo.png" alt="" width="40" height="40" />
 		<span>Soulstone</span>
-	</header>
-
-	<main>
-		{@render children()}
-	</main>
-
-	<footer>
-		<button type="button" aria-pressed={theme.isDarkMode} onclick={() => theme.toggle()}>
+		<ActionButton
+			variant="neutral"
+			class="theme-toggle"
+			aria-pressed={theme.isDarkMode}
+			onclick={() => theme.toggle()}
+		>
 			{#if theme.isDarkMode}
 				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
 					<circle cx="10" cy="10" r="3.5" />
@@ -36,8 +36,18 @@
 				</svg>
 				Dark mode
 			{/if}
-		</button>
-	</footer>
+		</ActionButton>
+	</header>
+	<nav aria-label="Page navigation">
+		<a href={resolve('/')}>Back</a>
+		<a href={resolve('/challenges/new')}>New Challenge</a>
+		<a href={resolve('/challenges')}>Saved Challenges</a>
+		<a href={resolve('/join')}>Join</a>
+	</nav>
+
+	<main>
+		{@render children()}
+	</main>
 </div>
 
 <style>
@@ -54,8 +64,8 @@
 	}
 
 	header,
-	main,
-	footer {
+	nav,
+	main {
 		width: min(calc(100% - 40px), 1120px);
 		margin-inline: auto;
 	}
@@ -69,7 +79,6 @@
 		align-items: center;
 		gap: 10px;
 		min-height: 72px;
-		border-bottom: 1px solid var(--color-border);
 		font-size: 14px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
@@ -79,42 +88,56 @@
 		display: block;
 	}
 
-	footer {
-		display: flex;
-		justify-content: flex-end;
-		padding: 24px 0 max(20px, env(safe-area-inset-bottom));
+	header :global(.theme-toggle) {
+		margin-left: auto;
 	}
 
-	footer button {
-		display: inline-flex;
-		min-height: 40px;
-		align-items: center;
-		gap: 8px;
-		padding: 0 12px;
-		border: 1px solid var(--color-border);
-		border-radius: 4px;
-		background: transparent;
-		color: var(--color-foreground);
-		cursor: pointer;
-		font: inherit;
-		font-size: 13px;
-	}
-
-	footer button:hover {
-		border-color: var(--color-accent);
-	}
-
-	footer button:focus-visible {
+	nav a:focus-visible {
 		outline: var(--focus-ring);
 		outline-offset: var(--focus-ring-offset);
 	}
 
-	footer button svg {
+	header :global(.theme-toggle svg) {
 		width: 17px;
 		stroke: var(--color-accent);
 		stroke-linecap: round;
 		stroke-linejoin: round;
 		stroke-width: 1.4;
+	}
+
+	nav {
+		display: flex;
+		min-height: 44px;
+		align-items: center;
+		gap: 24px;
+		border-block: 1px solid var(--color-border);
+	}
+
+	nav a {
+		min-height: 40px;
+		align-content: center;
+		color: var(--color-foreground);
+		font-size: 13px;
+		text-decoration: none;
+	}
+
+	nav a:hover {
+		color: var(--color-accent);
+	}
+
+	main {
+		padding-top: 8px;
+	}
+
+	@media (max-width: 480px) {
+		nav {
+			gap: 16px;
+			overflow-x: auto;
+		}
+
+		nav a {
+			flex: 0 0 auto;
+		}
 	}
 
 	@media (min-width: 760px) {

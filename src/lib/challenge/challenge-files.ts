@@ -1,5 +1,6 @@
 import type { Challenge, ChallengeLibrary, PlayerCharacter, StableId } from './model';
-import { sanitizeChallenge, type DeepReadonly } from './challenge-copy';
+import { sanitizeChallenge } from './challenge-copy';
+import { type DeepReadonly } from '../DeepReadonly';
 import { downloadChallengeJson, type ChallengeFileReadResult } from './json-files';
 import type { ValidationIssue } from './validation';
 import { createUuid, parseUuid } from './uuid';
@@ -203,9 +204,10 @@ function importChallengeEntities(
 		});
 	});
 
-	const factions = challenge.factions.map(({ id, name }) => ({
+	const factions = challenge.factions.map(({ id, name, color }) => ({
 		id: mapId(id),
-		name
+		name,
+		color
 	}));
 	const npcTypes = challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
 		id: mapId(id),
@@ -261,7 +263,6 @@ function importChallengeEntities(
 			updatedAt: new Date(challenge.updatedAt.getTime()),
 			factions,
 			npcTypes,
-			initiativeRollModes: { ...challenge.initiativeRollModes },
 			fairnessWeight: challenge.fairnessWeight,
 			creatures,
 			...(runState === undefined ? {} : { runState })
@@ -372,6 +373,7 @@ function mergeImportedCharacters(
  * Saves a challenge snapshot, including its current run state, as a JSON file.
  * @param library Library containing the challenge to export.
  * @param challengeId Stable ID of the challenge to save.
+ * @returns No value; starts the browser download.
  * @throws If the challenge is missing, the library is invalid, or the browser download fails.
  */
 export function saveChallengeToJsonFile(

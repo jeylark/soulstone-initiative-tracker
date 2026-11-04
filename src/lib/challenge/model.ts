@@ -6,19 +6,11 @@ export const CHALLENGE_FORMAT_VERSION = 1 as const;
 /** UUID used to identify a saved entity or reference in the challenge model. */
 export type StableId = Uuid;
 
-/** Specifies whether initiative is entered by the DM or rolled by the app. */
-export type InitiativeRollMode = 'manual' | 'app';
-
-/** Initiative collection mode selected for each creature category. */
-export interface InitiativeRollModes {
-	/** How character initiative is collected. */
-	characters: InitiativeRollMode;
-	/** How NPC initiative is collected. */
-	npcs: InitiativeRollMode;
-}
-
 /** Rolled initiative values, keyed by turn ID; turns without a result are omitted. */
 export type InitiativeResults = Partial<Record<StableId, number>>;
+
+/** Whether the app calculates a turn's initiative or the DM enters its result. */
+export type InitiativeRollMode = 'app' | 'manual';
 
 /** Turn IDs in their generated play order. */
 export type GeneratedTurnOrder = StableId[];
@@ -30,12 +22,6 @@ export interface ChallengeRunState {
 	/** Generated order of turns, when one has been created. */
 	generatedTurnOrder?: GeneratedTurnOrder;
 }
-
-/** Default initiative collection modes for newly created challenges. */
-export const DEFAULT_INITIATIVE_ROLL_MODES = {
-	characters: 'manual',
-	npcs: 'app'
-} as const satisfies InitiativeRollModes;
 
 /** Persistent library containing reusable characters and saved challenges. */
 export interface ChallengeLibrary {
@@ -55,12 +41,18 @@ export interface PlayerCharacter {
 	name: string;
 }
 
+/** Stable semantic color identifiers available to distinguish challenge factions. */
+export type FactionColor =
+	'blue' | 'red' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'olive';
+
 /** Group used to organize creatures in a challenge's turn order. */
 export interface Faction {
 	/** Unique faction identifier. */
 	id: StableId;
 	/** Faction's display name. */
 	name: string;
+	/** Palette color selected to identify this faction. */
+	color: FactionColor;
 }
 
 /** Reusable NPC definition, including the stat used for app initiative rolls. */
@@ -79,15 +71,17 @@ export interface Turn {
 	id: StableId;
 	/** Whether the turn is hidden from read-only viewers. */
 	isHidden: boolean;
-	/** How this turn is placed in the order, or null when it has no initiative. */
-	initiative: TurnInitiative | null;
+	/** How this turn is placed in the order. */
+	initiative: TurnInitiative;
 }
 
 /** Initiative rule that determines a turn's placement in the generated order. */
 export type TurnInitiative =
 	| {
-			/** Roll or enter an initiative value for this turn. */
+			/** Collect an initiative result for this turn. */
 			kind: 'roll';
+			/** Whether the app calculates the result or the DM enters it. */
+			mode: InitiativeRollMode;
 	  }
 	| {
 			/** Use a predetermined initiative value for this turn. */
@@ -161,8 +155,6 @@ export interface Challenge {
 	factions: Faction[];
 	/** NPC types available to NPC creatures in this challenge. */
 	npcTypes: NpcType[];
-	/** Initiative collection mode for characters and NPCs. */
-	initiativeRollModes: InitiativeRollModes;
 	/** Non-negative weight balancing faction distribution against initiative when generating the turn order; 0 orders purely by initiative. */
 	fairnessWeight: number;
 	/** Character and NPC instances participating in this challenge. */

@@ -28,9 +28,8 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 		name,
 		createdAt: new Date('2025-01-02T03:04:05.000Z'),
 		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
-		factions: [{ id: factionId, name: 'Adventurers' }],
+		factions: [{ id: factionId, name: 'Adventurers', color: 'blue' }],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight: 3,
 		creatures: [
 			{
@@ -49,7 +48,7 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 							targetTurnId: secondTurnId
 						}
 					},
-					{ id: secondTurnId, isHidden: false, initiative: { kind: 'roll' } }
+					{ id: secondTurnId, isHidden: false, initiative: { kind: 'roll', mode: 'app' } }
 				]
 			}
 		],
@@ -255,6 +254,7 @@ describe('challenge file workflows', () => {
 		const validation = validateChallengeLibrary(updatedLibrary);
 
 		expect(copiedChallenge.id).not.toBe(challengeId);
+		expect(copiedChallenge.factions[0]?.color).toBe('blue');
 		expect(copiedChallenge.createdAt).not.toBe(library.challenges[0]?.createdAt);
 		expect(copiedChallenge.updatedAt).not.toBe(library.challenges[0]?.updatedAt);
 		expect(copiedChallenge.createdAt.getTime()).toBeGreaterThanOrEqual(copyStartedAt.getTime());

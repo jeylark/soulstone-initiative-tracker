@@ -27,9 +27,8 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 		name,
 		createdAt: new Date('2025-01-02T03:04:05.000Z'),
 		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
-		factions: [{ id: factionId, name: 'Adventurers' }],
+		factions: [{ id: factionId, name: 'Adventurers', color: 'blue' }],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight: 3,
 		creatures: [
 			{
@@ -37,7 +36,7 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 				kind: 'character',
 				characterId,
 				factionId,
-				turns: [{ id: turnId, isHidden: false, initiative: { kind: 'roll' } }]
+				turns: [{ id: turnId, isHidden: false, initiative: { kind: 'roll', mode: 'manual' } }]
 			}
 		],
 		runState: {
@@ -83,6 +82,12 @@ describe('challenge and library JSON files', () => {
 			createdAt: library.challenges[0]?.createdAt.toISOString(),
 			updatedAt: library.challenges[0]?.updatedAt.toISOString()
 		});
+		expect(JSON.parse(json).challenges[0]).not.toHaveProperty('initiativeRollModes');
+		expect(JSON.parse(json).challenges[0].creatures[0].turns[0].initiative).toEqual({
+			kind: 'roll',
+			mode: 'manual'
+		});
+		expect(JSON.parse(json).challenges[0].factions[0].color).toBe('blue');
 	});
 
 	it('does not export unmodeled session credentials', () => {

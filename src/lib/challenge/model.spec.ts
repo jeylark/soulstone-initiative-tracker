@@ -1,7 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
 	CHALLENGE_FORMAT_VERSION,
-	DEFAULT_INITIATIVE_ROLL_MODES,
 	type ChallengeLibrary,
 	type GeneratedTurnOrder,
 	type InitiativeResults,
@@ -30,7 +29,8 @@ const initiativeResults = {
 const generatedTurnOrder = [ids.turn, ids.secondTurn] satisfies GeneratedTurnOrder;
 
 const initiativeExamples = [
-	{ kind: 'roll' },
+	{ kind: 'roll', mode: 'app' },
+	{ kind: 'roll', mode: 'manual' },
 	{ kind: 'static', value: 8 },
 	{ kind: 'fixed-position', from: 'top', position: 2 },
 	{ kind: 'fixed-position', from: 'bottom', position: 1 },
@@ -62,16 +62,12 @@ const library = {
 			name: 'The Old Keep',
 			createdAt: new Date('2025-01-02T03:04:05.000Z'),
 			updatedAt: new Date('2025-01-02T03:04:05.000Z'),
-			factions: [{ id: ids.faction, name: 'Adventurers' }],
+			factions: [{ id: ids.faction, name: 'Adventurers', color: 'blue' }],
 			npcTypes: [{ id: ids.npcType, name: 'Skeleton', initiativeStat: 2 }],
-			initiativeRollModes: {
-				characters: 'manual',
-				npcs: 'app'
-			},
 			fairnessWeight: 3,
 			runState: {
-				initiativeResults: { [ids.turn]: 12 },
-				generatedTurnOrder: [ids.turn, ids.secondTurn]
+				initiativeResults: { [ids.turn]: 12, [ids.secondTurnId]: 8 },
+				generatedTurnOrder: [ids.turn, ids.secondTurn, ids.secondTurnId]
 			},
 			creatures: [
 				{
@@ -83,7 +79,7 @@ const library = {
 						{
 							id: ids.turn,
 							isHidden: false,
-							initiative: { kind: 'roll' }
+							initiative: { kind: 'roll', mode: 'manual' }
 						},
 						{
 							id: ids.secondTurn,
@@ -106,7 +102,7 @@ const library = {
 						{
 							id: ids.secondTurnId,
 							isHidden: false,
-							initiative: null
+							initiative: { kind: 'roll', mode: 'app' }
 						}
 					]
 				}
@@ -240,6 +236,13 @@ const invalidFieldCases = [
 		message: 'Expected a string.'
 	},
 	{
+		field: 'faction color',
+		path: ['challenges', 0, 'factions', 0, 'color'],
+		value: 'ultraviolet',
+		issuePath: '$.challenges[0].factions[0].color',
+		message: 'Expected a supported faction color.'
+	},
+	{
 		field: 'NPC types collection',
 		path: ['challenges', 0, 'npcTypes'],
 		value: null,
@@ -280,27 +283,6 @@ const invalidFieldCases = [
 		value: 1.5,
 		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
 		message: 'Expected a positive whole number.'
-	},
-	{
-		field: 'initiative roll modes object',
-		path: ['challenges', 0, 'initiativeRollModes'],
-		value: null,
-		issuePath: '$.challenges[0].initiativeRollModes',
-		message: 'Expected an initiative roll modes object.'
-	},
-	{
-		field: 'character initiative roll mode',
-		path: ['challenges', 0, 'initiativeRollModes', 'characters'],
-		value: 'automatic',
-		issuePath: '$.challenges[0].initiativeRollModes.characters',
-		message: 'Expected "manual" or "app".'
-	},
-	{
-		field: 'NPC initiative roll mode',
-		path: ['challenges', 0, 'initiativeRollModes', 'npcs'],
-		value: 'automatic',
-		issuePath: '$.challenges[0].initiativeRollModes.npcs',
-		message: 'Expected "manual" or "app".'
 	},
 	{
 		field: 'fairness weight',
@@ -401,11 +383,32 @@ const invalidFieldCases = [
 		message: 'Expected an initiative object.'
 	},
 	{
+		field: 'null turn initiative',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: null,
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative',
+		message: 'Expected an initiative object.'
+	},
+	{
 		field: 'initiative kind',
 		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative', 'kind'],
 		value: 'random',
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.kind',
 		message: 'Expected a supported initiative kind.'
+	},
+	{
+		field: 'initiative roll mode',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: { kind: 'roll', mode: 'automatic' },
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.mode',
+		message: 'Expected "app" or "manual".'
+	},
+	{
+		field: 'missing initiative roll mode',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: { kind: 'roll' },
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.mode',
+		message: 'Expected "app" or "manual".'
 	},
 	{
 		field: 'static initiative value',
@@ -652,6 +655,23 @@ describe('challenge domain models', () => {
 		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
 	});
 
+	it('requires a faction color', () => {
+		const missingColorLibrary = structuredClone(library) as unknown as {
+			challenges: { factions: { color?: string }[] }[];
+		};
+		delete missingColorLibrary.challenges[0]?.factions[0]?.color;
+
+		const result = validateChallengeLibrary(missingColorLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].factions[0].color',
+				message: 'Expected a supported faction color.'
+			});
+		}
+	});
+
 	it.each([null, [], 42])('rejects a non-object challenge library: %s', (value) => {
 		expect(validateChallengeLibrary(value)).toEqual({
 			isValid: false,
@@ -748,31 +768,15 @@ describe('challenge domain models', () => {
 		}
 	});
 
-	it('rejects unsupported library versions and malformed enum values', () => {
+	it('rejects unsupported library versions', () => {
 		const unsupportedVersion = { ...library, formatVersion: 2 };
-		const invalidModes = {
-			...library,
-			challenges: library.challenges.map((challenge) => ({
-				...challenge,
-				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' }
-			}))
-		};
-
 		const versionResult = validateChallengeLibrary(unsupportedVersion);
-		const modesResult = validateChallengeLibrary(invalidModes);
 
 		expect(versionResult.isValid).toBe(false);
 		if (!versionResult.isValid) {
 			expect(versionResult.issues).toContainEqual({
 				path: '$.formatVersion',
 				message: 'Unsupported challenge library version.'
-			});
-		}
-		expect(modesResult.isValid).toBe(false);
-		if (!modesResult.isValid) {
-			expect(modesResult.issues).toContainEqual({
-				path: '$.challenges[0].initiativeRollModes.npcs',
-				message: 'Expected "manual" or "app".'
 			});
 		}
 	});
@@ -783,7 +787,6 @@ describe('challenge domain models', () => {
 			characters: [{ ...library.characters[0], name: 7 }],
 			challenges: library.challenges.map((challenge) => ({
 				...challenge,
-				initiativeRollModes: { ...challenge.initiativeRollModes, npcs: 'automatic' },
 				npcTypes: challenge.npcTypes.map((npcType) => ({
 					...npcType,
 					name: 4,
@@ -799,14 +802,10 @@ describe('challenge domain models', () => {
 
 		expect(result.isValid).toBe(false);
 		if (!result.isValid) {
-			expect(result.issues).toHaveLength(5);
+			expect(result.issues).toHaveLength(4);
 			expect(result.issues).toContainEqual({
 				path: '$.characters[0].name',
 				message: 'Expected a string.'
-			});
-			expect(result.issues).toContainEqual({
-				path: '$.challenges[0].initiativeRollModes.npcs',
-				message: 'Expected "manual" or "app".'
 			});
 			expect(result.issues).toContainEqual({
 				path: '$.challenges[0].npcTypes[0].name',
@@ -852,13 +851,6 @@ describe('challenge domain models', () => {
 		expectTypeOf<ChallengeLibrary['formatVersion']>().toEqualTypeOf<1>();
 	});
 
-	it('defaults characters to manual rolls and NPCs to app-calculated rolls', () => {
-		expect(DEFAULT_INITIATIVE_ROLL_MODES).toEqual({
-			characters: 'manual',
-			npcs: 'app'
-		});
-	});
-
 	it('represents reusable characters, challenge entities, and turn references', () => {
 		const challenge = library.challenges[0];
 
@@ -875,8 +867,13 @@ describe('challenge domain models', () => {
 		expect(initiativeResults[ids.turn]).toBe(12);
 		expect(generatedTurnOrder).toEqual([ids.turn, ids.secondTurn]);
 		expect(challenge.runState.initiativeResults[ids.turn]).toBe(12);
-		expect(challenge.runState.generatedTurnOrder).toEqual([ids.turn, ids.secondTurn]);
+		expect(challenge.runState.generatedTurnOrder).toEqual([
+			ids.turn,
+			ids.secondTurn,
+			ids.secondTurnId
+		]);
 		expect(initiativeExamples.map(({ kind }) => kind)).toEqual([
+			'roll',
 			'roll',
 			'static',
 			'fixed-position',
