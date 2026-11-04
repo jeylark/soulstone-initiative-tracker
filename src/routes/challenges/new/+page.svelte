@@ -4,12 +4,14 @@
 		createUuid,
 		type Challenge,
 		type Faction,
+		type FactionColor,
 		type InitiativeRollMode,
 		type NpcType,
 		type PlayerCharacter,
 		type StableId,
 		type Turn
 	} from '#lib';
+	import { getNextFactionColor } from '../../../lib/challenge/faction-colors.js';
 	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
 	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
 	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
@@ -21,14 +23,16 @@
 	import '../../../lib/components/challenge-setup/challenge-setup.css';
 
 	const createdAt = new Date();
+	const playersColor = getNextFactionColor([]);
+	const enemiesColor = getNextFactionColor([{ color: playersColor }]);
 	let challenge = $state<Challenge>({
 		id: createUuid(),
 		name: '',
 		createdAt,
 		updatedAt: createdAt,
 		factions: [
-			{ id: createUuid(), name: 'Players' },
-			{ id: createUuid(), name: 'Enemies' }
+			{ id: createUuid(), name: 'Players', color: playersColor },
+			{ id: createUuid(), name: 'Enemies', color: enemiesColor }
 		],
 		npcTypes: [],
 		fairnessWeight: 3,
@@ -50,7 +54,11 @@
 			'Faction',
 			challenge.factions.map((faction) => faction.name)
 		);
-		const faction = { id: createUuid(), name } satisfies Faction;
+		const faction = {
+			id: createUuid(),
+			name,
+			color: getNextFactionColor(challenge.factions)
+		} satisfies Faction;
 		challenge.factions.push(faction);
 	}
 
@@ -64,6 +72,11 @@
 	function renameFaction(factionId: StableId, name: string) {
 		const faction = challenge.factions.find((item) => item.id === factionId);
 		if (faction) faction.name = name;
+	}
+
+	function updateFactionColor(factionId: StableId, color: FactionColor) {
+		const faction = challenge.factions.find((item) => item.id === factionId);
+		if (faction) faction.color = color;
 	}
 
 	function removeFaction(factionId: StableId) {
@@ -383,6 +396,7 @@
 			npcTypeId={newNpcTypeId}
 			onCreateFaction={addFaction}
 			onRenameFaction={renameFaction}
+			onFactionColorChange={updateFactionColor}
 			onRemoveFaction={removeFaction}
 			onCreateCharacter={addCharacter}
 			onCreateNpc={addNpc}

@@ -1,5 +1,12 @@
 <script lang="ts">
-	import type { ChallengeCreature, Faction, NpcType, PlayerCharacter, StableId } from '#lib';
+	import type {
+		ChallengeCreature,
+		Faction,
+		FactionColor,
+		NpcType,
+		PlayerCharacter,
+		StableId
+	} from '#lib';
 	import type { TurnEditorChange } from './challenge-setup-types';
 	import FactionEditor from './FactionEditor.svelte';
 
@@ -11,6 +18,7 @@
 		npcTypeId: StableId | '';
 		onCreateFaction: () => void;
 		onRenameFaction: (factionId: StableId, name: string) => void;
+		onFactionColorChange: (factionId: StableId, color: FactionColor) => void;
 		onRemoveFaction: (factionId: StableId) => void;
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
@@ -36,6 +44,7 @@
 		npcTypeId,
 		onCreateFaction,
 		onRenameFaction,
+		onFactionColorChange,
 		onRemoveFaction,
 		onCreateCharacter,
 		onCreateNpc,
@@ -63,6 +72,7 @@
 				{npcTypes}
 				{npcTypeId}
 				onRename={onRenameFaction}
+				onColorChange={onFactionColorChange}
 				onRemove={onRemoveFaction}
 				{onCreateCharacter}
 				{onCreateNpc}

@@ -72,7 +72,7 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 		name: challenge.name,
 		createdAt: new Date(challenge.createdAt.getTime()),
 		updatedAt: new Date(challenge.updatedAt.getTime()),
-		factions: challenge.factions.map(({ id, name }) => ({ id, name })),
+		factions: challenge.factions.map(({ id, name, color }) => ({ id, name, color })),
 		npcTypes: challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
 			id,
 			name,

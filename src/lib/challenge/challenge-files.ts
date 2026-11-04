@@ -203,9 +203,10 @@ function importChallengeEntities(
 		});
 	});
 
-	const factions = challenge.factions.map(({ id, name }) => ({
+	const factions = challenge.factions.map(({ id, name, color }) => ({
 		id: mapId(id),
-		name
+		name,
+		color
 	}));
 	const npcTypes = challenge.npcTypes.map(({ id, name, initiativeStat }) => ({
 		id: mapId(id),

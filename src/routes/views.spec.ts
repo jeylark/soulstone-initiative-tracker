@@ -17,10 +17,14 @@ const views: { name: string; page: Component; heading: string }[] = [
 ];
 
 async function setRelativeTarget(
-	turn: HTMLElement,
+	creatureName: string,
+	turnName: string,
 	relation: 'before' | 'after',
 	targetName: string
 ) {
+	const turn = within(screen.getByRole('group', { name: creatureName })).getByRole('group', {
+		name: turnName
+	});
 	await fireEvent.change(within(turn).getByRole('combobox', { name: 'Turn initiative' }), {
 		target: { value: `relative-${relation}` }
 	});
@@ -115,6 +119,43 @@ describe('new challenge setup', () => {
 		expect(screen.getByRole('spinbutton', { name: 'Initiative stat for NPC Type 1' })).toBeTruthy();
 		expect(screen.queryByRole('button', { name: /Use NPC type|Selected/ })).toBeNull();
 		expect(screen.queryByRole('textbox', { name: 'New NPC type name' })).toBeNull();
+	});
+
+	it('prefers unused faction colors and allows color reuse', async () => {
+		render(newChallengePage);
+
+		const playersColors = screen.getByRole('group', { name: 'Faction color for Players' });
+		const enemiesColors = screen.getByRole('group', { name: 'Faction color for Enemies' });
+		expect(
+			(within(playersColors).getByRole('radio', { name: 'Blue' }) as HTMLInputElement).checked
+		).toBe(true);
+		expect(
+			(within(enemiesColors).getByRole('radio', { name: 'Red' }) as HTMLInputElement).checked
+		).toBe(true);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
+		const factionColors = screen.getByRole('group', {
+			name: 'Faction color for Faction 1'
+		});
+		expect(
+			(within(factionColors).getByRole('radio', { name: 'Green' }) as HTMLInputElement).checked
+		).toBe(true);
+
+		await fireEvent.click(within(factionColors).getByRole('radio', { name: 'Blue' }));
+		expect(
+			(within(factionColors).getByRole('radio', { name: 'Blue' }) as HTMLInputElement).checked
+		).toBe(true);
+		expect(
+			(within(playersColors).getByRole('radio', { name: 'Blue' }) as HTMLInputElement).checked
+		).toBe(true);
+
+		for (let index = 0; index < 8; index += 1) {
+			await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
+		}
+		const selectedColors = screen
+			.getAllByRole('group', { name: /Faction color for/ })
+			.map((group) => group.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value);
+		expect(new Set(selectedColors).size).toBeLessThan(selectedColors.length);
 	});
 
 	it('adds players and NPCs to their faction without opening forms', async () => {
@@ -256,16 +297,8 @@ describe('new challenge setup', () => {
 		expect(within(secondTurn).getByRole('option', { name: 'Player 1 - Turn 1' })).toBeTruthy();
 		expect(within(secondTurn).getByRole('option', { name: 'Player 2 - Turn 1' })).toBeTruthy();
 
-		await setRelativeTarget(
-			within(secondPlayer).getByRole('group', { name: 'Turn 1' }),
-			'before',
-			'Player 1 - Turn 1'
-		);
-		await setRelativeTarget(
-			within(thirdPlayer).getByRole('group', { name: 'Turn 1' }),
-			'after',
-			'Player 2 - Turn 1'
-		);
+		await setRelativeTarget('Player 2', 'Turn 1', 'before', 'Player 1 - Turn 1');
+		await setRelativeTarget('Player 3', 'Turn 1', 'after', 'Player 2 - Turn 1');
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		await fireEvent.click(
@@ -295,11 +328,7 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
 		const enemy = within(enemiesPanel).getByRole('group', { name: 'Player 2' });
-		await setRelativeTarget(
-			within(enemy).getByRole('group', { name: 'Turn 1' }),
-			'before',
-			'Player 1 - Turn 1'
-		);
+		await setRelativeTarget('Player 2', 'Turn 1', 'before', 'Player 1 - Turn 1');
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		await fireEvent.click(within(player).getByRole('button', { name: 'Remove Player 1' }));
@@ -322,11 +351,7 @@ describe('new challenge setup', () => {
 		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
 		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add Player' }));
 		const enemyPlayer = within(enemiesPanel).getByRole('group', { name: 'Player 2' });
-		await setRelativeTarget(
-			within(enemyPlayer).getByRole('group', { name: 'Turn 1' }),
-			'before',
-			'Player 1 - Turn 1'
-		);
+		await setRelativeTarget('Player 2', 'Turn 1', 'before', 'Player 1 - Turn 1');
 		expect(
 			within(player)
 				.getByRole('button', { name: 'Remove Player 1' })
@@ -365,11 +390,7 @@ describe('new challenge setup', () => {
 		const playersPanel = screen.getByRole('group', { name: 'Players' });
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
-		await setRelativeTarget(
-			within(player).getByRole('group', { name: 'Turn 1' }),
-			'after',
-			'NPC Type 1 1 - Turn 1'
-		);
+		await setRelativeTarget('Player 1', 'Turn 1', 'after', 'NPC Type 1 1 - Turn 1');
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const removeNpcTypeButton = screen.getByRole('button', {

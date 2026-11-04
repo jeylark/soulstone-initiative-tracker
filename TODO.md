@@ -17,7 +17,7 @@ foundations.
       cross-faction default for newly added NPCs.
 - [x] 1.4: Let NPC type forms wrap onto multiple rows when they no longer fit
       horizontally on the screen.
-- [ ] 1.5: Add a faction color property and accessible palette selector. Keep
+- [x] 1.5: Add a faction color property and accessible palette selector. Keep
       colors distinguishable from each other and from app surfaces in light
       and dark themes; prefer unused defaults, allow reuse, and preserve colors
       through challenge copies and file workflows. No data migration is needed.

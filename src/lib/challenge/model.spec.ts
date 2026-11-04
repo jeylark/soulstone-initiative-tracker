@@ -62,7 +62,7 @@ const library = {
 			name: 'The Old Keep',
 			createdAt: new Date('2025-01-02T03:04:05.000Z'),
 			updatedAt: new Date('2025-01-02T03:04:05.000Z'),
-			factions: [{ id: ids.faction, name: 'Adventurers' }],
+			factions: [{ id: ids.faction, name: 'Adventurers', color: 'blue' }],
 			npcTypes: [{ id: ids.npcType, name: 'Skeleton', initiativeStat: 2 }],
 			fairnessWeight: 3,
 			runState: {
@@ -234,6 +234,13 @@ const invalidFieldCases = [
 		value: 4,
 		issuePath: '$.challenges[0].factions[0].name',
 		message: 'Expected a string.'
+	},
+	{
+		field: 'faction color',
+		path: ['challenges', 0, 'factions', 0, 'color'],
+		value: 'ultraviolet',
+		issuePath: '$.challenges[0].factions[0].color',
+		message: 'Expected a supported faction color.'
 	},
 	{
 		field: 'NPC types collection',
@@ -646,6 +653,23 @@ const invalidReferenceCases = [
 describe('challenge domain models', () => {
 	it('accepts a structurally and referentially valid challenge library', () => {
 		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
+	});
+
+	it('requires a faction color', () => {
+		const missingColorLibrary = structuredClone(library) as unknown as {
+			challenges: { factions: { color?: string }[] }[];
+		};
+		delete missingColorLibrary.challenges[0]?.factions[0]?.color;
+
+		const result = validateChallengeLibrary(missingColorLibrary);
+
+		expect(result.isValid).toBe(false);
+		if (!result.isValid) {
+			expect(result.issues).toContainEqual({
+				path: '$.challenges[0].factions[0].color',
+				message: 'Expected a supported faction color.'
+			});
+		}
 	});
 
 	it.each([null, [], 42])('rejects a non-object challenge library: %s', (value) => {

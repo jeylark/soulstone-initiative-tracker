@@ -27,7 +27,7 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 		name,
 		createdAt: new Date('2025-01-02T03:04:05.000Z'),
 		updatedAt: new Date('2025-01-02T03:04:05.000Z'),
-		factions: [{ id: factionId, name: 'Adventurers' }],
+		factions: [{ id: factionId, name: 'Adventurers', color: 'blue' }],
 		npcTypes: [],
 		fairnessWeight: 3,
 		creatures: [
@@ -87,6 +87,7 @@ describe('challenge and library JSON files', () => {
 			kind: 'roll',
 			mode: 'manual'
 		});
+		expect(JSON.parse(json).challenges[0].factions[0].color).toBe('blue');
 	});
 
 	it('does not export unmodeled session credentials', () => {

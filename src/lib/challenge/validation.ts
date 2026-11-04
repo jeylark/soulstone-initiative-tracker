@@ -1,4 +1,5 @@
 import { parseUuid } from './uuid';
+import { isFactionColor } from './faction-colors';
 import type {
 	Challenge,
 	ChallengeCreature,
@@ -130,7 +131,9 @@ function validateFaction(value: unknown, path: string, addIssue: IssueRecorder):
 
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
-	return isValidId && isValidName;
+	const isValidColor = isFactionColor(value.color);
+	if (!isValidColor) addIssue(`${path}.color`, 'Expected a supported faction color.');
+	return isValidId && isValidName && isValidColor;
 }
 
 function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder): value is NpcType {
@@ -229,7 +232,7 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 	const isValidHidden = typeof value.isHidden === 'boolean';
 	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 
-	let isValidInitiative = true;
+	let isValidInitiative: boolean;
 	if (!('initiative' in value)) {
 		addIssue(`${path}.initiative`, 'Expected an initiative rule.');
 		isValidInitiative = false;

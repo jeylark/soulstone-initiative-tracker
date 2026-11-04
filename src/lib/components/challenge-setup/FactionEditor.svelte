@@ -1,5 +1,13 @@
 <script lang="ts">
-	import type { ChallengeCreature, Faction, NpcType, PlayerCharacter, StableId } from '#lib';
+	import type {
+		ChallengeCreature,
+		Faction,
+		FactionColor,
+		NpcType,
+		PlayerCharacter,
+		StableId
+	} from '#lib';
+	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
 
@@ -11,6 +19,7 @@
 		npcTypes: readonly NpcType[];
 		npcTypeId: StableId | '';
 		onRename: (factionId: StableId, name: string) => void;
+		onColorChange: (factionId: StableId, color: FactionColor) => void;
 		onRemove: (factionId: StableId) => void;
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
@@ -36,6 +45,7 @@
 		npcTypes,
 		npcTypeId,
 		onRename,
+		onColorChange,
 		onRemove,
 		onCreateCharacter,
 		onCreateNpc,
@@ -95,6 +105,24 @@
 			Remove
 		</button>
 	</div>
+	<fieldset class="faction-colors">
+		<legend>Faction color for {faction.name}</legend>
+		<div class="faction-color-options">
+			{#each FACTION_COLORS as paletteColor (paletteColor.value)}
+				<label class="faction-color-option">
+					<input
+						type="radio"
+						name={`faction-color-${faction.id}`}
+						value={paletteColor.value}
+						checked={faction.color === paletteColor.value}
+						onchange={() => onColorChange(faction.id, paletteColor.value)}
+					/>
+					<span class="faction-color-swatch" style={`--faction-color: ${paletteColor.hex}`}></span>
+					<span>{paletteColor.label}</span>
+				</label>
+			{/each}
+		</div>
+	</fieldset>
 
 	{#if factionCreatures.length > 0}
 		<div class="faction-creatures">

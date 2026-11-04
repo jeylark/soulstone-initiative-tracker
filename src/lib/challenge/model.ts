@@ -41,12 +41,18 @@ export interface PlayerCharacter {
 	name: string;
 }
 
+/** Stable semantic color identifiers available to distinguish challenge factions. */
+export type FactionColor =
+	'blue' | 'red' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'olive';
+
 /** Group used to organize creatures in a challenge's turn order. */
 export interface Faction {
 	/** Unique faction identifier. */
 	id: StableId;
 	/** Faction's display name. */
 	name: string;
+	/** Palette color selected to identify this faction. */
+	color: FactionColor;
 }
 
 /** Reusable NPC definition, including the stat used for app initiative rolls. */
