@@ -202,6 +202,98 @@ describe('running challenge storage', () => {
 		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
 	});
 
+	it('collects every manual-roll turn with its creature, turn, saved value, and faction color', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const npcTypeId = '00000000-0000-4000-8000-000000000005' as StableId;
+		const singleTurnCharacterId = '00000000-0000-4000-8000-000000000013' as StableId;
+		const manualCharacterTurnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		const appCharacterTurnId = '00000000-0000-4000-8000-000000000007' as StableId;
+		const emptyCharacterTurnId = '00000000-0000-4000-8000-000000000008' as StableId;
+		const manualNpcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
+		const appNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
+		const singleTurnId = '00000000-0000-4000-8000-000000000014' as StableId;
+		challenge.name = 'Manual collection';
+		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 2 }];
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [
+					{ id: manualCharacterTurnId, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: appCharacterTurnId, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: emptyCharacterTurnId, initiative: { kind: 'roll', mode: 'manual' } }
+				]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000012' as StableId,
+				kind: 'npc',
+				creatureTypeId: npcTypeId,
+				identifier: 'B',
+				factionId: '00000000-0000-4000-8000-000000000003' as StableId,
+				isHidden: true,
+				turns: [
+					{ id: manualNpcTurnId, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: appNpcTurnId, initiative: { kind: 'roll', mode: 'app' } }
+				]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000015' as StableId,
+				kind: 'character',
+				characterId: singleTurnCharacterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: singleTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: {
+				[manualCharacterTurnId]: 18,
+				[appCharacterTurnId]: 12,
+				[manualNpcTurnId]: 7
+			}
+		};
+		await saveChallengeToLibrary(challenge, [
+			{ id: characterId, name: 'Aria' },
+			{ id: singleTurnCharacterId, name: 'Rook' }
+		]);
+
+		render(rollChallengePage);
+
+		const characterInput = (await screen.findByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 1'
+		})) as HTMLInputElement;
+		const emptyInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 3'
+		}) as HTMLInputElement;
+		const npcInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Sentinel B - Turn 1'
+		}) as HTMLInputElement;
+		const singleTurnInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Rook'
+		}) as HTMLInputElement;
+
+		expect(characterInput.value).toBe('18');
+		expect(emptyInput.value).toBe('');
+		expect(npcInput.value).toBe('7');
+		expect(singleTurnInput.value).toBe('');
+		expect(screen.queryByRole('spinbutton', { name: 'Initiative for Rook - Turn 1' })).toBeNull();
+		expect(screen.queryByRole('spinbutton', { name: 'Initiative for Aria - Turn 2' })).toBeNull();
+		expect(
+			screen.queryByRole('spinbutton', { name: 'Initiative for Sentinel B - Turn 2' })
+		).toBeNull();
+		await fireEvent.input(emptyInput, { target: { value: '21' } });
+		expect(emptyInput.value).toBe('21');
+
+		const cardTints = [...document.querySelectorAll<HTMLElement>('.initiative-card-tone')].map(
+			(card) => card.style.getPropertyValue('--faction-color')
+		);
+		expect(cardTints).toEqual(['#5687c8', '#c76a6e', '#5687c8']);
+	});
+
 	it('links back to setup for the loaded challenge', async () => {
 		render(rollChallengePage);
 
