@@ -282,7 +282,7 @@
 													disabled={diceCount === undefined}
 													onclick={() => rollInitiativeForTurn(creature, turn.id)}
 												>
-													Reroll initiative
+													Reroll
 												</ActionButton>
 											{:else}
 												<ActionButton
@@ -290,7 +290,7 @@
 													disabled={diceCount === undefined}
 													onclick={() => rollInitiativeForTurn(creature, turn.id)}
 												>
-													Roll initiative
+													Roll
 												</ActionButton>
 											{/if}
 											{#if diceCount === undefined}
