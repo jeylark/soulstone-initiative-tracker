@@ -7,6 +7,8 @@ export interface TurnDisplay {
 	readonly creature: DeepReadonly<ChallengeCreature>;
 	/** Faction assigned to the creature, or undefined if its faction is missing. */
 	readonly faction: DeepReadonly<Faction> | undefined;
+	/** Creature name without a turn number suffix. */
+	readonly creatureName: string;
 	/** Creature name, with a turn number when the creature has multiple turns. */
 	readonly label: string;
 	/** Whether the creature's turns are hidden from read-only viewers. */
@@ -59,6 +61,7 @@ export function createTurnDisplayLookup(
 			lookup.set(turn.id, {
 				creature,
 				faction,
+				creatureName,
 				label: creature.turns.length > 1 ? `${creatureName} - Turn ${index + 1}` : creatureName,
 				isHidden: creature.isHidden
 			});

@@ -58,13 +58,16 @@ describe('createTurnDisplayLookup', () => {
 		expect(lookup.get(characterFirstTurn.id)).toEqual({
 			creature: character,
 			faction,
+			creatureName: 'Aria',
 			label: 'Aria - Turn 1',
 			isHidden: true
 		});
+		expect(lookup.get(characterSecondTurn.id)?.creatureName).toBe('Aria');
 		expect(lookup.get(characterSecondTurn.id)?.label).toBe('Aria - Turn 2');
 		expect(lookup.get(npcTurn.id)).toEqual({
 			creature: npc,
 			faction: npcFaction,
+			creatureName: 'Sentinel B',
 			label: 'Sentinel B',
 			isHidden: false
 		});

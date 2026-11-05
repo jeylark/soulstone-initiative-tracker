@@ -742,6 +742,7 @@ describe('turn-order run route', () => {
 	const rookCharacterId = '00000000-0000-4000-8000-000000000022' as StableId;
 	const ariaTurnId = '00000000-0000-4000-8000-000000000023' as StableId;
 	const rookTurnId = '00000000-0000-4000-8000-000000000024' as StableId;
+	const ariaSecondTurnId = '00000000-0000-4000-8000-000000000027' as StableId;
 	const runCharacters = [
 		{ id: ariaCharacterId, name: 'Aria' },
 		{ id: rookCharacterId, name: 'Rook' }
@@ -798,6 +799,73 @@ describe('turn-order run route', () => {
 					?.style.getPropertyValue('--faction-color')
 			)
 		).toEqual(['#c76a6e', '#5687c8']);
+	});
+
+	it('hides and restores all turns for a creature without changing the saved order or results', async () => {
+		const challenge = createRunChallenge();
+		challenge.creatures[0]!.turns.push({
+			id: ariaSecondTurnId,
+			initiative: { kind: 'roll', mode: 'manual' }
+		});
+		challenge.runState!.initiativeResults[ariaSecondTurnId] = 8;
+		challenge.runState!.generatedTurnOrder = [ariaTurnId, rookTurnId, ariaSecondTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		const visibility = (await screen.findByRole('checkbox', {
+			name: 'Hidden from viewers: Aria'
+		})) as HTMLInputElement;
+		expect(visibility.checked).toBe(false);
+		await fireEvent.click(visibility);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.creatures[0]?.isHidden).toBe(true);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				ariaTurnId,
+				rookTurnId,
+				ariaSecondTurnId
+			]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+
+		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		const items = within(savedOrder).getAllByRole('listitem');
+		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
+			'Aria - Turn 1',
+			'Rook',
+			'Aria - Turn 2'
+		]);
+		const ariaItems = items.filter((item) =>
+			item.querySelector('h2')?.textContent?.startsWith('Aria')
+		);
+		for (const item of ariaItems) {
+			expect(item.textContent).toContain('Hidden');
+			expect(item.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
+				true
+			);
+		}
+		expect(items[1]?.textContent).not.toContain('Hidden');
+		expect(items[1]?.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
+			false
+		);
+
+		cleanup();
+		render(turnOrderPage);
+		const restoredVisibility = (await screen.findByRole('checkbox', {
+			name: 'Hidden from viewers: Aria'
+		})) as HTMLInputElement;
+		expect(restoredVisibility.checked).toBe(true);
+
+		await fireEvent.click(restoredVisibility);
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.creatures[0]?.isHidden).toBe(false);
+		});
+		expect(screen.getByRole('list', { name: 'Generated turn order' }).textContent).not.toContain(
+			'Hidden'
+		);
 	});
 
 	it('restores a saved order and recalculates without changing initiative results', async () => {

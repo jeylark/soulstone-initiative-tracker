@@ -46,7 +46,7 @@ animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
       missing results.
 - [x] 4. (2.7) Render the order as numbered cards in faction colors with creature
       and turn labels; drop unknown turn IDs and prompt to recalculate.
-- [ ] 5. (2.18) Add per-creature hide/show saving `isHidden`; hidden turns stay
+- [x] 5. (2.18) Add per-creature hide/show saving `isHidden`; hidden turns stay
       visible, greyed out and labeled "Hidden" in text. Reuse the setup hide/show
       logic.
 - [ ] 6. Add "Continue to turn order" on the roll page that saves pending edits

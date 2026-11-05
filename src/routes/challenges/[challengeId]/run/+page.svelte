@@ -106,6 +106,19 @@
 			isSaving = false;
 		}
 	}
+
+	async function updateCreatureVisibility(creatureId: StableId, isHidden: boolean): Promise<void> {
+		if (!challenge) return;
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature || creature.isHidden === isHidden) return;
+
+		creature.isHidden = isHidden;
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+		} catch {
+			hasSaveError = true;
+		}
+	}
 </script>
 
 <ViewPage title="Turn order">
@@ -119,6 +132,28 @@
 					Some saved turns are no longer in this challenge. Recalculate the turn order to update it.
 				</p>
 			{/if}
+		{/if}
+		{#if challenge.creatures.some((creature) => creature.turns.length > 0)}
+			<fieldset class="turn-order-visibility">
+				<legend>Creature visibility</legend>
+				{#each challenge.creatures as creature (creature.id)}
+					{@const firstTurn = creature.turns[0]}
+					{@const display = firstTurn ? turnDisplayLookup.get(firstTurn.id) : undefined}
+					{#if display}
+						<label>
+							<input
+								type="checkbox"
+								checked={creature.isHidden}
+								onchange={(event) =>
+									updateCreatureVisibility(creature.id, event.currentTarget.checked)}
+							/>
+							Hidden from viewers: {display.creatureName}
+						</label>
+					{/if}
+				{/each}
+			</fieldset>
+		{/if}
+		{#if generatedOrderDisplay}
 			<ol aria-label="Generated turn order" class="turn-order-list">
 				{#each generatedOrderDisplay.items as item (item.turnId)}
 					{@const factionColor = item.display.faction
@@ -127,6 +162,7 @@
 					<li>
 						<div
 							class="turn-order-card-tone"
+							class:is-hidden={item.display.isHidden}
 							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
 						>
 							<Card
@@ -142,6 +178,9 @@
 										<span>{item.display.faction.name}</span>
 									{/if}
 								</div>
+								{#if item.display.isHidden}
+									<p class="turn-order-hidden">Hidden</p>
+								{/if}
 							</Card>
 						</div>
 					</li>
@@ -196,12 +235,36 @@
 		min-width: 0;
 	}
 
+	.turn-order-visibility {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 16px;
+		margin: 0 0 16px;
+		padding: 0;
+		border: 0;
+	}
+
+	.turn-order-visibility legend {
+		margin-bottom: 8px;
+		font-weight: 600;
+	}
+
+	.turn-order-visibility label {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
 	.turn-order-card-tone :global(.turn-order-card) {
 		background: color-mix(
 			in srgb,
 			var(--faction-color, var(--color-surface)) 12%,
 			var(--color-surface)
 		);
+	}
+
+	.turn-order-card-tone.is-hidden :global(.turn-order-card) {
+		background: color-mix(in srgb, #808080 18%, var(--color-surface));
 	}
 
 	.turn-order-card-details {
@@ -213,5 +276,10 @@
 	.turn-order-position {
 		font-variant-numeric: tabular-nums;
 		font-weight: 700;
+	}
+
+	.turn-order-hidden {
+		margin-block: 8px 0;
+		font-weight: 600;
 	}
 </style>
