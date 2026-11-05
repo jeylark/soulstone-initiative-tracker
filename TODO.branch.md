@@ -17,6 +17,10 @@
 - [x] Make setup readiness extensible with structured issues, show initiative-stat problems, and block Roll Initiatives until those issues are fixed.
 - [x] Preserve character initiative stats through IndexedDB saves and challenge/library JSON import and export.
 - [x] Add and test the initiative d6 calculation helper: sum all dice when fewer than three are rolled, otherwise sum the highest three.
+- [x] Resolve each `roll/app` turn's dice count from its NPC type initiative stat or reusable character initiative stat, then use the d6 calculation helper to generate its result.
+- [x] Add a per-turn roll action and **Roll all** for app-roll turns without a saved result. Persist by stable turn ID, preserve existing results, and restore results on reload.
+- [x] Add an explicit per-turn reroll action for changing an existing result (TODO 2.4).
+- [x] Change the page's title to always display 'Initiative rolling'. Move any information currently displayed there to the view's body.
 
 ## Data Flow
 
@@ -24,11 +28,6 @@
 - The roll view must load its challenge from storage, with loading, not-found, and load-error states and a recovery action, like setup.
 
 ## Remaining
-
-- [x] Resolve each `roll/app` turn's dice count from its NPC type initiative stat or reusable character initiative stat, then use the d6 calculation helper to generate its result.
-- [x] Add a per-turn roll action and **Roll all** for app-roll turns without a saved result. Persist by stable turn ID, preserve existing results, and restore results on reload.
-- [x] Add an explicit per-turn reroll action for changing an existing result (TODO 2.4).
-- Change the page's title to always display 'Initiative rolling'. Move any information currently displayed there to the view's body.
 
 ## Verification
 

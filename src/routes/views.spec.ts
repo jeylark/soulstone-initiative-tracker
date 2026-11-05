@@ -58,7 +58,7 @@ beforeEach(async () => {
 
 const views: { name: string; page: Component; heading: string }[] = [
 	{ name: 'challenge setup', page: setupChallengePage, heading: 'Challenge setup' },
-	{ name: 'running challenge', page: rollChallengePage, heading: 'Initiative Rolling' },
+	{ name: 'running challenge', page: rollChallengePage, heading: 'Initiative rolling' },
 	{ name: 'saved challenges', page: savedChallengesPage, heading: 'Saved challenges' },
 	{ name: 'join session', page: joinSessionPage, heading: 'Join a live session' }
 ];
@@ -290,7 +290,8 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 
 		expect(await screen.findByText('Ashen Company')).toBeTruthy();
-		expect(screen.getByRole('heading', { name: 'Initiative Rolling' })).toBeTruthy();
+		expect(screen.getByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
+		expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
 	});
 
 	it('persists initiative edits, restores them on reload, and saves cleared results', async () => {
@@ -708,8 +709,10 @@ describe('running challenge storage', () => {
 
 			render(rollChallengePage);
 
-			expect(await screen.findByRole('heading', { name: 'Challenge unavailable' })).toBeTruthy();
-			expect(screen.getByText(message)).toBeTruthy();
+			expect(await screen.findByText(message)).toBeTruthy();
+			expect(await screen.findByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
+			expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
+			expect(screen.getByText('Challenge unavailable')).toBeTruthy();
 			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 		}
 	);

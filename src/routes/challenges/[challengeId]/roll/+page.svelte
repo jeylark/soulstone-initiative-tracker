@@ -221,11 +221,7 @@
 	}
 </script>
 
-<ViewPage
-	title={loadStatus === 'not-found' || loadStatus === 'error'
-		? 'Challenge unavailable'
-		: 'Initiative Rolling'}
->
+<ViewPage title="Initiative rolling">
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
@@ -331,6 +327,7 @@
 			Return to setup
 		</a>
 	{:else}
+		<p>Challenge unavailable</p>
 		{#if loadStatus === 'not-found'}
 			<p>The challenge was not found.</p>
 		{:else}
