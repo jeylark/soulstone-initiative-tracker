@@ -6,6 +6,7 @@
 	import Card from '../Card.svelte';
 	import EntityList from '../EntityList.svelte';
 	import EntityListItem from '../EntityListItem.svelte';
+	import NumberInput from '../forms/NumberInput.svelte';
 	import SelectInput from '../forms/SelectInput.svelte';
 	import TextInput from '../forms/TextInput.svelte';
 
@@ -16,6 +17,8 @@
 		canMoveUp: boolean;
 		canMoveDown: boolean;
 		characterName: string;
+		characterInitiativeStat?: number;
+		characterInitiativeStatError?: string;
 		factions: readonly Faction[];
 		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
@@ -25,6 +28,10 @@
 		onMove: (direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
+		onCharacterInitiativeStatChange: (
+			characterId: StableId,
+			initiativeStat: number | undefined
+		) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
 		onTurnChange: (
 			creatureId: StableId,
@@ -43,6 +50,8 @@
 		canMoveUp,
 		canMoveDown,
 		characterName,
+		characterInitiativeStat,
+		characterInitiativeStatError,
 		factions,
 		npcTypes,
 		targetTurns,
@@ -52,6 +61,7 @@
 		onMove,
 		onNpcTypeChange,
 		onCharacterNameChange,
+		onCharacterInitiativeStatChange,
 		onNpcIdentifierChange,
 		onTurnChange,
 		onAddTurn,
@@ -102,6 +112,22 @@
 				aria-label={`Character name: ${characterName}`}
 				value={characterName}
 				oninput={(event) => onCharacterNameChange(creature.characterId, event.currentTarget.value)}
+			/>
+			<NumberInput
+				label="Initiative stat (d6)"
+				aria-label={`Initiative stat (d6) for ${characterName}`}
+				value={characterInitiativeStat ?? ''}
+				min="1"
+				step="1"
+				isInvalid={characterInitiativeStatError !== undefined}
+				invalidMessage={characterInitiativeStatError}
+				oninput={(event) => {
+					const value = event.currentTarget.valueAsNumber;
+					onCharacterInitiativeStatChange(
+						creature.characterId,
+						Number.isSafeInteger(value) && value > 0 ? value : undefined
+					);
+				}}
 			/>
 		{:else if creature.kind === 'npc'}
 			<SelectInput

@@ -39,6 +39,8 @@ export interface PlayerCharacter {
 	id: StableId;
 	/** Character's display name. */
 	name: string;
+	/** Optional number of d6 used when the app calculates this character's initiative. */
+	initiativeStat?: number;
 }
 
 /** Stable semantic color identifiers available to distinguish challenge factions. */

@@ -1,10 +1,11 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CHALLENGE_FORMAT_VERSION, type ChallengeLibrary } from './model';
+import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from './model';
 import {
 	ChallengeLibraryValidationError,
 	loadChallengeLibrary,
-	saveChallengeLibrary
+	saveChallengeLibrary,
+	saveChallengeToLibrary
 } from './storage';
 import { createUuid } from './uuid';
 
@@ -23,6 +24,20 @@ const library: ChallengeLibrary = {
 	...emptyLibrary,
 	characters: [{ id: createUuid(), name: 'Aria' }]
 };
+
+function createChallenge(name: string): Challenge {
+	const date = new Date('2026-01-01T00:00:00.000Z');
+	return {
+		id: createUuid(),
+		name,
+		createdAt: date,
+		updatedAt: date,
+		factions: [],
+		npcTypes: [],
+		fairnessWeight: 3,
+		creatures: []
+	};
+}
 
 function deleteDatabase(): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -85,6 +100,49 @@ describe('challenge library storage', () => {
 		const invalidLibrary = { ...library, formatVersion: 2 };
 
 		await expect(saveChallengeLibrary(invalidLibrary, indexedDbFactory)).rejects.toBeInstanceOf(
+			ChallengeLibraryValidationError
+		);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
+	});
+
+	it('adds a challenge and its characters to an empty library', async () => {
+		const challenge = createChallenge('First');
+
+		await saveChallengeToLibrary(challenge, library.characters, indexedDbFactory);
+
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			characters: library.characters,
+			challenges: [challenge]
+		});
+	});
+
+	it('replaces a saved challenge by ID, keeping others and merging characters by ID', async () => {
+		const first = createChallenge('First');
+		const second = createChallenge('Second');
+		const [aria] = library.characters;
+		const bram = { id: createUuid(), name: 'Bram' };
+		await saveChallengeToLibrary(first, [aria!], indexedDbFactory);
+		await saveChallengeToLibrary(second, [], indexedDbFactory);
+
+		const renamedFirst = { ...first, name: 'Renamed' };
+		await saveChallengeToLibrary(
+			renamedFirst,
+			[{ ...aria!, name: 'Aria II' }, bram],
+			indexedDbFactory
+		);
+
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			characters: [{ ...aria!, name: 'Aria II' }, bram],
+			challenges: [renamedFirst, second]
+		});
+	});
+
+	it('does not save an invalid challenge', async () => {
+		const invalid = { ...createChallenge('Bad'), fairnessWeight: -1 };
+
+		await expect(saveChallengeToLibrary(invalid, [], indexedDbFactory)).rejects.toBeInstanceOf(
 			ChallengeLibraryValidationError
 		);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);

@@ -21,21 +21,28 @@ foundations.
       colors distinguishable from each other and from app surfaces in light
       and dark themes; prefer unused defaults, allow reuse, and preserve colors
       through challenge copies and file workflows. No data migration is needed.
-- [X] 1.6: Support changing creature and turn setup order.
-- [X] 1.7: Support zero or multiple turns per creature.
-- [X] 1.8: Add controls to hide and show a creature's turns.
+- [x] 1.6: Support changing creature and turn setup order.
+- [x] 1.7: Support zero or multiple turns per creature.
+- [x] 1.8: Add controls to hide and show a creature's turns.
 - [ ] 1.9: Reuse saved characters when setting up a challenge.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
       references, including turn IDs in saved tie decisions.
 - [ ] 1.11: Persist setup changes to the local challenge library and restore saved
       setup when reopening a challenge.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
+- [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
+      action.
 
 ## 2. Initiative and encounter play
 
 - [ ] 2.1: Collect initiative manually for player characters.
-- [ ] 2.2: Roll NPC initiative using the initiative stat in d6s and sum the
-      highest three dice, or all dice when fewer than three are rolled.
+- [ ] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
+      Roll every app-configured turn using the NPC type's or reusable
+      character's initiative stat as the number of d6; sum all dice when fewer
+      than three are rolled, otherwise sum the highest three. Require a valid
+      character stat for app-configured character turns, and handle missing or
+      invalid stats in imported data. Persist results by turn ID, preserve
+      existing results until an explicit reroll, and restore them on reload.
 - [ ] 2.3: Preserve collected results when recalculating the order.
 - [ ] 2.4: Provide an explicit reroll action for collected results.
 - [ ] 2.5: Connect setup and collected results to turn-order generation, including
@@ -44,18 +51,20 @@ foundations.
 - [ ] 2.7: Display the DM turn list using each faction's selected color, with
       controls to reorder turns and hide or show them.
 - [ ] 2.8: Omit hidden turns from the read-only view.
-- [ ] 2.9: Save collected results and generated order as run state so a challenge
-      can be resumed.
-- [ ] 2.10: Add the end-of-round Spawn step for adding or removing creatures.
-- [ ] 2.11: After Spawn changes, recollect initiatives as needed and regenerate
-      the order.
-- [ ] 2.12: Detect same-faction initiative ties and block turn-order generation
+- [x] 2.9: Save collected initiative results as run state so a challenge can
+      resume initiative collection.
+- [ ] 2.10: Detect same-faction initiative ties and block turn-order generation
       until the DM has resolved them. Ties across factions stay with the
       fairness algorithm.
-- [ ] 2.13: Add UI for the DM to order tied turns within a faction, and show
+- [ ] 2.11: Add UI for the DM to order tied turns within a faction, and show
       unresolved ties when generation is blocked.
-- [ ] 2.14: Save tie decisions in the run state. Discard them for a tie group when
+- [ ] 2.12: Save tie decisions in the run state. Discard them for a tie group when
       a member is rerolled, and keep the remaining decisions on recalculation.
+- [ ] 2.13: Add the end-of-round Spawn step for adding or removing creatures.
+- [ ] 2.14: After Spawn changes, recollect initiatives as needed and regenerate
+      the order.
+- [ ] 2.15: Save generated turn order as run state so a challenge can resume with
+      the generated order.
 
 ## 3. Challenge library and file workflows
 

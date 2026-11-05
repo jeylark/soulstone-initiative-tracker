@@ -148,14 +148,21 @@ function importCharacters(
 	characters: readonly PlayerCharacter[];
 	idMap: ReadonlyMap<string, StableId>;
 }> {
-	const characters = existingCharacters.map(({ id, name }) => ({ id, name }));
+	const characters = existingCharacters.map(({ id, name, initiativeStat }) => ({
+		id,
+		name,
+		...(initiativeStat === undefined ? {} : { initiativeStat })
+	}));
 	const idMap = new Map<string, StableId>();
 
 	importedCharacters.forEach((character) => {
 		const existingCharacter = existingCharacters.find(
 			({ id }) => id.toLowerCase() === character.id.toLowerCase()
 		);
-		if (existingCharacter?.name === character.name) {
+		if (
+			existingCharacter?.name === character.name &&
+			existingCharacter?.initiativeStat === character.initiativeStat
+		) {
 			idMap.set(character.id.toLowerCase(), existingCharacter.id);
 			return;
 		}
@@ -163,7 +170,13 @@ function importCharacters(
 		const id = usedIds.has(character.id.toLowerCase()) ? createUniqueId(usedIds) : character.id;
 		usedIds.add(id.toLowerCase());
 		idMap.set(character.id.toLowerCase(), id);
-		characters.push({ id, name: character.name });
+		characters.push({
+			id,
+			name: character.name,
+			...(character.initiativeStat === undefined
+				? {}
+				: { initiativeStat: character.initiativeStat })
+		});
 	});
 
 	return { characters, idMap };

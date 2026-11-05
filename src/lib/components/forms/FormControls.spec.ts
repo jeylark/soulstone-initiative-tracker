@@ -41,6 +41,8 @@ describe('NumberInput', () => {
 		const oninput = vi.fn();
 		render(NumberInput, {
 			label: 'Initiative stat',
+			id: 'initiative-stat-input',
+			['aria-describedby']: 'initiative-stat-help',
 			value: 2,
 			min: 1,
 			step: 1,
@@ -49,6 +51,8 @@ describe('NumberInput', () => {
 
 		const input = screen.getByRole('spinbutton', { name: 'Initiative stat' }) as HTMLInputElement;
 		expect(input.type).toBe('number');
+		expect(input.id).toBe('initiative-stat-input');
+		expect(input.getAttribute('aria-describedby')).toBe('initiative-stat-help');
 		expect(input.value).toBe('2');
 		expect(input.min).toBe('1');
 		expect(input.step).toBe('1');
@@ -56,6 +60,39 @@ describe('NumberInput', () => {
 
 		await fireEvent.input(input, { target: { value: '4' } });
 		expect(oninput).toHaveBeenCalledOnce();
+	});
+
+	it('shows warning and invalid states accessibly', () => {
+		const { unmount } = render(NumberInput, {
+			label: 'High initiative',
+			hasWarning: true,
+			warningMessage: 'Values above 18 are valid.'
+		});
+
+		const warningInput = screen.getByRole('spinbutton', {
+			name: 'High initiative'
+		}) as HTMLInputElement;
+		expect(warningInput.classList.contains('form-control--warning')).toBe(true);
+		expect(warningInput.getAttribute('aria-invalid')).toBeNull();
+		const warning = screen.getByRole('status');
+		expect(warning.textContent).toBe('Values above 18 are valid.');
+		expect(warningInput.getAttribute('aria-describedby')).toBe(warning.id);
+
+		unmount();
+		render(NumberInput, {
+			label: 'Invalid initiative',
+			isInvalid: true,
+			invalidMessage: 'Enter a non-negative whole number.'
+		});
+
+		const invalidInput = screen.getByRole('spinbutton', {
+			name: 'Invalid initiative'
+		}) as HTMLInputElement;
+		expect(invalidInput.classList.contains('form-control--invalid')).toBe(true);
+		expect(invalidInput.getAttribute('aria-invalid')).toBe('true');
+		const invalidMessage = screen.getByRole('alert');
+		expect(invalidMessage.textContent).toBe('Enter a non-negative whole number.');
+		expect(invalidInput.getAttribute('aria-describedby')).toBe(invalidMessage.id);
 	});
 });
 

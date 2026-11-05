@@ -1,12 +1,21 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import type { Component } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
 import SavedChallengesPage from './challenges/+page.svelte';
+import RollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
+import ChallengeSetupPage from './challenges/[challengeId]/setup/+page.svelte';
 import NewChallengePage from './challenges/new/+page.svelte';
 import JoinSessionPage from './join/+page.svelte';
+
+vi.mock('$app/state', () => ({
+	page: {
+		params: { challengeId: '00000000-0000-4000-8000-000000000001' }
+	}
+}));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 afterEach(() => {
 	cleanup();
@@ -15,6 +24,8 @@ afterEach(() => {
 const views: { name: string; page: Component }[] = [
 	{ name: 'landing', page: LandingPage },
 	{ name: 'new challenge', page: NewChallengePage },
+	{ name: 'challenge setup', page: ChallengeSetupPage },
+	{ name: 'running challenge', page: RollChallengePage },
 	{ name: 'saved challenges', page: SavedChallengesPage },
 	{ name: 'join session', page: JoinSessionPage }
 ];

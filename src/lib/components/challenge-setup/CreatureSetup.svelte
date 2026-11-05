@@ -5,7 +5,8 @@
 		FactionColor,
 		NpcType,
 		PlayerCharacter,
-		StableId
+		StableId,
+		ValidationIssue
 	} from '#lib';
 	import type { TurnEditorChange } from './challenge-setup-types';
 	import EntityList from '../EntityList.svelte';
@@ -17,6 +18,7 @@
 		creatures: readonly ChallengeCreature[];
 		characters: readonly PlayerCharacter[];
 		npcTypes: readonly NpcType[];
+		setupIssues: readonly ValidationIssue[];
 		npcTypeId: StableId | '';
 		onCreateFaction: () => void;
 		onRenameFaction: (factionId: StableId, name: string) => void;
@@ -30,6 +32,10 @@
 		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
+		onCharacterInitiativeStatChange: (
+			characterId: StableId,
+			initiativeStat: number | undefined
+		) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
 		onTurnChange: (
 			creatureId: StableId,
@@ -46,6 +52,7 @@
 		creatures,
 		characters,
 		npcTypes,
+		setupIssues,
 		npcTypeId,
 		onCreateFaction,
 		onRenameFaction,
@@ -59,6 +66,7 @@
 		onMoveCreature,
 		onNpcTypeChange,
 		onCharacterNameChange,
+		onCharacterInitiativeStatChange,
 		onNpcIdentifierChange,
 		onTurnChange,
 		onAddTurn,
@@ -78,6 +86,7 @@
 					{creatures}
 					{characters}
 					{npcTypes}
+					{setupIssues}
 					{npcTypeId}
 					onRename={onRenameFaction}
 					onColorChange={onFactionColorChange}
@@ -90,6 +99,7 @@
 					{onMoveCreature}
 					{onNpcTypeChange}
 					{onCharacterNameChange}
+					{onCharacterInitiativeStatChange}
 					{onNpcIdentifierChange}
 					{onTurnChange}
 					{onAddTurn}

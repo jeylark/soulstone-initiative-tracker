@@ -5,12 +5,57 @@
 	interface Props extends Omit<HTMLInputAttributes, 'type'> {
 		label: string;
 		isLabelVisuallyHidden?: boolean;
+		hasWarning?: boolean;
+		warningMessage?: string;
+		isInvalid?: boolean;
+		invalidMessage?: string;
 	}
 
-	let { label, isLabelVisuallyHidden = false, class: className = '', ...rest }: Props = $props();
+	const inputId = $props.id();
+	const warningId = `${inputId}-warning`;
+	const invalidId = `${inputId}-invalid`;
+
+	let {
+		label,
+		isLabelVisuallyHidden = false,
+		hasWarning = false,
+		warningMessage,
+		isInvalid = false,
+		invalidMessage,
+		'aria-describedby': externalDescribedBy,
+		'aria-invalid': externalInvalid,
+		class: className = '',
+		...rest
+	}: Props = $props();
+
+	let describedBy = $derived(
+		[
+			...(externalDescribedBy ? [externalDescribedBy] : []),
+			...(isInvalid && invalidMessage ? [invalidId] : []),
+			...(hasWarning && warningMessage ? [warningId] : [])
+		].join(' ') || undefined
+	);
 </script>
 
-<label class="form-field">
-	<span class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
-	<input {...rest} class={`form-control ${className}`} type="number" />
-</label>
+<div class="form-field-messages">
+	<label class="form-field">
+		<span class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
+		<input
+			{...rest}
+			class={`form-control ${className}${hasWarning ? ' form-control--warning' : ''}${isInvalid ? ' form-control--invalid' : ''}`}
+			aria-invalid={isInvalid ? 'true' : externalInvalid}
+			aria-describedby={describedBy}
+			type="number"
+		/>
+	</label>
+	{#if isInvalid && invalidMessage}
+		<p id={invalidId} class="form-control-message form-control-message--invalid" role="alert">
+			{invalidMessage}
+		</p>
+	{/if}
+	{#if hasWarning && warningMessage}
+		<p id={warningId} class="form-control-message form-control-message--warning" role="status">
+			{warningMessage}
+		</p>
+	{/if}
+</div>

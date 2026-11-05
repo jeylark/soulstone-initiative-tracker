@@ -5,7 +5,8 @@
 		FactionColor,
 		NpcType,
 		PlayerCharacter,
-		StableId
+		StableId,
+		ValidationIssue
 	} from '#lib';
 	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
@@ -22,6 +23,7 @@
 		creatures: readonly ChallengeCreature[];
 		characters: readonly PlayerCharacter[];
 		npcTypes: readonly NpcType[];
+		setupIssues: readonly ValidationIssue[];
 		npcTypeId: StableId | '';
 		onRename: (factionId: StableId, name: string) => void;
 		onColorChange: (factionId: StableId, color: FactionColor) => void;
@@ -34,6 +36,10 @@
 		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (characterId: StableId, name: string) => void;
+		onCharacterInitiativeStatChange: (
+			characterId: StableId,
+			initiativeStat: number | undefined
+		) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
 		onTurnChange: (
 			creatureId: StableId,
@@ -51,6 +57,7 @@
 		creatures,
 		characters,
 		npcTypes,
+		setupIssues,
 		npcTypeId,
 		onRename,
 		onColorChange,
@@ -63,6 +70,7 @@
 		onMoveCreature,
 		onNpcTypeChange,
 		onCharacterNameChange,
+		onCharacterInitiativeStatChange,
 		onNpcIdentifierChange,
 		onTurnChange,
 		onAddTurn,
@@ -75,6 +83,13 @@
 
 	function characterName(characterId: StableId): string {
 		return characters.find((character) => character.id === characterId)?.name ?? 'Character';
+	}
+
+	function characterInitiativeStatError(characterId: StableId): string | undefined {
+		const characterIndex = characters.findIndex((character) => character.id === characterId);
+		return setupIssues.find(
+			(issue) => issue.path === `$.characters[${characterIndex}].initiativeStat`
+		)?.message;
 	}
 
 	function npcName(creatureTypeId: StableId, identifier: string): string {
@@ -141,6 +156,10 @@
 					creature.kind === 'character'
 						? characterName(creature.characterId)
 						: npcName(creature.creatureTypeId, creature.identifier)}
+				{@const character =
+					creature.kind === 'character'
+						? characters.find((item) => item.id === creature.characterId)
+						: undefined}
 				<CreatureEditor
 					{creature}
 					{name}
@@ -148,6 +167,10 @@
 					canMoveUp={index > 0}
 					canMoveDown={index < factionCreatures.length - 1}
 					characterName={creature.kind === 'character' ? characterName(creature.characterId) : ''}
+					characterInitiativeStat={character?.initiativeStat}
+					characterInitiativeStatError={character
+						? characterInitiativeStatError(character.id)
+						: undefined}
 					{factions}
 					{npcTypes}
 					targetTurns={targetTurns()}
@@ -157,6 +180,7 @@
 					onMove={(direction) => onMoveCreature(creature.id, direction)}
 					{onNpcTypeChange}
 					{onCharacterNameChange}
+					{onCharacterInitiativeStatChange}
 					{onNpcIdentifierChange}
 					{onTurnChange}
 					{onAddTurn}

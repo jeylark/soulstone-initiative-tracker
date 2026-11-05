@@ -92,7 +92,11 @@ function getValidatedLibrary(value: unknown): ChallengeLibrary {
 function sanitizeLibrary(library: DeepReadonly<ChallengeLibrary>): ChallengeLibrary {
 	return {
 		formatVersion: library.formatVersion,
-		characters: library.characters.map(({ id, name }) => ({ id, name })),
+		characters: library.characters.map(({ id, name, initiativeStat }) => ({
+			id,
+			name,
+			...(initiativeStat === undefined ? {} : { initiativeStat })
+		})),
 		challenges: library.challenges.map(sanitizeChallenge)
 	};
 }

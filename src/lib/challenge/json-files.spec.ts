@@ -107,6 +107,19 @@ describe('challenge and library JSON files', () => {
 		expect(parsedLibrary.challenges[0]?.updatedAt).toBeInstanceOf(Date);
 	});
 
+	it('preserves reusable character initiative stats in library JSON', () => {
+		const libraryWithCharacterStat = {
+			...library,
+			characters: library.characters.map((character) =>
+				character.id === firstCharacterId ? { ...character, initiativeStat: 4 } : character
+			)
+		};
+		const json = createChallengeLibraryJson(libraryWithCharacterStat);
+
+		expect(JSON.parse(json).characters[0].initiativeStat).toBe(4);
+		expect(parseChallengeLibraryJson(json).characters).toEqual(libraryWithCharacterStat.characters);
+	});
+
 	it('exports a single challenge with only its referenced reusable characters', () => {
 		const json = createChallengeJson(library, firstChallengeId);
 		const challengeFile = JSON.parse(json);

@@ -553,7 +553,21 @@ const invalidFieldCases = [
 		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
 		value: 'fast',
 		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
-		message: 'Expected a finite initiative value.'
+		message: 'Expected a non-negative whole-number initiative value.'
+	},
+	{
+		field: 'negative initiative result',
+		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
+		value: -1,
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
+		message: 'Expected a non-negative whole-number initiative value.'
+	},
+	{
+		field: 'fractional initiative result',
+		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
+		value: 1.5,
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
+		message: 'Expected a non-negative whole-number initiative value.'
 	},
 	{
 		field: 'generated turn order array',
@@ -659,6 +673,19 @@ const invalidReferenceCases = [
 describe('challenge domain models', () => {
 	it('accepts a structurally and referentially valid challenge library', () => {
 		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
+	});
+
+	it.each([0, 19])('accepts initiative result %s', (initiative) => {
+		const libraryWithInitiative = replaceAtPath(
+			library,
+			['challenges', 0, 'runState', 'initiativeResults'],
+			{ [ids.turn]: initiative }
+		);
+
+		expect(validateChallengeLibrary(libraryWithInitiative)).toEqual({
+			isValid: true,
+			value: libraryWithInitiative
+		});
 	});
 
 	it('requires a faction color', () => {
@@ -786,6 +813,38 @@ describe('challenge domain models', () => {
 			});
 		}
 	});
+
+	it('accepts reusable characters without an initiative stat or with a positive whole number', () => {
+		expect(validateChallengeLibrary(library).isValid).toBe(true);
+		expect(
+			validateChallengeLibrary({
+				...library,
+				characters: library.characters.map((character) => ({
+					...character,
+					initiativeStat: 3
+				}))
+			}).isValid
+		).toBe(true);
+	});
+
+	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+		'rejects invalid player initiative stat %s',
+		(initiativeStat) => {
+			const invalidLibrary = {
+				...library,
+				characters: library.characters.map((character) => ({ ...character, initiativeStat }))
+			};
+			const result = validateChallengeLibrary(invalidLibrary);
+
+			expect(result.isValid).toBe(false);
+			if (!result.isValid) {
+				expect(result.issues).toContainEqual({
+					path: '$.characters[0].initiativeStat',
+					message: 'Expected a positive whole number.'
+				});
+			}
+		}
+	);
 
 	it('reports independent shape and reference issues in the same validation pass', () => {
 		const invalidLibrary = {
