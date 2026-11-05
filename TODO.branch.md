@@ -29,7 +29,7 @@ animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
 
 ## Steps
 
-- [ ] 1. Extract `creatureName` and turn-label logic from the roll page into a
+- [x] 1. Extract `creatureName` and turn-label logic from the roll page into a
       shared module under `src/lib/challenge`, with a turn-ID lookup for creature,
       faction, label and hidden state. Roll page behavior and tests unchanged.
       Document all exports.

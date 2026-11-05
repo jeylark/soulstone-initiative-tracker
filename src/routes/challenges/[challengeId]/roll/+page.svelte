@@ -11,7 +11,9 @@
 		type Challenge,
 		type ChallengeCreature,
 		type PlayerCharacter,
-		type StableId
+		type StableId,
+		type TurnDisplay,
+		createTurnDisplayLookup
 	} from '#lib';
 	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
@@ -26,6 +28,9 @@
 	let challenge = $state<Challenge>();
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
+	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
+		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
+	);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -207,17 +212,12 @@
 		}
 	}
 
-	function creatureName(creature: DeepReadonly<ChallengeCreature>): string {
-		if (creature.kind === 'character') {
-			return (
-				reusableCharacters.find((character) => character.id === creature.characterId)?.name ??
-				'Character'
-			);
-		}
-
-		const typeName =
-			challenge?.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)?.name ?? 'NPC';
-		return `${typeName} ${creature.identifier}`.trim();
+	function rollingTurns(creature: DeepReadonly<ChallengeCreature>) {
+		return creature.turns.flatMap((turn) => {
+			if (turn.initiative.kind !== 'roll') return [];
+			const display = turnDisplayLookup.get(turn.id);
+			return display ? [{ turn, display, mode: turn.initiative.mode }] : [];
+		});
 	}
 </script>
 
@@ -245,15 +245,9 @@
 						>
 							<div class="initiative-cards">
 								{#each factionCreatures as creature (creature.id)}
-									{@const rollingTurns = creature.turns.flatMap((turn, index) =>
-										turn.initiative.kind === 'roll'
-											? [{ turn, turnNumber: index + 1, mode: turn.initiative.mode }]
-											: []
-									)}
-									{@const name = creatureName(creature)}
-									{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
-										{@const title =
-											creature.turns.length > 1 ? `${name} - Turn ${turnNumber}` : name}
+									{@const turnsToRoll = rollingTurns(creature)}
+									{#each turnsToRoll as { turn, display, mode } (turn.id)}
+										{@const title = display.label}
 										{@const label = `Initiative for ${title}`}
 										{@const result = challenge.runState?.initiativeResults[turn.id]}
 										<div
