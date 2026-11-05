@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib/DeepReadonly.js';
 	import {
+		createTurnOrderDisplay,
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
@@ -11,8 +12,10 @@
 		type PlayerCharacter,
 		type StableId
 	} from '#lib';
+	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
 	import { prepareTurnOrder } from '#lib/challenge/turn-order.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
+	import Card from '#lib/components/Card.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
@@ -31,6 +34,12 @@
 	let turnDisplayLookup = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
 	);
+	let generatedOrderDisplay = $derived.by(() => {
+		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
+		return generatedTurnOrder
+			? createTurnOrderDisplay(generatedTurnOrder, turnDisplayLookup)
+			: undefined;
+	});
 
 	onMount(() => {
 		void (async () => {
@@ -104,11 +113,38 @@
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
 		<p>{challenge.name}</p>
-		{#if challenge.runState?.generatedTurnOrder}
-			<ol aria-label="Generated turn order">
-				{#each challenge.runState.generatedTurnOrder as turnId (turnId)}
-					{@const display = turnDisplayLookup.get(turnId)}
-					<li>{display?.label ?? 'Unknown turn'}</li>
+		{#if generatedOrderDisplay}
+			{#if generatedOrderDisplay.hasUnknownTurnIds}
+				<p role="status">
+					Some saved turns are no longer in this challenge. Recalculate the turn order to update it.
+				</p>
+			{/if}
+			<ol aria-label="Generated turn order" class="turn-order-list">
+				{#each generatedOrderDisplay.items as item (item.turnId)}
+					{@const factionColor = item.display.faction
+						? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
+						: undefined}
+					<li>
+						<div
+							class="turn-order-card-tone"
+							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
+						>
+							<Card
+								title={item.display.label}
+								headingLevel="h2"
+								headerSize="small"
+								spacing="compact"
+								class="turn-order-card"
+							>
+								<div class="turn-order-card-details">
+									<span class="turn-order-position">{item.position}</span>
+									{#if item.display.faction}
+										<span>{item.display.faction.name}</span>
+									{/if}
+								</div>
+							</Card>
+						</div>
+					</li>
 				{/each}
 			</ol>
 		{/if}
@@ -145,3 +181,37 @@
 		<a href={resolve('/')}>Return to home</a>
 	{/if}
 </ViewPage>
+
+<style>
+	.turn-order-list {
+		display: grid;
+		gap: 12px;
+		margin-block: 24px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.turn-order-list li,
+	.turn-order-card-tone {
+		min-width: 0;
+	}
+
+	.turn-order-card-tone :global(.turn-order-card) {
+		background: color-mix(
+			in srgb,
+			var(--faction-color, var(--color-surface)) 12%,
+			var(--color-surface)
+		);
+	}
+
+	.turn-order-card-details {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.turn-order-position {
+		font-variant-numeric: tabular-nums;
+		font-weight: 700;
+	}
+</style>

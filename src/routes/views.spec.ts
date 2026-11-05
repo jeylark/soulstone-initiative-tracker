@@ -775,6 +775,31 @@ describe('turn-order run route', () => {
 		return challenge;
 	}
 
+	it('renders the saved order as numbered faction-colored cards', async () => {
+		const challenge = createRunChallenge();
+		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
+		challenge.runState!.generatedTurnOrder = [rookTurnId, ariaTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		const savedOrder = await screen.findByRole('list', { name: 'Generated turn order' });
+		const items = within(savedOrder).getAllByRole('listitem');
+		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual(['Rook', 'Aria']);
+		expect(
+			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
+		).toEqual(['1', '2']);
+		expect(items[0]?.textContent).toContain('Enemies');
+		expect(items[1]?.textContent).toContain('Players');
+		expect(
+			items.map((item) =>
+				item
+					.querySelector<HTMLElement>('.turn-order-card-tone')
+					?.style.getPropertyValue('--faction-color')
+			)
+		).toEqual(['#c76a6e', '#5687c8']);
+	});
+
 	it('restores a saved order and recalculates without changing initiative results', async () => {
 		const challenge = createRunChallenge();
 		await saveChallengeToLibrary(challenge, runCharacters);
@@ -788,7 +813,7 @@ describe('turn-order run route', () => {
 		expect(
 			within(savedOrder)
 				.getAllByRole('listitem')
-				.map((item) => item.textContent?.trim())
+				.map((item) => item.querySelector('h2')?.textContent)
 		).toEqual(['Aria', 'Rook']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
 		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));

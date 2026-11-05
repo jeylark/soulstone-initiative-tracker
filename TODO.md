@@ -56,7 +56,7 @@ foundations.
 - [ ] 2.5: Connect setup and collected results to turn-order generation, including
       fixed and relative placement hooks.
 - [ ] 2.6: Show clear feedback for invalid placement hooks.
-- [ ] 2.7: Display the DM turn list using each faction's selected color.
+- [x] 2.7: Display the DM turn list using each faction's selected color.
 - [ ] 2.8: Omit hidden turns from the read-only view.
 - [x] 2.9: Save collected initiative results as run state so a challenge can
       resume initiative collection.

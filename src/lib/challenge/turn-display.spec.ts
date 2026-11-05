@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Challenge, ChallengeCreature, PlayerCharacter, Turn } from './model';
 import { createUuid } from './uuid';
-import { createTurnDisplayLookup } from './turn-display';
+import { createTurnDisplayLookup, createTurnOrderDisplay } from './turn-display';
 
 function createTurn(initiative: Readonly<Turn['initiative']>): Turn {
 	return { id: createUuid(), initiative };
@@ -96,5 +96,31 @@ describe('createTurnDisplayLookup', () => {
 		expect(lookup.get(npcTurn.id)?.label).toBe('NPC C');
 		expect(lookup.get(characterTurn.id)?.faction).toBeUndefined();
 		expect(lookup.get(npcTurn.id)?.isHidden).toBe(true);
+	});
+});
+
+describe('createTurnOrderDisplay', () => {
+	it('filters unknown turn IDs while retaining their positions', () => {
+		const characterId = createUuid();
+		const turn = createTurn({ kind: 'static', value: 8 });
+		const creature: ChallengeCreature = {
+			id: createUuid(),
+			kind: 'character',
+			characterId,
+			factionId: createUuid(),
+			isHidden: false,
+			turns: [turn]
+		};
+		const challenge = createChallenge([creature]);
+		const characters: PlayerCharacter[] = [{ id: characterId, name: 'Aria' }];
+		const lookup = createTurnDisplayLookup(challenge, characters);
+		const unknownTurnId = createUuid();
+
+		const orderDisplay = createTurnOrderDisplay([unknownTurnId, turn.id], lookup);
+
+		expect(orderDisplay).toEqual({
+			items: [{ turnId: turn.id, position: 2, display: lookup.get(turn.id) }],
+			hasUnknownTurnIds: true
+		});
 	});
 });
