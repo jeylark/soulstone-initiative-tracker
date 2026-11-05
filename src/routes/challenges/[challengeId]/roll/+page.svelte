@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib/DeepReadonly.js';
 	import {
 		loadChallengeLibrary,
+		saveChallengeToLibrary,
 		type Challenge,
 		type ChallengeCreature,
 		type PlayerCharacter,
@@ -18,9 +20,13 @@
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
 	let loadStatus = $state<LoadStatus>('loading');
+	let hasSaveError = $state(false);
 	let challenge = $state<Challenge>();
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
+	let saveQueue: Promise<void> = Promise.resolve();
+	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+	let isFirstRun = true;
 
 	function parseInitiativeInput(value: string): number | undefined {
 		if (value.trim() === '') return undefined;
@@ -72,6 +78,60 @@
 		})();
 	});
 
+	$effect(() => {
+		if (loadStatus !== 'ready' || !challenge) return;
+
+		const snapshotChallenge = $state.snapshot(challenge);
+		const snapshotCharacters = $state.snapshot(reusableCharacters);
+		if (isFirstRun) {
+			isFirstRun = false;
+			return;
+		}
+		const timeout = setTimeout(() => {
+			if (saveTimeout === timeout) saveTimeout = undefined;
+			void enqueueSave(snapshotChallenge, snapshotCharacters).catch(() => undefined);
+		}, 300);
+		saveTimeout = timeout;
+		return () => {
+			clearTimeout(timeout);
+			if (saveTimeout === timeout) saveTimeout = undefined;
+		};
+	});
+
+	function enqueueSave(
+		snapshotChallenge: DeepReadonly<Challenge>,
+		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
+	): Promise<void> {
+		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		saveQueue = pendingSave.then(
+			() => {
+				hasSaveError = false;
+			},
+			() => {
+				hasSaveError = true;
+			}
+		);
+		return pendingSave;
+	}
+
+	async function returnToSetup(event: Readonly<{ preventDefault: () => void }>): Promise<void> {
+		event.preventDefault();
+		if (!challenge) return;
+
+		if (saveTimeout !== undefined) {
+			clearTimeout(saveTimeout);
+			saveTimeout = undefined;
+		}
+
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await goto(resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id }));
+		} catch {
+			hasSaveError = true;
+		}
+	}
+
 	function creatureName(creature: DeepReadonly<ChallengeCreature>): string {
 		if (creature.kind === 'character') {
 			return (
@@ -89,7 +149,7 @@
 <ViewPage
 	title={loadStatus === 'not-found' || loadStatus === 'error'
 		? 'Challenge unavailable'
-		: 'Running challenge'}
+		: 'Initiative Rolling'}
 >
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
@@ -150,7 +210,13 @@
 				{/if}
 			{/each}
 		</div>
-		<a href={resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id })}>
+		{#if hasSaveError}
+			<p role="alert">Changes could not be saved.</p>
+		{/if}
+		<a
+			href={resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id })}
+			onclick={returnToSetup}
+		>
 			Return to setup
 		</a>
 	{:else}

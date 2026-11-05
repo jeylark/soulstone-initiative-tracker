@@ -10,8 +10,9 @@
 - [x] Add a **Roll Initiatives** action that saves pending setup edits before navigating to rolling, and an explicit return-to-setup action that only navigates. The roll view reads the latest challenge from storage.
 - [x] Collect results for every turn configured as `roll/manual`, including turns whose creature kind normally uses app rolling. Display the creature and turn identity and prefill any existing result.
 - [x] Accept any non-negative integer initiative value without an upper bound. Values above 18 remain valid and display a non-blocking warning. Empty, negative, fractional, and otherwise invalid values must not be stored as results.
-- [x] Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn. Persisting run state to storage and resuming it remains TODO 2.9.
-- [x] Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, not-found and load-error recovery, and returning to setup.
+- [x] Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn.
+- [x] Persist collected initiative results to IndexedDB and restore them when resuming a challenge, preserving other run-state values.
+- [x] Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, save and load recovery, reload restoration, and returning to setup.
 
 ## Data Flow
 
@@ -20,7 +21,8 @@
 
 ## Remaining
 
-- None.
+- Implement rolling of initiative by the app for accordingly configure turns.
+- Change the page's title to always display 'Initiative rolling'. Move any information currently displayed there to the view's body.
 
 ## Verification
 
@@ -31,6 +33,5 @@
 
 ## Out Of Scope
 
-- Persisted run state/resume (TODO 2.9).
 - App-rolled NPC initiative (TODO 2.2).
 - Turn-order generation, rerolls, tie resolution, DM order controls, and read-only views (TODOs 2.3-2.8).

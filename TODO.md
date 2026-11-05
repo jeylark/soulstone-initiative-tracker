@@ -46,18 +46,20 @@ foundations.
 - [ ] 2.7: Display the DM turn list using each faction's selected color, with
       controls to reorder turns and hide or show them.
 - [ ] 2.8: Omit hidden turns from the read-only view.
-- [ ] 2.9: Save collected results and generated order as run state so a challenge
-      can be resumed.
-- [ ] 2.10: Add the end-of-round Spawn step for adding or removing creatures.
-- [ ] 2.11: After Spawn changes, recollect initiatives as needed and regenerate
-      the order.
-- [ ] 2.12: Detect same-faction initiative ties and block turn-order generation
+- [x] 2.9: Save collected initiative results as run state so a challenge can
+      resume initiative collection.
+- [ ] 2.10: Detect same-faction initiative ties and block turn-order generation
       until the DM has resolved them. Ties across factions stay with the
       fairness algorithm.
-- [ ] 2.13: Add UI for the DM to order tied turns within a faction, and show
+- [ ] 2.11: Add UI for the DM to order tied turns within a faction, and show
       unresolved ties when generation is blocked.
-- [ ] 2.14: Save tie decisions in the run state. Discard them for a tie group when
+- [ ] 2.12: Save tie decisions in the run state. Discard them for a tie group when
       a member is rerolled, and keep the remaining decisions on recalculation.
+- [ ] 2.13: Add the end-of-round Spawn step for adding or removing creatures.
+- [ ] 2.14: After Spawn changes, recollect initiatives as needed and regenerate
+      the order.
+- [ ] 2.15: Save generated turn order as run state so a challenge can resume with
+      the generated order.
 
 ## 3. Challenge library and file workflows
 

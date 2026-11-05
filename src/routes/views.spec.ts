@@ -202,6 +202,116 @@ describe('running challenge storage', () => {
 		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
 	});
 
+	it('persists initiative edits, restores them on reload, and saves cleared results', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const firstTurnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		const secondTurnId = '00000000-0000-4000-8000-000000000007' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [
+					{ id: firstTurnId, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: secondTurnId, initiative: { kind: 'roll', mode: 'manual' } }
+				]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [secondTurnId]: 8 },
+			generatedTurnOrder: [secondTurnId, firstTurnId]
+		};
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		const firstView = render(rollChallengePage);
+		const firstInput = (await screen.findByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 1'
+		})) as HTMLInputElement;
+		await fireEvent.input(firstInput, { target: { value: '14' } });
+
+		await waitFor(async () => {
+			const library = await loadChallengeLibrary();
+			const saved = library.challenges[0];
+			expect(saved?.runState?.initiativeResults[firstTurnId]).toBe(14);
+			expect(saved?.runState?.initiativeResults[secondTurnId]).toBe(8);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([secondTurnId, firstTurnId]);
+			expect(library.characters).toEqual([{ id: characterId, name: 'Aria' }]);
+		});
+
+		firstView.unmount();
+		render(rollChallengePage);
+		const restoredInput = (await screen.findByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 1'
+		})) as HTMLInputElement;
+		expect(restoredInput.value).toBe('14');
+
+		await fireEvent.input(restoredInput, { target: { value: '' } });
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults[firstTurnId]).toBeUndefined();
+			expect(saved?.runState?.initiativeResults[secondTurnId]).toBe(8);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([secondTurnId, firstTurnId]);
+		});
+	});
+
+	it('saves the latest initiative before returning to setup', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		render(rollChallengePage);
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+		await fireEvent.input(input, { target: { value: '12' } });
+		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+
+		await waitFor(() =>
+			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/setup`)
+		);
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
+			12
+		);
+	});
+
+	it('shows a save error and stays on the roll page when persistence fails', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		render(rollChallengePage);
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.input(input, { target: { value: '12' } });
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
 	it('collects every manual-roll turn with its creature, turn, saved value, and faction color', async () => {
 		const challenge = createSetupChallenge();
 		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
