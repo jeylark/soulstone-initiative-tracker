@@ -28,7 +28,7 @@ foundations.
       setup entity.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
       references, including turn IDs in saved tie decisions.
-- [ ] 1.11: Persist setup changes to the local challenge library and restore saved
+- [x] 1.11: Persist setup changes to the local challenge library and restore saved
       setup when reopening a challenge.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
 - [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
@@ -43,8 +43,8 @@ foundations.
 
 ## 2. Initiative and encounter play
 
-- [ ] 2.1: Collect initiative manually for player characters.
-- [ ] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
+- [x] 2.1: Collect initiative manually for player characters.
+- [x] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
       Roll every app-configured turn using the NPC type's or reusable
       character's initiative stat as the number of d6; sum all dice when fewer
       than three are rolled, otherwise sum the highest three. Require a valid
@@ -52,12 +52,11 @@ foundations.
       invalid stats in imported data. Persist results by turn ID, preserve
       existing results until an explicit reroll, and restore them on reload.
 - [ ] 2.3: Preserve collected results when recalculating the order.
-- [ ] 2.4: Provide an explicit reroll action for collected results.
+- [x] 2.4: Provide an explicit reroll action for collected results.
 - [ ] 2.5: Connect setup and collected results to turn-order generation, including
       fixed and relative placement hooks.
 - [ ] 2.6: Show clear feedback for invalid placement hooks.
-- [ ] 2.7: Display the DM turn list using each faction's selected color, with
-      controls to reorder turns and hide or show them.
+- [ ] 2.7: Display the DM turn list using each faction's selected color.
 - [ ] 2.8: Omit hidden turns from the read-only view.
 - [x] 2.9: Save collected initiative results as run state so a challenge can
       resume initiative collection.
@@ -75,6 +74,8 @@ foundations.
       the generated order.
 - [ ] 2.16: Add an animated "rolling" effect for initiative rolls.
 - [ ] 2.17: Remove creature names from the cards in the roll view.
+- [ ] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
+      hidden turns stay visible but greyed out.
 
 ## 3. Challenge library and file workflows
 
