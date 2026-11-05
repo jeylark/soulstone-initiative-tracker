@@ -36,10 +36,10 @@ animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
 - [x] 2. (2.5, 2.6) Add a generation helper wrapping `generateTurnOrder`: returns
       the order, the turns with missing roll results (blocking generation), or the
       `TurnOrderError.turnIds`. Unit tests for all three outcomes.
-- [ ] 3. (2.3, 2.5, 2.6, 2.15) Add the route
-      `/challenges/[challengeId]/turn-order` with title "Turn order": load from
+- [x] 3. (2.3, 2.5, 2.6, 2.15) Add the route
+      `/challenges/[challengeId]/run` with title "Turn order": load from
       IndexedDB with loading, not-found and error states, "Return to home"
-      recovery, a link back to the roll view, and the saved `generatedTurnOrder`
+      recovery and the saved `generatedTurnOrder`
       if present. Add "Generate turn order" / "Recalculate": save
       `runState.generatedTurnOrder` with the queued-save pattern and `hasSaveError`
       alert, keep `initiativeResults`, and list turns with invalid placement or

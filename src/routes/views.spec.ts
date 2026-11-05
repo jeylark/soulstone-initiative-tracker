@@ -4,6 +4,7 @@ import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './challenges/+page.svelte';
 import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
+import turnOrderPage from './challenges/[challengeId]/run/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
 import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
@@ -734,6 +735,167 @@ describe('running challenge storage', () => {
 			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 		}
 	);
+});
+
+describe('turn-order run route', () => {
+	const ariaCharacterId = '00000000-0000-4000-8000-000000000021' as StableId;
+	const rookCharacterId = '00000000-0000-4000-8000-000000000022' as StableId;
+	const ariaTurnId = '00000000-0000-4000-8000-000000000023' as StableId;
+	const rookTurnId = '00000000-0000-4000-8000-000000000024' as StableId;
+	const runCharacters = [
+		{ id: ariaCharacterId, name: 'Aria' },
+		{ id: rookCharacterId, name: 'Rook' }
+	];
+
+	function createRunChallenge(): Challenge {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Ashen Company';
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000025' as StableId,
+				kind: 'character',
+				characterId: ariaCharacterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: ariaTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000026' as StableId,
+				kind: 'character',
+				characterId: rookCharacterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: rookTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
+			generatedTurnOrder: [ariaTurnId, rookTurnId]
+		};
+		return challenge;
+	}
+
+	it('restores a saved order and recalculates without changing initiative results', async () => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Turn order' })).toBeTruthy();
+		expect(await screen.findByText('Ashen Company')).toBeTruthy();
+		expect(document.title).toBe('Turn order | Soulstone Initiative Tracker');
+		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		expect(
+			within(savedOrder)
+				.getAllByRole('listitem')
+				.map((item) => item.textContent?.trim())
+		).toEqual(['Aria', 'Rook']);
+		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('shows a loading state while the challenge library is being read', () => {
+		render(turnOrderPage);
+
+		expect(screen.getByText('Loading challenge…')).toBeTruthy();
+	});
+
+	it('generates and saves an order when no saved order exists', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+	});
+
+	it('lists missing results and preserves the saved order without navigating away', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.initiativeResults[ariaTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Recalculate' }));
+
+		const missingTurns = await screen.findByRole('list', {
+			name: 'Turns missing initiative results'
+		});
+		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
+			ariaTurnId,
+			rookTurnId
+		]);
+	});
+
+	it('lists turns with unresolved placement rules', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		challenge.creatures[0]!.turns[0]!.initiative = {
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: rookTurnId
+		};
+		challenge.creatures[1]!.turns[0]!.initiative = {
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: ariaTurnId
+		};
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		const invalidTurns = await screen.findByRole('list', { name: 'Turns with invalid placement' });
+		expect(within(invalidTurns).getByText('Aria')).toBeTruthy();
+		expect(within(invalidTurns).getByText('Rook')).toBeTruthy();
+	});
+
+	it.each([
+		{ kind: 'unknown', message: 'The challenge was not found.' },
+		{ kind: 'unreadable', message: 'The challenge could not be loaded.' }
+	] as const)('shows recovery when the challenge is $kind', async ({ kind, message }) => {
+		if (kind === 'unknown') {
+			mockedPage.params = { challengeId: '00000000-0000-4000-8000-000000000099' };
+		} else {
+			vi.stubGlobal('indexedDB', undefined);
+		}
+
+		render(turnOrderPage);
+
+		expect(await screen.findByText(message)).toBeTruthy();
+		expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+	});
+
+	it('shows a save error when generating cannot be persisted', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		const generateButton = await screen.findByRole('button', { name: 'Generate turn order' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.click(generateButton);
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
 });
 
 describe('new challenge setup', () => {
