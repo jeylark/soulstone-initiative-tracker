@@ -16,6 +16,7 @@
 - [x] Add an optional initiative stat to reusable player characters and expose it in setup; require a positive whole number when a character has an app-roll turn.
 - [x] Make setup readiness extensible with structured issues, show initiative-stat problems, and block Roll Initiatives until those issues are fixed.
 - [x] Preserve character initiative stats through IndexedDB saves and challenge/library JSON import and export.
+- [x] Add and test the initiative d6 calculation helper: sum all dice when fewer than three are rolled, otherwise sum the highest three.
 
 ## Data Flow
 
@@ -24,7 +25,7 @@
 
 ## Remaining
 
-- Roll every `roll/app` turn using its creature stat: NPC type initiative stat or reusable character initiative stat. Roll that many d6 and sum all dice when fewer than three are rolled, otherwise sum the highest three.
+- Resolve each `roll/app` turn's dice count from its NPC type initiative stat or reusable character initiative stat, then use the d6 calculation helper to generate its result.
 - Add a per-turn roll action and **Roll all** for app-roll turns without a saved result. Persist by stable turn ID, preserve existing results, and restore results on reload.
 - Add an explicit per-turn reroll action for changing an existing result (TODO 2.4).
 - Change the page's title to always display 'Initiative rolling'. Move any information currently displayed there to the view's body.

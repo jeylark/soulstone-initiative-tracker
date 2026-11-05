@@ -6,4 +6,5 @@ export * from './challenge/storage';
 export * from './challenge/json-files';
 export * from './challenge/library-files';
 export * from './challenge/challenge-files';
+export * from './challenge/initiative-roll';
 export * from './challenge/turn-order';
