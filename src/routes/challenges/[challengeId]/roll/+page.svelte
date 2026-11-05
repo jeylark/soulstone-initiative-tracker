@@ -226,84 +226,107 @@
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
 		<p>{challenge.name}</p>
-		<div class="initiative-cards">
-			{#each challenge.creatures as creature (creature.id)}
-				{@const rollingTurns = creature.turns.flatMap((turn, index) =>
-					turn.initiative.kind === 'roll'
-						? [{ turn, turnNumber: index + 1, mode: turn.initiative.mode }]
-						: []
+		<div class="faction-board">
+			{#each challenge.factions as faction (faction.id)}
+				{@const factionColor = FACTION_COLORS.find((color) => color.value === faction.color)}
+				{@const factionCreatures = challenge.creatures.filter(
+					(creature) =>
+						creature.factionId === faction.id &&
+						creature.turns.some((turn) => turn.initiative.kind === 'roll')
 				)}
-				{#if rollingTurns.length > 0}
-					{@const name = creatureName(creature)}
-					{@const faction = challenge.factions.find((item) => item.id === creature.factionId)}
-					{@const factionColor = FACTION_COLORS.find((color) => color.value === faction?.color)}
-					{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
-						{@const title = creature.turns.length > 1 ? `${name} - Turn ${turnNumber}` : name}
-						{@const label = `Initiative for ${title}`}
-						{@const result = challenge.runState?.initiativeResults[turn.id]}
-						<div
-							class="initiative-card-tone"
-							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
+				{#if factionCreatures.length > 0}
+					<section aria-label={faction.name} class="faction-section">
+						<Card
+							title={faction.name}
+							headingLevel="h2"
+							headerSize="medium"
+							variant="inset"
+							spacing="compact"
 						>
-							<Card
-								{title}
-								headingLevel="h2"
-								headerSize="medium"
-								spacing="compact"
-								class="initiative-card"
-							>
-								<div class="initiative-field">
-									{#if mode === 'manual'}
-										{@const inputValue = initiativeInputs[turn.id] ?? ''}
-										{@const hasWarning = result !== undefined && result > 18}
-										{@const isInvalid =
-											inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
-										<NumberInput
-											{label}
-											min={0}
-											step={1}
-											{hasWarning}
-											warningMessage={hasWarning
-												? `${label} is above 18. This result is still valid.`
-												: undefined}
-											{isInvalid}
-											invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
-											value={inputValue}
-											oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
-										/>
-									{:else}
-										{@const turnLabel = title}
-										{@const diceCount = initiativeStat(creature)}
-										<div class="app-initiative-turn">
-											{#if result !== undefined}
-												<output>Initiative result: {result}</output>
-												<ActionButton
-													aria-label={`Reroll initiative for ${turnLabel}`}
-													disabled={diceCount === undefined}
-													onclick={() => rollInitiativeForTurn(creature, turn.id)}
-												>
-													Reroll
-												</ActionButton>
-											{:else}
-												<ActionButton
-													aria-label={`Roll initiative for ${turnLabel}`}
-													disabled={diceCount === undefined}
-													onclick={() => rollInitiativeForTurn(creature, turn.id)}
-												>
-													Roll
-												</ActionButton>
-											{/if}
-											{#if diceCount === undefined}
-												<p role="status">
-													{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
-												</p>
-											{/if}
+							<div class="initiative-cards">
+								{#each factionCreatures as creature (creature.id)}
+									{@const rollingTurns = creature.turns.flatMap((turn, index) =>
+										turn.initiative.kind === 'roll'
+											? [{ turn, turnNumber: index + 1, mode: turn.initiative.mode }]
+											: []
+									)}
+									{@const name = creatureName(creature)}
+									{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
+										{@const title =
+											creature.turns.length > 1 ? `${name} - Turn ${turnNumber}` : name}
+										{@const label = `Initiative for ${title}`}
+										{@const result = challenge.runState?.initiativeResults[turn.id]}
+										<div
+											class="initiative-card-tone"
+											style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
+										>
+											<Card
+												{title}
+												headingLevel="h3"
+												headerSize="small"
+												spacing="compact"
+												class="initiative-card"
+											>
+												<div class="initiative-field">
+													{#if mode === 'manual'}
+														{@const inputValue = initiativeInputs[turn.id] ?? ''}
+														{@const hasWarning = result !== undefined && result > 18}
+														{@const isInvalid =
+															inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
+														<NumberInput
+															{label}
+															min={0}
+															step={1}
+															{hasWarning}
+															warningMessage={hasWarning
+																? `${label} is above 18. This result is still valid.`
+																: undefined}
+															{isInvalid}
+															invalidMessage={isInvalid
+																? 'Enter a non-negative whole number.'
+																: undefined}
+															value={inputValue}
+															oninput={(event) =>
+																updateInitiative(turn.id, event.currentTarget.value)}
+														/>
+													{:else}
+														{@const turnLabel = title}
+														{@const diceCount = initiativeStat(creature)}
+														<div class="app-initiative-turn">
+															{#if result !== undefined}
+																<output>Initiative result: {result}</output>
+																<ActionButton
+																	aria-label={`Reroll initiative for ${turnLabel}`}
+																	disabled={diceCount === undefined}
+																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
+																>
+																	Reroll
+																</ActionButton>
+															{:else}
+																<ActionButton
+																	aria-label={`Roll initiative for ${turnLabel}`}
+																	disabled={diceCount === undefined}
+																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
+																>
+																	Roll
+																</ActionButton>
+															{/if}
+															{#if diceCount === undefined}
+																<p role="status">
+																	{turnLabel} cannot be rolled because its initiative stat is missing
+																	or invalid.
+																</p>
+															{/if}
+														</div>
+													{/if}
+												</div>
+											</Card>
 										</div>
-									{/if}
-								</div>
-							</Card>
-						</div>
-					{/each}
+									{/each}
+								{/each}
+							</div>
+						</Card>
+					</section>
 				{/if}
 			{/each}
 		</div>
@@ -331,6 +354,18 @@
 </ViewPage>
 
 <style>
+	.faction-board {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+		align-items: start;
+		gap: 24px 16px;
+		margin-block: 24px 16px;
+	}
+
+	.faction-section {
+		min-width: 0;
+	}
+
 	.initiative-cards {
 		display: flex;
 		flex-wrap: wrap;

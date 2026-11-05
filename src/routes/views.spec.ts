@@ -478,15 +478,23 @@ describe('running challenge storage', () => {
 			name: 'Initiative for Rook'
 		}) as HTMLInputElement;
 		expect(
-			screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+			screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())
+		).toEqual(['Players', 'Enemies']);
+		expect(
+			screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent?.trim())
 		).toEqual([
 			'Aria - Turn 1',
 			'Aria - Turn 2',
 			'Aria - Turn 3',
+			'Rook',
 			'Sentinel B - Turn 1',
-			'Sentinel B - Turn 2',
-			'Rook'
+			'Sentinel B - Turn 2'
 		]);
+		const enemies = screen.getByRole('region', { name: 'Enemies' });
+		expect(
+			within(enemies).getByRole('spinbutton', { name: 'Initiative for Sentinel B - Turn 1' })
+		).toBeTruthy();
+		expect(within(enemies).queryByRole('spinbutton', { name: 'Initiative for Rook' })).toBeNull();
 
 		expect(characterInput.value).toBe('18');
 		expect(emptyInput.value).toBe('');
@@ -559,7 +567,7 @@ describe('running challenge storage', () => {
 		const cardTints = [...document.querySelectorAll<HTMLElement>('.initiative-card-tone')].map(
 			(card) => card.style.getPropertyValue('--faction-color')
 		);
-		expect(cardTints).toEqual(['#5687c8', '#5687c8', '#5687c8', '#c76a6e', '#c76a6e', '#5687c8']);
+		expect(cardTints).toEqual(['#5687c8', '#5687c8', '#5687c8', '#5687c8', '#c76a6e', '#c76a6e']);
 	});
 
 	it('rolls and rerolls app turns by their initiative stats and restores results', async () => {
