@@ -120,7 +120,17 @@ function validatePlayerCharacter(
 
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
-	return isValidId && isValidName;
+	let isValidInitiativeStat = true;
+	if (
+		value.initiativeStat !== undefined &&
+		(typeof value.initiativeStat !== 'number' ||
+			!Number.isSafeInteger(value.initiativeStat) ||
+			value.initiativeStat < 1)
+	) {
+		addIssue(`${path}.initiativeStat`, 'Expected a positive whole number.');
+		isValidInitiativeStat = false;
+	}
+	return isValidId && isValidName && isValidInitiativeStat;
 }
 
 function validateFaction(value: unknown, path: string, addIssue: IssueRecorder): value is Faction {

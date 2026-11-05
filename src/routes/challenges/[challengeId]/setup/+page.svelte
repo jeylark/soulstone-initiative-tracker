@@ -18,6 +18,7 @@
 		type StableId,
 		type Turn
 	} from '#lib';
+	import { validateChallengeSetup } from '#lib/challenge/setup-validation.js';
 	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
 	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
 	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
@@ -39,6 +40,9 @@
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
+	let setupIssues = $derived(
+		loadStatus === 'ready' ? validateChallengeSetup(challenge, reusableCharacters) : []
+	);
 
 	onMount(() => {
 		void (async () => {
@@ -98,6 +102,7 @@
 
 	async function startChallenge(event: Readonly<{ preventDefault: () => void }>) {
 		event.preventDefault();
+		if (setupIssues.length > 0) return;
 		if (saveTimeout !== undefined) {
 			clearTimeout(saveTimeout);
 			saveTimeout = undefined;
@@ -324,6 +329,17 @@
 		if (character) character.name = name;
 	}
 
+	function updateCharacterInitiativeStat(
+		characterId: StableId,
+		initiativeStat: number | undefined
+	) {
+		const character = reusableCharacters.find((item) => item.id === characterId);
+		if (!character) return;
+
+		if (initiativeStat === undefined) delete character.initiativeStat;
+		else character.initiativeStat = initiativeStat;
+	}
+
 	function setTurnInitiative(creatureId: StableId, turnId: StableId, choice: InitiativeChoice) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		const turn = creature?.turns.find((item) => item.id === turnId);
@@ -504,12 +520,20 @@
 				onInitiativeStatChange={updateNpcTypeInitiativeStat}
 				onRemove={removeNpcType}
 			/>
+			{#if setupIssues.length > 0}
+				<ul class="setup-validation-issues" role="alert">
+					{#each setupIssues as issue (issue.path)}
+						<li>{issue.message}</li>
+					{/each}
+				</ul>
+			{/if}
 
 			<CreatureSetup
 				factions={challenge.factions}
 				creatures={challenge.creatures}
 				characters={reusableCharacters}
 				npcTypes={challenge.npcTypes}
+				{setupIssues}
 				npcTypeId={newNpcTypeId}
 				onCreateFaction={addFaction}
 				onRenameFaction={renameFaction}
@@ -523,6 +547,7 @@
 				onMoveCreature={moveCreature}
 				onNpcTypeChange={updateNpcType}
 				onCharacterNameChange={updateCharacterName}
+				onCharacterInitiativeStatChange={updateCharacterInitiativeStat}
 				onNpcIdentifierChange={updateNpcIdentifier}
 				onTurnChange={updateTurnInitiative}
 				onAddTurn={addTurn}
@@ -530,10 +555,14 @@
 				onRemoveCreature={removeCreature}
 			/>
 		</div>
-		<a
-			href={resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id })}
-			onclick={startChallenge}>Roll Initiatives</a
-		>
+		{#if setupIssues.length > 0}
+			<button class="roll-initiatives-disabled" type="button" disabled>Roll Initiatives</button>
+		{:else}
+			<a
+				href={resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id })}
+				onclick={startChallenge}>Roll Initiatives</a
+			>
+		{/if}
 	{:else}
 		{#if loadStatus === 'error'}
 			<p>The saved challenges could not be loaded.</p>
@@ -543,3 +572,10 @@
 		<a href={resolve('/challenges/new')}>Start a new challenge</a>
 	{/if}
 </ViewPage>
+
+<style>
+	.roll-initiatives-disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+</style>

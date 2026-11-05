@@ -814,6 +814,38 @@ describe('challenge domain models', () => {
 		}
 	});
 
+	it('accepts reusable characters without an initiative stat or with a positive whole number', () => {
+		expect(validateChallengeLibrary(library).isValid).toBe(true);
+		expect(
+			validateChallengeLibrary({
+				...library,
+				characters: library.characters.map((character) => ({
+					...character,
+					initiativeStat: 3
+				}))
+			}).isValid
+		).toBe(true);
+	});
+
+	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+		'rejects invalid player initiative stat %s',
+		(initiativeStat) => {
+			const invalidLibrary = {
+				...library,
+				characters: library.characters.map((character) => ({ ...character, initiativeStat }))
+			};
+			const result = validateChallengeLibrary(invalidLibrary);
+
+			expect(result.isValid).toBe(false);
+			if (!result.isValid) {
+				expect(result.issues).toContainEqual({
+					path: '$.characters[0].initiativeStat',
+					message: 'Expected a positive whole number.'
+				});
+			}
+		}
+	);
+
 	it('reports independent shape and reference issues in the same validation pass', () => {
 		const invalidLibrary = {
 			...library,

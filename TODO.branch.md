@@ -13,6 +13,9 @@
 - [x] Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn.
 - [x] Persist collected initiative results to IndexedDB and restore them when resuming a challenge, preserving other run-state values.
 - [x] Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, save and load recovery, reload restoration, and returning to setup.
+- [x] Add an optional initiative stat to reusable player characters and expose it in setup; require a positive whole number when a character has an app-roll turn.
+- [x] Make setup readiness extensible with structured issues, show initiative-stat problems, and block Roll Initiatives until those issues are fixed.
+- [x] Preserve character initiative stats through IndexedDB saves and challenge/library JSON import and export.
 
 ## Data Flow
 
@@ -21,7 +24,9 @@
 
 ## Remaining
 
-- Implement rolling of initiative by the app for accordingly configure turns.
+- Roll every `roll/app` turn using its creature stat: NPC type initiative stat or reusable character initiative stat. Roll that many d6 and sum all dice when fewer than three are rolled, otherwise sum the highest three.
+- Add a per-turn roll action and **Roll all** for app-roll turns without a saved result. Persist by stable turn ID, preserve existing results, and restore results on reload.
+- Add an explicit per-turn reroll action for changing an existing result (TODO 2.4).
 - Change the page's title to always display 'Initiative rolling'. Move any information currently displayed there to the view's body.
 
 ## Verification
@@ -33,5 +38,4 @@
 
 ## Out Of Scope
 
-- App-rolled NPC initiative (TODO 2.2).
-- Turn-order generation, rerolls, tie resolution, DM order controls, and read-only views (TODOs 2.3-2.8).
+- Turn-order generation, tie resolution, DM order controls, and read-only views (TODOs 2.3, 2.5-2.8).

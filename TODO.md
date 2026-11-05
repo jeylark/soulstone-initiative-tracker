@@ -36,8 +36,13 @@ foundations.
 ## 2. Initiative and encounter play
 
 - [ ] 2.1: Collect initiative manually for player characters.
-- [ ] 2.2: Roll NPC initiative using the initiative stat in d6s and sum the
-      highest three dice, or all dice when fewer than three are rolled.
+- [ ] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
+      Roll every app-configured turn using the NPC type's or reusable
+      character's initiative stat as the number of d6; sum all dice when fewer
+      than three are rolled, otherwise sum the highest three. Require a valid
+      character stat for app-configured character turns, and handle missing or
+      invalid stats in imported data. Persist results by turn ID, preserve
+      existing results until an explicit reroll, and restore them on reload.
 - [ ] 2.3: Preserve collected results when recalculating the order.
 - [ ] 2.4: Provide an explicit reroll action for collected results.
 - [ ] 2.5: Connect setup and collected results to turn-order generation, including

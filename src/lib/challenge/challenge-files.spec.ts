@@ -307,6 +307,34 @@ describe('challenge file workflows', () => {
 		expect(validateChallengeLibrary(updatedLibrary).isValid).toBe(true);
 	});
 
+	it('preserves an imported character stat and remaps a same-name stat conflict', async () => {
+		const libraryWithCharacterStat = {
+			...library,
+			characters: [{ ...library.characters[0]!, initiativeStat: 2 }]
+		};
+		await saveChallengeLibrary(libraryWithCharacterStat, indexedDbFactory);
+		const importedLibrary = {
+			...libraryWithCharacterStat,
+			characters: [{ ...libraryWithCharacterStat.characters[0]!, initiativeStat: 4 }]
+		};
+		const readResult = await readChallengeFile(createChallengeJson(importedLibrary, challengeId));
+
+		const preparedImport = prepareChallengeImport(libraryWithCharacterStat, readResult, {
+			resolution: 'copy'
+		});
+		const importedCharacterId =
+			preparedImport.challenge.creatures[0]?.kind === 'character'
+				? preparedImport.challenge.creatures[0].characterId
+				: null;
+
+		expect(importedCharacterId).not.toBe(characterId);
+		expect(preparedImport.library.characters).toContainEqual({
+			id: importedCharacterId,
+			name: 'Aria',
+			initiativeStat: 4
+		});
+	});
+
 	it('loads characters from a challenge file without importing its challenge', async () => {
 		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
 		const preparedImport = prepareCharacterImport(emptyLibrary, readResult);
