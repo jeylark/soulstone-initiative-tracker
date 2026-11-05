@@ -5,6 +5,12 @@
 	font-size: 14px;
 }
 
+.form-field-messages {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+}
+
 .visually-hidden {
 	position: absolute;
 	width: 1px;
@@ -26,6 +32,27 @@
 	color: var(--color-foreground);
 	background: var(--color-background);
 	font: inherit;
+}
+
+.form-control--warning {
+	border-color: var(--color-warning);
+}
+
+.form-control--invalid {
+	border-color: var(--color-danger);
+}
+
+.form-control-message {
+	margin: 0;
+	font-size: 13px;
+}
+
+.form-control-message--warning {
+	color: var(--color-warning);
+}
+
+.form-control-message--invalid {
+	color: var(--color-danger);
 }
 
 .form-control:disabled {

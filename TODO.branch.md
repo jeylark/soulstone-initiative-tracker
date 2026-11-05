@@ -9,6 +9,9 @@
 - [x] Add `/challenges/{id}/roll` as a separate running-challenge view.
 - [x] Add a **Roll Initiatives** action that saves pending setup edits before navigating to rolling, and an explicit return-to-setup action that only navigates. The roll view reads the latest challenge from storage.
 - [x] Collect results for every turn configured as `roll/manual`, including turns whose creature kind normally uses app rolling. Display the creature and turn identity and prefill any existing result.
+- [x] Accept any non-negative integer initiative value without an upper bound. Values above 18 remain valid and display a non-blocking warning. Empty, negative, fractional, and otherwise invalid values must not be stored as results.
+- [x] Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn. Persisting run state to storage and resuming it remains TODO 2.9.
+- [x] Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, not-found and load-error recovery, and returning to setup.
 
 ## Data Flow
 
@@ -17,9 +20,7 @@
 
 ## Remaining
 
-1. Accept any non-negative integer initiative value without an upper bound. Values above 18 remain valid and display a non-blocking warning. Empty, negative, fractional, and otherwise invalid values must not be stored as results.
-2. Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn. Persisting run state to storage and resuming it remains TODO 2.9.
-3. Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, not-found and load-error recovery, and returning to setup.
+- None.
 
 ## Verification
 

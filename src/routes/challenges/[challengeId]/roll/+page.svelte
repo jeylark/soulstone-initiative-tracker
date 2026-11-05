@@ -22,6 +22,27 @@
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
 
+	function parseInitiativeInput(value: string): number | undefined {
+		if (value.trim() === '') return undefined;
+
+		const initiative = Number(value);
+		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
+	}
+
+	function updateInitiative(turnId: StableId, value: string): void {
+		initiativeInputs[turnId] = value;
+		if (!challenge) return;
+
+		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
+		const initiative = parseInitiativeInput(value);
+		if (initiative === undefined) {
+			delete initiativeResults[turnId];
+		} else {
+			initiativeResults[turnId] = initiative;
+		}
+		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+	}
+
 	onMount(() => {
 		void (async () => {
 			try {
@@ -98,13 +119,30 @@
 						>
 							<div class="initiative-fields">
 								{#each manualTurns as { turn, turnNumber } (turn.id)}
-									<NumberInput
-										label={creature.turns.length > 1
+									{@const label =
+										creature.turns.length > 1
 											? `Initiative for ${name} - Turn ${turnNumber}`
 											: `Initiative for ${name}`}
-										value={initiativeInputs[turn.id] ?? ''}
-										oninput={(event) => (initiativeInputs[turn.id] = event.currentTarget.value)}
-									/>
+									{@const result = challenge.runState?.initiativeResults[turn.id]}
+									{@const inputValue = initiativeInputs[turn.id] ?? ''}
+									{@const hasWarning = result !== undefined && result > 18}
+									{@const isInvalid =
+										inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
+									<div class="initiative-field">
+										<NumberInput
+											{label}
+											min={0}
+											step={1}
+											{hasWarning}
+											warningMessage={hasWarning
+												? `${label} is above 18. This result is still valid.`
+												: undefined}
+											{isInvalid}
+											invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
+											value={inputValue}
+											oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
+										/>
+									</div>
 								{/each}
 							</div>
 						</Card>
@@ -143,5 +181,9 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 		gap: 12px;
+	}
+
+	.initiative-field {
+		min-width: 0;
 	}
 </style>

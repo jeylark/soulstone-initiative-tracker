@@ -553,7 +553,21 @@ const invalidFieldCases = [
 		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
 		value: 'fast',
 		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
-		message: 'Expected a finite initiative value.'
+		message: 'Expected a non-negative whole-number initiative value.'
+	},
+	{
+		field: 'negative initiative result',
+		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
+		value: -1,
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
+		message: 'Expected a non-negative whole-number initiative value.'
+	},
+	{
+		field: 'fractional initiative result',
+		path: ['challenges', 0, 'runState', 'initiativeResults', ids.turn],
+		value: 1.5,
+		issuePath: `$.challenges[0].runState.initiativeResults.${ids.turn}`,
+		message: 'Expected a non-negative whole-number initiative value.'
 	},
 	{
 		field: 'generated turn order array',
@@ -659,6 +673,19 @@ const invalidReferenceCases = [
 describe('challenge domain models', () => {
 	it('accepts a structurally and referentially valid challenge library', () => {
 		expect(validateChallengeLibrary(library)).toEqual({ isValid: true, value: library });
+	});
+
+	it.each([0, 19])('accepts initiative result %s', (initiative) => {
+		const libraryWithInitiative = replaceAtPath(
+			library,
+			['challenges', 0, 'runState', 'initiativeResults'],
+			{ [ids.turn]: initiative }
+		);
+
+		expect(validateChallengeLibrary(libraryWithInitiative)).toEqual({
+			isValid: true,
+			value: libraryWithInitiative
+		});
 	});
 
 	it('requires a faction color', () => {

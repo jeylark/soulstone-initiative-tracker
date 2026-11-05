@@ -9,6 +9,7 @@
 	--color-border-subtle: #cbd6e2;
 	--color-accent: #075da8;
 	--color-accent-hover: color-mix(in srgb, var(--color-accent) 5%, transparent);
+	--color-warning: #8a5700;
 	--color-danger: #a61b1b;
 	--color-danger-surface: #fff1f0;
 	--color-danger-hover: #ffe3e0;
@@ -29,6 +30,7 @@
 	--color-border: #29374a;
 	--color-border-subtle: #34445a;
 	--color-accent: #69c8f0;
+	--color-warning: #f0bd4b;
 	--color-danger: #ffb4ab;
 	--color-danger-surface: #3b1e22;
 	--color-danger-hover: #4c272c;

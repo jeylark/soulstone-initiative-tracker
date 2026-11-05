@@ -317,8 +317,11 @@ function validateRunState(
 				addIssue(`${path}.initiativeResults.${id}`, 'Expected a valid turn UUID key.');
 				isValidResults = false;
 			}
-			if (typeof initiative !== 'number' || !Number.isFinite(initiative)) {
-				addIssue(`${path}.initiativeResults.${id}`, 'Expected a finite initiative value.');
+			if (typeof initiative !== 'number' || !Number.isInteger(initiative) || initiative < 0) {
+				addIssue(
+					`${path}.initiativeResults.${id}`,
+					'Expected a non-negative whole-number initiative value.'
+				);
 				isValidResults = false;
 			}
 		}
