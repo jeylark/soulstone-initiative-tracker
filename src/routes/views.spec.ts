@@ -477,6 +477,16 @@ describe('running challenge storage', () => {
 		const singleTurnInput = screen.getByRole('spinbutton', {
 			name: 'Initiative for Rook'
 		}) as HTMLInputElement;
+		expect(
+			screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+		).toEqual([
+			'Aria - Turn 1',
+			'Aria - Turn 2',
+			'Aria - Turn 3',
+			'Sentinel B - Turn 1',
+			'Sentinel B - Turn 2',
+			'Rook'
+		]);
 
 		expect(characterInput.value).toBe('18');
 		expect(emptyInput.value).toBe('');
@@ -549,7 +559,7 @@ describe('running challenge storage', () => {
 		const cardTints = [...document.querySelectorAll<HTMLElement>('.initiative-card-tone')].map(
 			(card) => card.style.getPropertyValue('--faction-color')
 		);
-		expect(cardTints).toEqual(['#5687c8', '#c76a6e', '#5687c8']);
+		expect(cardTints).toEqual(['#5687c8', '#5687c8', '#5687c8', '#c76a6e', '#c76a6e', '#5687c8']);
 	});
 
 	it('rolls and rerolls app turns by their initiative stats and restores results', async () => {

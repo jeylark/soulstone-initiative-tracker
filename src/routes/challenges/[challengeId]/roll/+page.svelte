@@ -237,80 +237,73 @@
 					{@const name = creatureName(creature)}
 					{@const faction = challenge.factions.find((item) => item.id === creature.factionId)}
 					{@const factionColor = FACTION_COLORS.find((color) => color.value === faction?.color)}
-					<div
-						class="initiative-card-tone"
-						style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-					>
-						<Card
-							title={name}
-							headingLevel="h2"
-							headerSize="medium"
-							spacing="compact"
-							class="initiative-card"
+					{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
+						{@const title = creature.turns.length > 1 ? `${name} - Turn ${turnNumber}` : name}
+						{@const label = `Initiative for ${title}`}
+						{@const result = challenge.runState?.initiativeResults[turn.id]}
+						<div
+							class="initiative-card-tone"
+							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
 						>
-							<div class="initiative-fields">
-								{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
-									{@const label =
-										creature.turns.length > 1
-											? `Initiative for ${name} - Turn ${turnNumber}`
-											: `Initiative for ${name}`}
-									{@const result = challenge.runState?.initiativeResults[turn.id]}
-									<div class="initiative-field">
-										{#if mode === 'manual'}
-											{@const inputValue = initiativeInputs[turn.id] ?? ''}
-											{@const hasWarning = result !== undefined && result > 18}
-											{@const isInvalid =
-												inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
-											<NumberInput
-												{label}
-												min={0}
-												step={1}
-												{hasWarning}
-												warningMessage={hasWarning
-													? `${label} is above 18. This result is still valid.`
-													: undefined}
-												{isInvalid}
-												invalidMessage={isInvalid
-													? 'Enter a non-negative whole number.'
-													: undefined}
-												value={inputValue}
-												oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
-											/>
-										{:else}
-											{@const turnLabel = label.replace('Initiative for ', '')}
-											{@const diceCount = initiativeStat(creature)}
-											<div class="app-initiative-turn">
-												<span>{turnLabel}</span>
-												{#if result !== undefined}
-													<output>Initiative result: {result}</output>
-													<ActionButton
-														aria-label={`Reroll initiative for ${turnLabel}`}
-														disabled={diceCount === undefined}
-														onclick={() => rollInitiativeForTurn(creature, turn.id)}
-													>
-														Reroll initiative
-													</ActionButton>
-												{:else}
-													<ActionButton
-														aria-label={`Roll initiative for ${turnLabel}`}
-														disabled={diceCount === undefined}
-														onclick={() => rollInitiativeForTurn(creature, turn.id)}
-													>
-														Roll initiative
-													</ActionButton>
-												{/if}
-												{#if diceCount === undefined}
-													<p role="status">
-														{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
-													</p>
-												{/if}
-											</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						</Card>
-					</div>
+							<Card
+								{title}
+								headingLevel="h2"
+								headerSize="medium"
+								spacing="compact"
+								class="initiative-card"
+							>
+								<div class="initiative-field">
+									{#if mode === 'manual'}
+										{@const inputValue = initiativeInputs[turn.id] ?? ''}
+										{@const hasWarning = result !== undefined && result > 18}
+										{@const isInvalid =
+											inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
+										<NumberInput
+											{label}
+											min={0}
+											step={1}
+											{hasWarning}
+											warningMessage={hasWarning
+												? `${label} is above 18. This result is still valid.`
+												: undefined}
+											{isInvalid}
+											invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
+											value={inputValue}
+											oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
+										/>
+									{:else}
+										{@const turnLabel = title}
+										{@const diceCount = initiativeStat(creature)}
+										<div class="app-initiative-turn">
+											{#if result !== undefined}
+												<output>Initiative result: {result}</output>
+												<ActionButton
+													aria-label={`Reroll initiative for ${turnLabel}`}
+													disabled={diceCount === undefined}
+													onclick={() => rollInitiativeForTurn(creature, turn.id)}
+												>
+													Reroll initiative
+												</ActionButton>
+											{:else}
+												<ActionButton
+													aria-label={`Roll initiative for ${turnLabel}`}
+													disabled={diceCount === undefined}
+													onclick={() => rollInitiativeForTurn(creature, turn.id)}
+												>
+													Roll initiative
+												</ActionButton>
+											{/if}
+											{#if diceCount === undefined}
+												<p role="status">
+													{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
+												</p>
+											{/if}
+										</div>
+									{/if}
+								</div>
+							</Card>
+						</div>
+					{/each}
 				{/if}
 			{/each}
 		</div>
@@ -339,22 +332,26 @@
 
 <style>
 	.initiative-cards {
-		display: grid;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: start;
 		gap: 12px;
 	}
 
+	.initiative-card-tone {
+		flex: 0 1 max-content;
+		min-width: 0;
+		max-width: 100%;
+	}
+
 	.initiative-card-tone :global(.initiative-card) {
+		width: auto;
+		max-width: 100%;
 		background: color-mix(
 			in srgb,
 			var(--faction-color, var(--color-surface)) 12%,
 			var(--color-surface)
 		);
-	}
-
-	.initiative-fields {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-		gap: 12px;
 	}
 
 	.initiative-field {
