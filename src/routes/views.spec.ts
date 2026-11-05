@@ -58,7 +58,7 @@ beforeEach(async () => {
 
 const views: { name: string; page: Component; heading: string }[] = [
 	{ name: 'challenge setup', page: setupChallengePage, heading: 'Challenge setup' },
-	{ name: 'running challenge', page: rollChallengePage, heading: 'Running challenge' },
+	{ name: 'running challenge', page: rollChallengePage, heading: 'Initiative Rolling' },
 	{ name: 'saved challenges', page: savedChallengesPage, heading: 'Saved challenges' },
 	{ name: 'join session', page: joinSessionPage, heading: 'Join a live session' }
 ];
@@ -290,7 +290,7 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 
 		expect(await screen.findByText('Ashen Company')).toBeTruthy();
-		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
+		expect(screen.getByRole('heading', { name: 'Initiative Rolling' })).toBeTruthy();
 	});
 
 	it('persists initiative edits, restores them on reload, and saves cleared results', async () => {
@@ -486,10 +486,10 @@ describe('running challenge storage', () => {
 		expect(
 			screen.queryByRole('spinbutton', { name: 'Initiative for Sentinel B - Turn 2' })
 		).toBeNull();
-		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 		await fireEvent.input(characterInput, { target: { value: '0' } });
 		expect(characterInput.value).toBe('0');
-		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 		await fireEvent.input(characterInput, { target: { value: '19' } });
 		expect(
 			screen.getByText('Initiative for Aria - Turn 1 is above 18. This result is still valid.')
@@ -498,7 +498,7 @@ describe('running challenge storage', () => {
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
 		expect(characterInput.classList.contains('form-control--warning')).toBe(false);
-		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 		await fireEvent.input(emptyInput, { target: { value: '21' } });
 		expect(emptyInput.value).toBe('21');
 		expect(emptyInput.classList.contains('form-control--warning')).toBe(true);
@@ -543,12 +543,123 @@ describe('running challenge storage', () => {
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
 		expect(characterInput.classList.contains('form-control--invalid')).toBe(false);
-		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 
 		const cardTints = [...document.querySelectorAll<HTMLElement>('.initiative-card-tone')].map(
 			(card) => card.style.getPropertyValue('--faction-color')
 		);
 		expect(cardTints).toEqual(['#5687c8', '#c76a6e', '#5687c8']);
+	});
+
+	it('rolls app turns by their initiative stats, preserves saved results, and restores rolls', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const npcTypeId = '00000000-0000-4000-8000-000000000005' as StableId;
+		const characterTurnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		const savedCharacterTurnId = '00000000-0000-4000-8000-000000000007' as StableId;
+		const manualTurnId = '00000000-0000-4000-8000-000000000008' as StableId;
+		const firstNpcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
+		const secondNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
+		const generatedTurnOrder = [savedCharacterTurnId, manualTurnId];
+		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 3 }];
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [
+					{ id: characterTurnId, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: savedCharacterTurnId, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: manualTurnId, initiative: { kind: 'roll', mode: 'manual' } }
+				]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000012' as StableId,
+				kind: 'npc',
+				creatureTypeId: npcTypeId,
+				identifier: 'B',
+				factionId: '00000000-0000-4000-8000-000000000003' as StableId,
+				isHidden: true,
+				turns: [
+					{ id: firstNpcTurnId, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: secondNpcTurnId, initiative: { kind: 'roll', mode: 'app' } }
+				]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [savedCharacterTurnId]: 16, [manualTurnId]: 8 },
+			generatedTurnOrder
+		};
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria', initiativeStat: 2 }]);
+		vi.spyOn(Math, 'random')
+			.mockReturnValueOnce(0)
+			.mockReturnValueOnce(0.99)
+			.mockReturnValueOnce(0)
+			.mockReturnValueOnce(0.2)
+			.mockReturnValueOnce(0.4)
+			.mockReturnValueOnce(0.99)
+			.mockReturnValueOnce(0.5)
+			.mockReturnValueOnce(0);
+
+		const firstView = render(rollChallengePage);
+		await fireEvent.click(
+			await screen.findByRole('button', { name: 'Roll initiative for Aria - Turn 1' })
+		);
+		expect(screen.getByText('Initiative result: 7')).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Roll initiative for Aria - Turn 1' })).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
+		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
+		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults).toEqual({
+				[characterTurnId]: 7,
+				[savedCharacterTurnId]: 16,
+				[manualTurnId]: 8,
+				[firstNpcTurnId]: 6,
+				[secondNpcTurnId]: 11
+			});
+			expect(saved?.runState?.generatedTurnOrder).toEqual(generatedTurnOrder);
+		});
+
+		firstView.unmount();
+		render(rollChallengePage);
+		expect(await screen.findByText('Initiative result: 7')).toBeTruthy();
+		expect(screen.getByText('Initiative result: 16')).toBeTruthy();
+		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
+		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
+	});
+
+	it('blocks an app roll when its reusable character has no valid initiative stat', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'app' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		render(rollChallengePage);
+
+		const rollButton = (await screen.findByRole('button', {
+			name: 'Roll initiative for Aria'
+		})) as HTMLButtonElement;
+		expect(rollButton.disabled).toBe(true);
+		expect(
+			screen.getByText('Aria cannot be rolled because its initiative stat is missing or invalid.')
+		).toBeTruthy();
+		expect(screen.queryByText(/Initiative result:/)).toBeNull();
 	});
 
 	it('links back to setup for the loaded challenge', async () => {

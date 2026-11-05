@@ -6,6 +6,7 @@
 	import type { DeepReadonly } from '#lib/DeepReadonly.js';
 	import {
 		loadChallengeLibrary,
+		rollInitiative,
 		saveChallengeToLibrary,
 		type Challenge,
 		type ChallengeCreature,
@@ -13,6 +14,7 @@
 		type StableId
 	} from '#lib';
 	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
+	import ActionButton from '#lib/components/ActionButton.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import NumberInput from '#lib/components/forms/NumberInput.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
@@ -47,6 +49,79 @@
 			initiativeResults[turnId] = initiative;
 		}
 		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+	}
+
+	function initiativeStat(creature: DeepReadonly<ChallengeCreature>): number | undefined {
+		const stat =
+			creature.kind === 'character'
+				? reusableCharacters.find((character) => character.id === creature.characterId)
+						?.initiativeStat
+				: challenge?.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)
+						?.initiativeStat;
+		return typeof stat === 'number' && Number.isSafeInteger(stat) && stat > 0 ? stat : undefined;
+	}
+
+	function rollInitiativeForTurn(
+		creature: DeepReadonly<ChallengeCreature>,
+		turnId: StableId
+	): void {
+		if (!challenge) return;
+		const turn = creature.turns.find((item) => item.id === turnId);
+		if (
+			!turn ||
+			turn.initiative.kind !== 'roll' ||
+			turn.initiative.mode !== 'app' ||
+			challenge.runState?.initiativeResults[turnId] !== undefined
+		) {
+			return;
+		}
+
+		const diceCount = initiativeStat(creature);
+		if (diceCount === undefined) return;
+
+		challenge.runState = {
+			...(challenge.runState ?? {}),
+			initiativeResults: {
+				...(challenge.runState?.initiativeResults ?? {}),
+				[turnId]: rollInitiative(diceCount)
+			}
+		};
+	}
+
+	function rollAll(): void {
+		if (!challenge) return;
+
+		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
+		for (const creature of challenge.creatures) {
+			const diceCount = initiativeStat(creature);
+			if (diceCount === undefined) continue;
+
+			for (const turn of creature.turns) {
+				if (
+					turn.initiative.kind === 'roll' &&
+					turn.initiative.mode === 'app' &&
+					initiativeResults[turn.id] === undefined
+				) {
+					initiativeResults[turn.id] = rollInitiative(diceCount);
+				}
+			}
+		}
+
+		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+	}
+
+	function hasRollableAppTurns(): boolean {
+		const creatures = challenge?.creatures ?? [];
+		return creatures.some(
+			(creature) =>
+				initiativeStat(creature) !== undefined &&
+				creature.turns.some(
+					(turn) =>
+						turn.initiative.kind === 'roll' &&
+						turn.initiative.mode === 'app' &&
+						challenge?.runState?.initiativeResults[turn.id] === undefined
+				)
+		);
 	}
 
 	onMount(() => {
@@ -157,12 +232,12 @@
 		<p>{challenge.name}</p>
 		<div class="initiative-cards">
 			{#each challenge.creatures as creature (creature.id)}
-				{@const manualTurns = creature.turns.flatMap((turn, index) =>
-					turn.initiative.kind === 'roll' && turn.initiative.mode === 'manual'
-						? [{ turn, turnNumber: index + 1 }]
+				{@const rollingTurns = creature.turns.flatMap((turn, index) =>
+					turn.initiative.kind === 'roll'
+						? [{ turn, turnNumber: index + 1, mode: turn.initiative.mode }]
 						: []
 				)}
-				{#if manualTurns.length > 0}
+				{#if rollingTurns.length > 0}
 					{@const name = creatureName(creature)}
 					{@const faction = challenge.factions.find((item) => item.id === creature.factionId)}
 					{@const factionColor = FACTION_COLORS.find((color) => color.value === faction?.color)}
@@ -178,30 +253,56 @@
 							class="initiative-card"
 						>
 							<div class="initiative-fields">
-								{#each manualTurns as { turn, turnNumber } (turn.id)}
+								{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
 									{@const label =
 										creature.turns.length > 1
 											? `Initiative for ${name} - Turn ${turnNumber}`
 											: `Initiative for ${name}`}
 									{@const result = challenge.runState?.initiativeResults[turn.id]}
-									{@const inputValue = initiativeInputs[turn.id] ?? ''}
-									{@const hasWarning = result !== undefined && result > 18}
-									{@const isInvalid =
-										inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
 									<div class="initiative-field">
-										<NumberInput
-											{label}
-											min={0}
-											step={1}
-											{hasWarning}
-											warningMessage={hasWarning
-												? `${label} is above 18. This result is still valid.`
-												: undefined}
-											{isInvalid}
-											invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
-											value={inputValue}
-											oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
-										/>
+										{#if mode === 'manual'}
+											{@const inputValue = initiativeInputs[turn.id] ?? ''}
+											{@const hasWarning = result !== undefined && result > 18}
+											{@const isInvalid =
+												inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
+											<NumberInput
+												{label}
+												min={0}
+												step={1}
+												{hasWarning}
+												warningMessage={hasWarning
+													? `${label} is above 18. This result is still valid.`
+													: undefined}
+												{isInvalid}
+												invalidMessage={isInvalid
+													? 'Enter a non-negative whole number.'
+													: undefined}
+												value={inputValue}
+												oninput={(event) => updateInitiative(turn.id, event.currentTarget.value)}
+											/>
+										{:else}
+											{@const turnLabel = label.replace('Initiative for ', '')}
+											{@const diceCount = initiativeStat(creature)}
+											<div class="app-initiative-turn">
+												<span>{turnLabel}</span>
+												{#if result !== undefined}
+													<output>Initiative result: {result}</output>
+												{:else}
+													<ActionButton
+														aria-label={`Roll initiative for ${turnLabel}`}
+														disabled={diceCount === undefined}
+														onclick={() => rollInitiativeForTurn(creature, turn.id)}
+													>
+														Roll initiative
+													</ActionButton>
+													{#if diceCount === undefined}
+														<p role="status">
+															{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
+														</p>
+													{/if}
+												{/if}
+											</div>
+										{/if}
 									</div>
 								{/each}
 							</div>
@@ -210,6 +311,9 @@
 				{/if}
 			{/each}
 		</div>
+		{#if hasRollableAppTurns()}
+			<ActionButton onclick={rollAll}>Roll all</ActionButton>
+		{/if}
 		{#if hasSaveError}
 			<p role="alert">Changes could not be saved.</p>
 		{/if}
@@ -251,5 +355,17 @@
 
 	.initiative-field {
 		min-width: 0;
+	}
+
+	.app-initiative-turn {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.app-initiative-turn p {
+		grid-column: 1 / -1;
+		margin: 0;
 	}
 </style>
