@@ -9,7 +9,7 @@ detailed coding guidelines.
 - Check the current branch and worktree before editing.
 - Do implementation work on a task-specific branch; never merge into or push to
   `main`. If the current branch is unsuitable, create or switch to the task
-  branch before editing.
+  branch before editing, but only after confirming with the user.
 - Preserve existing work. Do not switch branches if doing so could move,
   overwrite, or obscure uncommitted changes; ask the user how to proceed if the
   work cannot be safely isolated.
@@ -28,6 +28,7 @@ detailed coding guidelines.
 
 ## Before finishing
 
+- After all edits are complete, run `npx prettier --write` on every edited file before running any lint checks.
 - For routine changes, run only relevant focused checks; do not run ESLint for
   every change. Before opening a pull request, run `npm test`, `npm run lint`,
   and `npm run check`; also run `npm run build` when changes
