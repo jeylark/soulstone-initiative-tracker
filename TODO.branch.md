@@ -7,6 +7,7 @@
 - [x] Load setup data from IndexedDB only, never from page state; show loading, not-found, and load-error states with recovery.
 - [x] Autosave setup edits to IndexedDB.
 - [x] Add `/challenges/{id}/roll` as a separate running-challenge view.
+- [x] Add a **Roll Initiatives** action that saves pending setup edits before navigating to rolling, and an explicit return-to-setup action that only navigates. The roll view reads the latest challenge from storage.
 
 ## Data Flow
 
@@ -15,11 +16,10 @@
 
 ## Remaining
 
-1. Add a **Start Challenge** action to setup and an explicit return-to-setup action from rolling. Both transitions only navigate; setup edits are already saved to storage, and the roll view reads the latest challenge from storage.
-2. Collect results for every turn configured as `roll/manual`, including turns whose creature kind normally uses app rolling. Display the creature and turn identity and prefill any existing result.
-3. Accept any non-negative integer initiative value without an upper bound. Values above 18 remain valid and display a non-blocking warning. Empty, negative, fractional, and otherwise invalid values must not be stored as results.
-4. Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn. Persisting run state to storage and resuming it remains TODO 2.9.
-5. Add focused tests for Start Challenge navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, not-found and load-error recovery, and returning to setup.
+1. Collect results for every turn configured as `roll/manual`, including turns whose creature kind normally uses app rolling. Display the creature and turn identity and prefill any existing result.
+2. Accept any non-negative integer initiative value without an upper bound. Values above 18 remain valid and display a non-blocking warning. Empty, negative, fractional, and otherwise invalid values must not be stored as results.
+3. Store valid values in the challenge's `runState.initiativeResults`, keyed by stable turn ID. Clear a result when its input is cleared or becomes invalid; preserve other results when changing one turn. Persisting run state to storage and resuming it remains TODO 2.9.
+4. Add focused tests for Roll Initiatives navigation, eligible turns, existing values, valid edits, clearing and invalid values, the warning above 18, loading the challenge from storage, not-found and load-error recovery, and returning to setup.
 
 ## Verification
 

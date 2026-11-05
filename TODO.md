@@ -30,6 +30,8 @@ foundations.
 - [ ] 1.11: Persist setup changes to the local challenge library and restore saved
       setup when reopening a challenge.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
+- [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
+      action.
 
 ## 2. Initiative and encounter play
 

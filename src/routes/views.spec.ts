@@ -141,6 +141,36 @@ describe('challenge setup persistence', () => {
 		});
 	});
 
+	it('saves the latest edits before starting the challenge', async () => {
+		await renderSetup();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Ready to roll' }
+		});
+		const startLink = screen.getByRole('link', { name: 'Roll Initiatives' });
+		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
+		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startLink);
+		await fireEvent.click(startLink);
+
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`);
+		const saved = (await loadChallengeLibrary()).challenges[0];
+		expect(saved?.name).toBe('Ready to roll');
+	});
+
+	it('stays in setup and shows an error when starting cannot save', async () => {
+		await renderSetup();
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Unsaved change' }
+		});
+		vi.stubGlobal('indexedDB', undefined);
+
+		await fireEvent.click(screen.getByRole('link', { name: 'Roll Initiatives' }));
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
 	it.each(['unknown', 'unreadable'] as const)(
 		'shows a recovery link when the stored challenge is %s',
 		async (kind) => {
@@ -170,6 +200,13 @@ describe('running challenge storage', () => {
 
 		expect(await screen.findByText('Ashen Company')).toBeTruthy();
 		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
+	});
+
+	it('links back to setup for the loaded challenge', async () => {
+		render(rollChallengePage);
+
+		const setupLink = await screen.findByRole('link', { name: 'Return to setup' });
+		expect(setupLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/setup`);
 	});
 
 	it.each([

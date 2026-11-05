@@ -32,6 +32,9 @@
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
 		<p>{challenge.name}</p>
+		<a href={resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id })}>
+			Return to setup
+		</a>
 	{:else}
 		{#if loadStatus === 'not-found'}
 			<p>The challenge was not found.</p>

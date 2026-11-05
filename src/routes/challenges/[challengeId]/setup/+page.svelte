@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
+	import type { DeepReadonly } from '#lib/DeepReadonly.js';
 	import {
 		createUuid,
 		loadChallengeLibrary,
@@ -35,6 +37,7 @@
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let newNpcTypeId = $state<StableId | ''>('');
 	let saveQueue: Promise<void> = Promise.resolve();
+	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
 
 	onMount(() => {
@@ -66,20 +69,47 @@
 			return;
 		}
 		const timeout = setTimeout(() => {
-			const toSave = { ...snapshotChallenge, updatedAt: new Date() };
-			saveQueue = saveQueue
-				.then(() => saveChallengeToLibrary(toSave, snapshotCharacters))
-				.then(
-					() => {
-						hasSaveError = false;
-					},
-					() => {
-						hasSaveError = true;
-					}
-				);
+			if (saveTimeout === timeout) saveTimeout = undefined;
+			void enqueueSave(snapshotChallenge, snapshotCharacters).catch(() => undefined);
 		}, 300);
-		return () => clearTimeout(timeout);
+		saveTimeout = timeout;
+		return () => {
+			clearTimeout(timeout);
+			if (saveTimeout === timeout) saveTimeout = undefined;
+		};
 	});
+
+	function enqueueSave(
+		snapshotChallenge: DeepReadonly<Challenge>,
+		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
+	): Promise<void> {
+		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		saveQueue = pendingSave.then(
+			() => {
+				hasSaveError = false;
+			},
+			() => {
+				hasSaveError = true;
+			}
+		);
+		return pendingSave;
+	}
+
+	async function startChallenge(event: Readonly<{ preventDefault: () => void }>) {
+		event.preventDefault();
+		if (saveTimeout !== undefined) {
+			clearTimeout(saveTimeout);
+			saveTimeout = undefined;
+		}
+
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await goto(resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id }));
+		} catch {
+			hasSaveError = true;
+		}
+	}
 
 	function updateChallengeName(name: string) {
 		challenge.name = name;
@@ -500,6 +530,10 @@
 				onRemoveCreature={removeCreature}
 			/>
 		</div>
+		<a
+			href={resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id })}
+			onclick={startChallenge}>Roll Initiatives</a
+		>
 	{:else}
 		{#if loadStatus === 'error'}
 			<p>The saved challenges could not be loaded.</p>
