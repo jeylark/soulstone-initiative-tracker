@@ -67,25 +67,25 @@
 	): void {
 		if (!challenge) return;
 		const turn = creature.turns.find((item) => item.id === turnId);
-		if (
-			!turn ||
-			turn.initiative.kind !== 'roll' ||
-			turn.initiative.mode !== 'app' ||
-			challenge.runState?.initiativeResults[turnId] !== undefined
-		) {
+		if (!turn || turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'app') {
 			return;
 		}
 
 		const diceCount = initiativeStat(creature);
 		if (diceCount === undefined) return;
 
-		challenge.runState = {
-			...(challenge.runState ?? {}),
-			initiativeResults: {
-				...(challenge.runState?.initiativeResults ?? {}),
-				[turnId]: rollInitiative(diceCount)
-			}
+		const initiativeResults = {
+			...(challenge.runState?.initiativeResults ?? {}),
+			[turnId]: rollInitiative(diceCount)
 		};
+		const runState = {
+			...(challenge.runState ?? {}),
+			initiativeResults
+		};
+		if (challenge.runState?.initiativeResults[turnId] !== undefined) {
+			delete runState.generatedTurnOrder;
+		}
+		challenge.runState = runState;
 	}
 
 	function rollAll(): void {
@@ -287,6 +287,13 @@
 												<span>{turnLabel}</span>
 												{#if result !== undefined}
 													<output>Initiative result: {result}</output>
+													<ActionButton
+														aria-label={`Reroll initiative for ${turnLabel}`}
+														disabled={diceCount === undefined}
+														onclick={() => rollInitiativeForTurn(creature, turn.id)}
+													>
+														Reroll initiative
+													</ActionButton>
 												{:else}
 													<ActionButton
 														aria-label={`Roll initiative for ${turnLabel}`}
@@ -295,11 +302,11 @@
 													>
 														Roll initiative
 													</ActionButton>
-													{#if diceCount === undefined}
-														<p role="status">
-															{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
-														</p>
-													{/if}
+												{/if}
+												{#if diceCount === undefined}
+													<p role="status">
+														{turnLabel} cannot be rolled because its initiative stat is missing or invalid.
+													</p>
 												{/if}
 											</div>
 										{/if}

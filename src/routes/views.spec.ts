@@ -551,7 +551,7 @@ describe('running challenge storage', () => {
 		expect(cardTints).toEqual(['#5687c8', '#c76a6e', '#5687c8']);
 	});
 
-	it('rolls app turns by their initiative stats, preserves saved results, and restores rolls', async () => {
+	it('rolls and rerolls app turns by their initiative stats and restores results', async () => {
 		const challenge = createSetupChallenge();
 		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
 		const npcTypeId = '00000000-0000-4000-8000-000000000005' as StableId;
@@ -601,7 +601,9 @@ describe('running challenge storage', () => {
 			.mockReturnValueOnce(0.4)
 			.mockReturnValueOnce(0.99)
 			.mockReturnValueOnce(0.5)
-			.mockReturnValueOnce(0);
+			.mockReturnValueOnce(0)
+			.mockReturnValueOnce(0)
+			.mockReturnValueOnce(0.99);
 
 		const firstView = render(rollChallengePage);
 		await fireEvent.click(
@@ -612,23 +614,30 @@ describe('running challenge storage', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual(generatedTurnOrder);
+		});
+		await fireEvent.click(
+			screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 2' })
+		);
+		expect(screen.getAllByText('Initiative result: 7')).toHaveLength(2);
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.runState?.initiativeResults).toEqual({
 				[characterTurnId]: 7,
-				[savedCharacterTurnId]: 16,
+				[savedCharacterTurnId]: 7,
 				[manualTurnId]: 8,
 				[firstNpcTurnId]: 6,
 				[secondNpcTurnId]: 11
 			});
-			expect(saved?.runState?.generatedTurnOrder).toEqual(generatedTurnOrder);
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
 		});
 
 		firstView.unmount();
 		render(rollChallengePage);
-		expect(await screen.findByText('Initiative result: 7')).toBeTruthy();
-		expect(screen.getByText('Initiative result: 16')).toBeTruthy();
+		expect(await screen.findAllByText('Initiative result: 7')).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
@@ -638,6 +647,7 @@ describe('running challenge storage', () => {
 		const challenge = createSetupChallenge();
 		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		const savedTurnId = '00000000-0000-4000-8000-000000000007' as StableId;
 		challenge.creatures = [
 			{
 				id: '00000000-0000-4000-8000-000000000011' as StableId,
@@ -645,21 +655,36 @@ describe('running challenge storage', () => {
 				characterId,
 				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
 				isHidden: false,
-				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'app' } }]
+				turns: [
+					{ id: turnId, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: savedTurnId, initiative: { kind: 'roll', mode: 'app' } }
+				]
 			}
 		];
+		challenge.runState = { initiativeResults: { [savedTurnId]: 10 } };
 		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
 
 		render(rollChallengePage);
 
 		const rollButton = (await screen.findByRole('button', {
-			name: 'Roll initiative for Aria'
+			name: 'Roll initiative for Aria - Turn 1'
 		})) as HTMLButtonElement;
 		expect(rollButton.disabled).toBe(true);
+		const rerollButton = (await screen.findByRole('button', {
+			name: 'Reroll initiative for Aria - Turn 2'
+		})) as HTMLButtonElement;
+		expect(rerollButton.disabled).toBe(true);
 		expect(
-			screen.getByText('Aria cannot be rolled because its initiative stat is missing or invalid.')
+			screen.getByText(
+				'Aria - Turn 1 cannot be rolled because its initiative stat is missing or invalid.'
+			)
 		).toBeTruthy();
-		expect(screen.queryByText(/Initiative result:/)).toBeNull();
+		expect(
+			screen.getByText(
+				'Aria - Turn 2 cannot be rolled because its initiative stat is missing or invalid.'
+			)
+		).toBeTruthy();
+		expect(screen.getByText('Initiative result: 10')).toBeTruthy();
 	});
 
 	it('links back to setup for the loaded challenge', async () => {
