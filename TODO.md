@@ -24,7 +24,8 @@ foundations.
 - [x] 1.6: Support changing creature and turn setup order.
 - [x] 1.7: Support zero or multiple turns per creature.
 - [x] 1.8: Add controls to hide and show a creature's turns.
-- [ ] 1.9: Reuse saved characters when setting up a challenge.
+- [ ] 1.9: Remove "reusable characters" and treat characters like any other
+      setup entity.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
       references, including turn IDs in saved tie decisions.
 - [ ] 1.11: Persist setup changes to the local challenge library and restore saved
@@ -32,6 +33,13 @@ foundations.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
 - [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
       action.
+- [ ] 1.14: Move the "Add" buttons in setup to the bottom of their containers.
+- [ ] 1.15: Move the "Remove" buttons in setup to the top of their containers.
+- [ ] 1.16: Make every "Remove" button in setup state which kind of entity it
+      removes.
+- [ ] 1.17: Remove sorting of creatures in setup.
+- [ ] 1.18: Validate setup values.
+- [ ] 1.19: Remove faction selection from a faction's creatures in setup.
 
 ## 2. Initiative and encounter play
 
@@ -65,6 +73,8 @@ foundations.
       the order.
 - [ ] 2.15: Save generated turn order as run state so a challenge can resume with
       the generated order.
+- [ ] 2.16: Add an animated "rolling" effect for initiative rolls.
+- [ ] 2.17: Remove creature names from the cards in the roll view.
 
 ## 3. Challenge library and file workflows
 
