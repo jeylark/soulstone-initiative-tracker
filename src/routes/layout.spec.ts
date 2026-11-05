@@ -12,19 +12,7 @@ import JoinSessionPage from './join/+page.svelte';
 
 vi.mock('$app/state', () => ({
 	page: {
-		params: { challengeId: '00000000-0000-4000-8000-000000000001' },
-		state: {
-			challenge: {
-				id: '00000000-0000-4000-8000-000000000001',
-				name: '',
-				createdAt: new Date(0),
-				updatedAt: new Date(0),
-				factions: [],
-				npcTypes: [],
-				fairnessWeight: 3,
-				creatures: []
-			}
-		}
+		params: { challengeId: '00000000-0000-4000-8000-000000000001' }
 	}
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));

@@ -16,8 +16,7 @@ async function renderSetup() {
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: {
-		params: {} as Record<string, string>,
-		state: {} as Record<string, unknown>
+		params: {} as Record<string, string>
 	},
 	mockedGoto: vi.fn()
 }));
@@ -55,7 +54,6 @@ beforeEach(async () => {
 	const challenge = createSetupChallenge();
 	await saveChallengeToLibrary(challenge, []);
 	mockedPage.params = { challengeId: challenge.id };
-	mockedPage.state = { challenge };
 });
 
 const views: { name: string; page: Component; heading: string }[] = [
@@ -118,9 +116,8 @@ describe('new challenge entry', () => {
 });
 
 describe('challenge setup persistence', () => {
-	it('loads the challenge from IndexedDB, ignoring page state', async () => {
+	it('loads the challenge from IndexedDB', async () => {
 		await saveChallengeToLibrary({ ...createSetupChallenge(), name: 'Stored name' }, []);
-		mockedPage.state = {};
 
 		await renderSetup();
 
@@ -165,36 +162,31 @@ describe('challenge setup persistence', () => {
 	);
 });
 
-describe('running challenge route state', () => {
-	it('shows the challenge name when page state matches the route', () => {
-		const challenge = { ...createSetupChallenge(), name: 'Ashen Company' };
-		mockedPage.state = { challenge };
+describe('running challenge storage', () => {
+	it('shows the challenge name loaded from IndexedDB', async () => {
+		await saveChallengeToLibrary({ ...createSetupChallenge(), name: 'Ashen Company' }, []);
 
 		render(rollChallengePage);
 
+		expect(await screen.findByText('Ashen Company')).toBeTruthy();
 		expect(screen.getByRole('heading', { name: 'Running challenge' })).toBeTruthy();
-		expect(screen.getByText('Ashen Company')).toBeTruthy();
 	});
 
 	it.each([
-		{ state: {}, message: 'The running challenge state is missing.' },
-		{
-			state: {
-				challenge: {
-					...createSetupChallenge(),
-					id: '00000000-0000-4000-8000-000000000099' as StableId
-				}
-			},
-			message: 'The challenge in page state does not match this URL.'
-		}
+		{ kind: 'unknown', message: 'The challenge was not found.' },
+		{ kind: 'unreadable', message: 'The challenge could not be loaded.' }
 	] as const)(
-		'explains unavailable state and offers landing-page recovery',
-		({ state, message }) => {
-			mockedPage.state = state;
+		'explains an $kind challenge and offers landing-page recovery',
+		async ({ kind, message }) => {
+			if (kind === 'unknown') {
+				mockedPage.params = { challengeId: '00000000-0000-4000-8000-000000000099' };
+			} else {
+				vi.stubGlobal('indexedDB', undefined);
+			}
 
 			render(rollChallengePage);
 
-			expect(screen.getByRole('heading', { name: 'Challenge unavailable' })).toBeTruthy();
+			expect(await screen.findByRole('heading', { name: 'Challenge unavailable' })).toBeTruthy();
 			expect(screen.getByText(message)).toBeTruthy();
 			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 		}
