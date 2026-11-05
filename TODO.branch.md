@@ -33,7 +33,7 @@ animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
       shared module under `src/lib/challenge`, with a turn-ID lookup for creature,
       faction, label and hidden state. Roll page behavior and tests unchanged.
       Document all exports.
-- [ ] 2. (2.5, 2.6) Add a generation helper wrapping `generateTurnOrder`: returns
+- [x] 2. (2.5, 2.6) Add a generation helper wrapping `generateTurnOrder`: returns
       the order, the turns with missing roll results (blocking generation), or the
       `TurnOrderError.turnIds`. Unit tests for all three outcomes.
 - [ ] 3. (2.3, 2.5, 2.6, 2.15) Add the route

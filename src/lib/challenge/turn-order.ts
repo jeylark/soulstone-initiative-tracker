@@ -181,3 +181,54 @@ export function generateTurnOrder(
 
 	return initiativeTurns;
 }
+
+/** Outcome of {@link prepareTurnOrder}. */
+export type TurnOrderPreparation =
+	| {
+			/** The order was generated. */
+			readonly status: 'generated';
+			/** Turn IDs in generated play order. */
+			readonly order: GeneratedTurnOrder;
+	  }
+	| {
+			/** Generation is blocked because rolling turns have no initiative result. */
+			readonly status: 'missing-results';
+			/** IDs of every rolling turn without a result, in setup order. */
+			readonly turnIds: readonly StableId[];
+	  }
+	| {
+			/** Generation failed because placement rules could not be resolved. */
+			readonly status: 'placement-error';
+			/** IDs of the turns whose placement could not be resolved, in setup order. */
+			readonly turnIds: readonly StableId[];
+	  };
+
+/**
+ * Generates a turn order only if every rolling turn has a result, reporting problems instead of throwing.
+ * @param challenge Challenge whose creature turns, placement rules and fairness weight define the order.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @returns The generated order, every rolling turn missing a result, or the turns with unresolvable placement.
+ * @throws Any error other than {@link TurnOrderError} raised during generation.
+ */
+export function prepareTurnOrder(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>
+): TurnOrderPreparation {
+	const missingTurnIds = challenge.creatures.flatMap((creature) =>
+		creature.turns
+			.filter((turn) => turn.initiative.kind === 'roll' && initiativeResults[turn.id] === undefined)
+			.map((turn) => turn.id)
+	);
+	if (missingTurnIds.length > 0) {
+		return { status: 'missing-results', turnIds: missingTurnIds };
+	}
+
+	try {
+		return { status: 'generated', order: generateTurnOrder(challenge, initiativeResults) };
+	} catch (error) {
+		if (error instanceof TurnOrderError) {
+			return { status: 'placement-error', turnIds: error.turnIds };
+		}
+		throw error;
+	}
+}

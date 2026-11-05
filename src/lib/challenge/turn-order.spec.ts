@@ -8,7 +8,7 @@ import type {
 	TurnInitiative
 } from './model';
 import { createUuid } from './uuid';
-import { generateTurnOrder } from './turn-order';
+import { generateTurnOrder, prepareTurnOrder } from './turn-order';
 import type { DeepReadonly } from '../DeepReadonly';
 
 function createTurn(initiative: Readonly<TurnInitiative>): Turn {
@@ -418,5 +418,70 @@ describe('generateTurnOrder', () => {
 		expect(() => order([createCreature(factionId, [unresolved])])).toThrow(
 			expect.objectContaining({ name: 'TurnOrderError', turnIds: [unresolved.id] })
 		);
+	});
+});
+
+describe('prepareTurnOrder', () => {
+	it('returns the generated order when every rolling turn has a result', () => {
+		const factionId = createUuid();
+		const low = rolledTurn();
+		const high = rolledTurn();
+		const challenge = createChallenge([createCreature(factionId, [low, high])]);
+
+		expect(prepareTurnOrder(challenge, { [low.id]: 2, [high.id]: 9 })).toEqual({
+			status: 'generated',
+			order: [high.id, low.id]
+		});
+	});
+
+	it('reports every rolling turn without a result in setup order', () => {
+		const factionId = createUuid();
+		const missingA = rolledTurn();
+		const rolled = rolledTurn();
+		const missingB = rolledTurn();
+		const missingC = rolledTurn();
+		const challenge = createChallenge([
+			createCreature(factionId, [missingA, rolled, missingB]),
+			createCreature(factionId, [staticTurn(3)]),
+			createCreature(factionId, [missingC])
+		]);
+
+		expect(prepareTurnOrder(challenge, { [rolled.id]: 5 })).toEqual({
+			status: 'missing-results',
+			turnIds: [missingA.id, missingB.id, missingC.id]
+		});
+	});
+
+	it('reports missing results before placement errors', () => {
+		const factionId = createUuid();
+		const missing = rolledTurn();
+		const unresolved = createTurn({
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: createUuid()
+		});
+		const challenge = createChallenge([createCreature(factionId, [missing, unresolved])]);
+
+		expect(prepareTurnOrder(challenge, {})).toEqual({
+			status: 'missing-results',
+			turnIds: [missing.id]
+		});
+	});
+
+	it('reports turns whose placement cannot be resolved', () => {
+		const factionId = createUuid();
+		const unresolved = createTurn({
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: createUuid()
+		});
+		const challenge = createChallenge([createCreature(factionId, [unresolved])]);
+
+		expect(prepareTurnOrder(challenge, {})).toEqual({
+			status: 'placement-error',
+			turnIds: [unresolved.id]
+		});
 	});
 });
