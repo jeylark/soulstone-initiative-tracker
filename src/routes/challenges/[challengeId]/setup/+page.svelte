@@ -14,7 +14,6 @@
 		type FactionColor,
 		type InitiativeRollMode,
 		type NpcType,
-		type PlayerCharacter,
 		type StableId,
 		type Turn
 	} from '#lib';
@@ -35,14 +34,11 @@
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
 	let challenge = $state<Challenge>({} as Challenge);
-	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let newNpcTypeId = $state<StableId | ''>('');
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
-	let setupIssues = $derived(
-		loadStatus === 'ready' ? validateChallengeSetup(challenge, reusableCharacters) : []
-	);
+	let setupIssues = $derived(loadStatus === 'ready' ? validateChallengeSetup(challenge) : []);
 
 	onMount(() => {
 		void (async () => {
@@ -54,7 +50,6 @@
 					return;
 				}
 				challenge = saved;
-				reusableCharacters = library.characters;
 				loadStatus = 'ready';
 			} catch {
 				loadStatus = 'error';
@@ -66,7 +61,6 @@
 		if (loadStatus !== 'ready') return;
 
 		const snapshotChallenge = $state.snapshot(challenge);
-		const snapshotCharacters = $state.snapshot(reusableCharacters);
 		// The first run only reflects the just-loaded data.
 		if (isFirstRun) {
 			isFirstRun = false;
@@ -74,7 +68,7 @@
 		}
 		const timeout = setTimeout(() => {
 			if (saveTimeout === timeout) saveTimeout = undefined;
-			void enqueueSave(snapshotChallenge, snapshotCharacters).catch(() => undefined);
+			void enqueueSave(snapshotChallenge).catch(() => undefined);
 		}, 300);
 		saveTimeout = timeout;
 		return () => {
@@ -83,12 +77,9 @@
 		};
 	});
 
-	function enqueueSave(
-		snapshotChallenge: DeepReadonly<Challenge>,
-		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
-	): Promise<void> {
+	function enqueueSave(snapshotChallenge: DeepReadonly<Challenge>): Promise<void> {
 		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
-		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave));
 		saveQueue = pendingSave.then(
 			() => {
 				hasSaveError = false;
@@ -113,7 +104,7 @@
 		}
 
 		try {
-			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await enqueueSave($state.snapshot(challenge));
 			await goto(resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
@@ -271,15 +262,15 @@
 	function addCharacter(factionId: StableId) {
 		const name = nextNumberedName(
 			'Player',
-			reusableCharacters.map((character) => character.name)
+			challenge.creatures.flatMap((creature) =>
+				creature.kind === 'character' ? [creature.name] : []
+			)
 		);
 
-		const character = { id: createUuid(), name } satisfies PlayerCharacter;
-		reusableCharacters.push(character);
 		challenge.creatures.push({
 			id: createUuid(),
 			kind: 'character',
-			characterId: character.id,
+			name,
 			factionId,
 			isHidden: false,
 			turns: [createTurn('manual')]
@@ -337,20 +328,17 @@
 		return String(index);
 	}
 
-	function updateCharacterName(characterId: StableId, name: string) {
-		const character = reusableCharacters.find((item) => item.id === characterId);
-		if (character) character.name = name;
+	function updateCharacterName(creatureId: StableId, name: string) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (creature?.kind === 'character') creature.name = name;
 	}
 
-	function updateCharacterInitiativeStat(
-		characterId: StableId,
-		initiativeStat: number | undefined
-	) {
-		const character = reusableCharacters.find((item) => item.id === characterId);
-		if (!character) return;
+	function updateCharacterInitiativeStat(creatureId: StableId, initiativeStat: number | undefined) {
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (creature?.kind !== 'character') return;
 
-		if (initiativeStat === undefined) delete character.initiativeStat;
-		else character.initiativeStat = initiativeStat;
+		if (initiativeStat === undefined) delete creature.initiativeStat;
+		else creature.initiativeStat = initiativeStat;
 	}
 
 	function setTurnInitiative(creatureId: StableId, turnId: StableId, choice: InitiativeChoice) {
@@ -559,7 +547,6 @@
 			<CreatureSetup
 				factions={challenge.factions}
 				creatures={challenge.creatures}
-				characters={reusableCharacters}
 				npcTypes={challenge.npcTypes}
 				{setupIssues}
 				npcTypeId={newNpcTypeId}

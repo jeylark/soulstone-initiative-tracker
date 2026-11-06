@@ -4,7 +4,6 @@
 		Faction,
 		FactionColor,
 		NpcType,
-		PlayerCharacter,
 		StableId,
 		ValidationIssue
 	} from '#lib';
@@ -16,7 +15,6 @@
 	interface Props {
 		factions: readonly Faction[];
 		creatures: readonly ChallengeCreature[];
-		characters: readonly PlayerCharacter[];
 		npcTypes: readonly NpcType[];
 		setupIssues: readonly ValidationIssue[];
 		npcTypeId: StableId | '';
@@ -31,9 +29,9 @@
 		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
-		onCharacterNameChange: (characterId: StableId, name: string) => void;
+		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
-			characterId: StableId,
+			creatureId: StableId,
 			initiativeStat: number | undefined
 		) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -50,7 +48,6 @@
 	let {
 		factions,
 		creatures,
-		characters,
 		npcTypes,
 		setupIssues,
 		npcTypeId,
@@ -84,7 +81,6 @@
 					{faction}
 					{factions}
 					{creatures}
-					{characters}
 					{npcTypes}
 					{setupIssues}
 					{npcTypeId}

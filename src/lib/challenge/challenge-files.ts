@@ -1,4 +1,4 @@
-import type { Challenge, ChallengeLibrary, PlayerCharacter, StableId } from './model';
+import type { Challenge, ChallengeLibrary, StableId } from './model';
 import { sanitizeChallenge } from './challenge-copy';
 import { type DeepReadonly } from '../DeepReadonly';
 import { downloadChallengeJson, type ChallengeFileReadResult } from './json-files';
@@ -39,14 +39,6 @@ export interface PreparedChallengeImport {
 	readonly library: ChallengeLibrary;
 	/** Imported challenge, with IDs adjusted if a copy was requested. */
 	readonly challenge: Challenge;
-}
-
-/** A prepared library update and the reusable characters included in it. */
-export interface PreparedCharacterImport {
-	/** Complete library to persist after the caller confirms the import. */
-	readonly library: ChallengeLibrary;
-	/** Characters added or reused from the imported challenge file. */
-	readonly importedCharacters: readonly PlayerCharacter[];
 }
 
 /** A conflict or invalid operation while importing a single challenge file. */
@@ -120,7 +112,6 @@ function resolvePartialImport(
 
 function getLibraryEntityIds(library: DeepReadonly<ChallengeLibrary>): ReadonlySet<string> {
 	const ids = new Set<string>();
-	library.characters.forEach(({ id }) => ids.add(id.toLowerCase()));
 	library.challenges.forEach((challenge) => {
 		ids.add(challenge.id.toLowerCase());
 		challenge.factions.forEach(({ id }) => ids.add(id.toLowerCase()));
@@ -138,48 +129,6 @@ function createUniqueId(usedIds: Set<string>): StableId {
 	while (usedIds.has(id.toLowerCase())) id = createUuid();
 	usedIds.add(id.toLowerCase());
 	return id;
-}
-
-function importCharacters(
-	existingCharacters: readonly DeepReadonly<PlayerCharacter>[],
-	importedCharacters: readonly DeepReadonly<PlayerCharacter>[],
-	usedIds: Set<string>
-): Readonly<{
-	characters: readonly PlayerCharacter[];
-	idMap: ReadonlyMap<string, StableId>;
-}> {
-	const characters = existingCharacters.map(({ id, name, initiativeStat }) => ({
-		id,
-		name,
-		...(initiativeStat === undefined ? {} : { initiativeStat })
-	}));
-	const idMap = new Map<string, StableId>();
-
-	importedCharacters.forEach((character) => {
-		const existingCharacter = existingCharacters.find(
-			({ id }) => id.toLowerCase() === character.id.toLowerCase()
-		);
-		if (
-			existingCharacter?.name === character.name &&
-			existingCharacter?.initiativeStat === character.initiativeStat
-		) {
-			idMap.set(character.id.toLowerCase(), existingCharacter.id);
-			return;
-		}
-
-		const id = usedIds.has(character.id.toLowerCase()) ? createUniqueId(usedIds) : character.id;
-		usedIds.add(id.toLowerCase());
-		idMap.set(character.id.toLowerCase(), id);
-		characters.push({
-			id,
-			name: character.name,
-			...(character.initiativeStat === undefined
-				? {}
-				: { initiativeStat: character.initiativeStat })
-		});
-	});
-
-	return { characters, idMap };
 }
 
 function importChallengeEntities(
@@ -327,11 +276,6 @@ function mergeImportedChallenge(
 	).map(sanitizeChallenge);
 	const retainedLibrary = { ...library, challenges: retainedChallenges };
 	const usedIds = new Set(getLibraryEntityIds(retainedLibrary));
-	const importedCharacters = importCharacters(
-		library.characters,
-		importedLibrary.characters,
-		usedIds
-	);
 	const remapped = importChallengeEntities(importedChallenge, usedIds);
 	const sanitizedChallenge = sanitizeChallenge(remapped.challenge);
 	const copyTimestamp = options?.resolution === 'copy' ? new Date() : undefined;
@@ -343,43 +287,13 @@ function mergeImportedChallenge(
 					createdAt: new Date(copyTimestamp.getTime()),
 					updatedAt: new Date(copyTimestamp.getTime())
 				};
-	const challenge: Challenge = {
-		...remappedChallenge,
-		creatures: remappedChallenge.creatures.map((creature) =>
-			creature.kind === 'character'
-				? {
-						...creature,
-						characterId:
-							importedCharacters.idMap.get(creature.characterId.toLowerCase()) ??
-							creature.characterId
-					}
-				: creature
-		)
-	};
+	const challenge: Challenge = remappedChallenge;
 	const nextLibrary: ChallengeLibrary = {
 		formatVersion: library.formatVersion,
-		characters: [...importedCharacters.characters],
 		challenges: [...retainedChallenges, challenge]
 	};
 
 	return { library: nextLibrary, challenge };
-}
-
-function mergeImportedCharacters(
-	library: DeepReadonly<ChallengeLibrary>,
-	importedLibrary: DeepReadonly<ChallengeLibrary>
-): Readonly<{ library: ChallengeLibrary; importedCharacters: readonly PlayerCharacter[] }> {
-	const usedIds = new Set(getLibraryEntityIds(library));
-	const result = importCharacters(library.characters, importedLibrary.characters, usedIds);
-	const importedIds = new Set(result.idMap.values());
-	return {
-		library: {
-			formatVersion: library.formatVersion,
-			characters: [...result.characters],
-			challenges: library.challenges.map(sanitizeChallenge)
-		},
-		importedCharacters: result.characters.filter(({ id }) => importedIds.has(id))
-	};
 }
 
 /**
@@ -419,28 +333,4 @@ export function prepareChallengeImport(
 		);
 	}
 	return mergeImportedChallenge(library, importedLibrary, options);
-}
-
-/**
- * Prepares reusable characters from a challenge file without persisting them.
- * @param library Current library to merge the characters into.
- * @param readResult Result returned by `readChallengeJsonFile`.
- * @param partialImport Choice required when the file was only partially readable.
- * @returns Candidate library and imported/reused characters; persist the library separately.
- * @throws {PartialChallengeImportError} If partial content is not accepted or no valid characters remain.
- */
-export function prepareCharacterImport(
-	library: DeepReadonly<ChallengeLibrary>,
-	readResult: DeepReadonly<ChallengeFileReadResult>,
-	partialImport?: PartialImportResolution
-): PreparedCharacterImport {
-	const importedLibrary = resolvePartialImport(readResult, partialImport);
-	if (importedLibrary.characters.length === 0) {
-		throw new PartialChallengeImportError(
-			'no-importable-data',
-			readResult.unreadableFields,
-			'The file does not contain any valid reusable characters to import.'
-		);
-	}
-	return mergeImportedCharacters(library, importedLibrary);
 }

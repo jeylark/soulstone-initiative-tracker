@@ -27,7 +27,7 @@
 	async function createChallenge() {
 		errorMessage = '';
 		try {
-			await saveChallengeToLibrary($state.snapshot(challenge), []);
+			await saveChallengeToLibrary($state.snapshot(challenge));
 		} catch {
 			errorMessage = 'The new challenge could not be saved.';
 			return;

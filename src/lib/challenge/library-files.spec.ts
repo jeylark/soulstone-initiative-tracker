@@ -4,7 +4,7 @@ import { backupChallengeLibraryToJsonFile } from './library-files';
 import { saveChallengeLibrary } from './storage';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
-const library = { formatVersion: 1 as const, characters: [], challenges: [] };
+const library = { formatVersion: 1 as const, challenges: [] };
 let indexedDbFactory: IDBFactory;
 
 function deleteDatabase(): Promise<void> {

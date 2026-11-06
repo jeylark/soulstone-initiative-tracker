@@ -10,7 +10,6 @@
 		saveChallengeToLibrary,
 		type Challenge,
 		type ChallengeCreature,
-		type PlayerCharacter,
 		type StableId,
 		type TurnDisplay,
 		createTurnDisplayLookup
@@ -26,10 +25,9 @@
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
 	let challenge = $state<Challenge>();
-	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
 	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
-		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
+		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -62,8 +60,7 @@
 	function initiativeStat(creature: DeepReadonly<ChallengeCreature>): number | undefined {
 		const stat =
 			creature.kind === 'character'
-				? reusableCharacters.find((character) => character.id === creature.characterId)
-						?.initiativeStat
+				? creature.initiativeStat
 				: challenge?.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)
 						?.initiativeStat;
 		return typeof stat === 'number' && Number.isSafeInteger(stat) && stat > 0 ? stat : undefined;
@@ -148,7 +145,6 @@
 				);
 				challenge = loadedChallenge;
 				if (loadedChallenge) {
-					reusableCharacters = library.characters;
 					initiativeInputs = Object.fromEntries(
 						loadedChallenge.creatures.flatMap((creature) =>
 							creature.turns.flatMap((turn) => {
@@ -172,14 +168,13 @@
 		if (loadStatus !== 'ready' || !challenge) return;
 
 		const snapshotChallenge = $state.snapshot(challenge);
-		const snapshotCharacters = $state.snapshot(reusableCharacters);
 		if (isFirstRun) {
 			isFirstRun = false;
 			return;
 		}
 		const timeout = setTimeout(() => {
 			if (saveTimeout === timeout) saveTimeout = undefined;
-			void enqueueSave(snapshotChallenge, snapshotCharacters).catch(() => undefined);
+			void enqueueSave(snapshotChallenge).catch(() => undefined);
 		}, 300);
 		saveTimeout = timeout;
 		return () => {
@@ -188,12 +183,9 @@
 		};
 	});
 
-	function enqueueSave(
-		snapshotChallenge: DeepReadonly<Challenge>,
-		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
-	): Promise<void> {
+	function enqueueSave(snapshotChallenge: DeepReadonly<Challenge>): Promise<void> {
 		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
-		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave));
 		saveQueue = pendingSave.then(
 			() => {
 				hasSaveError = false;
@@ -215,7 +207,7 @@
 		}
 
 		try {
-			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await enqueueSave($state.snapshot(challenge));
 			await goto(resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
@@ -234,7 +226,7 @@
 		}
 
 		try {
-			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await enqueueSave($state.snapshot(challenge));
 			await goto(resolve('/challenges/[challengeId]/run', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;

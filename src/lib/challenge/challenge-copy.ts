@@ -33,7 +33,8 @@ function copyCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreat
 		return {
 			id: creature.id,
 			kind: 'character',
-			characterId: creature.characterId,
+			name: creature.name,
+			...(creature.initiativeStat === undefined ? {} : { initiativeStat: creature.initiativeStat }),
 			factionId: creature.factionId,
 			isHidden: creature.isHidden,
 			turns

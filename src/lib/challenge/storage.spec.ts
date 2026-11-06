@@ -16,13 +16,12 @@ let indexedDbFactory: IDBFactory;
 
 const emptyLibrary: ChallengeLibrary = {
 	formatVersion: CHALLENGE_FORMAT_VERSION,
-	characters: [],
 	challenges: []
 };
 
 const library: ChallengeLibrary = {
 	...emptyLibrary,
-	characters: [{ id: createUuid(), name: 'Aria' }]
+	challenges: [createChallenge('Saved')]
 };
 
 function createChallenge(name: string): Challenge {
@@ -105,36 +104,28 @@ describe('challenge library storage', () => {
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
 	});
 
-	it('adds a challenge and its characters to an empty library', async () => {
+	it('adds a challenge to an empty library', async () => {
 		const challenge = createChallenge('First');
 
-		await saveChallengeToLibrary(challenge, library.characters, indexedDbFactory);
+		await saveChallengeToLibrary(challenge, indexedDbFactory);
 
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			...emptyLibrary,
-			characters: library.characters,
 			challenges: [challenge]
 		});
 	});
 
-	it('replaces a saved challenge by ID, keeping others and merging characters by ID', async () => {
+	it('replaces a saved challenge by ID, keeping others', async () => {
 		const first = createChallenge('First');
 		const second = createChallenge('Second');
-		const [aria] = library.characters;
-		const bram = { id: createUuid(), name: 'Bram' };
-		await saveChallengeToLibrary(first, [aria!], indexedDbFactory);
-		await saveChallengeToLibrary(second, [], indexedDbFactory);
+		await saveChallengeToLibrary(first, indexedDbFactory);
+		await saveChallengeToLibrary(second, indexedDbFactory);
 
 		const renamedFirst = { ...first, name: 'Renamed' };
-		await saveChallengeToLibrary(
-			renamedFirst,
-			[{ ...aria!, name: 'Aria II' }, bram],
-			indexedDbFactory
-		);
+		await saveChallengeToLibrary(renamedFirst, indexedDbFactory);
 
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
 			...emptyLibrary,
-			characters: [{ ...aria!, name: 'Aria II' }, bram],
 			challenges: [renamedFirst, second]
 		});
 	});
@@ -142,7 +133,7 @@ describe('challenge library storage', () => {
 	it('does not save an invalid challenge', async () => {
 		const invalid = { ...createChallenge('Bad'), fairnessWeight: -1 };
 
-		await expect(saveChallengeToLibrary(invalid, [], indexedDbFactory)).rejects.toBeInstanceOf(
+		await expect(saveChallengeToLibrary(invalid, indexedDbFactory)).rejects.toBeInstanceOf(
 			ChallengeLibraryValidationError
 		);
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);

@@ -10,7 +10,6 @@ import type {
 	InitiativeRollMode,
 	NpcCreature,
 	NpcType,
-	PlayerCharacter,
 	StableId,
 	Turn,
 	TurnInitiative
@@ -108,17 +107,11 @@ function validateArray<T>(
 	return isValid;
 }
 
-function validatePlayerCharacter(
-	value: unknown,
+function validateCharacterDetails(
+	value: UnknownRecord,
 	path: string,
 	addIssue: IssueRecorder
-): value is PlayerCharacter {
-	if (!isRecord(value)) {
-		addIssue(path, 'Expected a character object.');
-		return false;
-	}
-
-	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
+): boolean {
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
 	let isValidInitiativeStat = true;
 	if (
@@ -130,7 +123,7 @@ function validatePlayerCharacter(
 		addIssue(`${path}.initiativeStat`, 'Expected a positive whole number.');
 		isValidInitiativeStat = false;
 	}
-	return isValidId && isValidName && isValidInitiativeStat;
+	return isValidName && isValidInitiativeStat;
 }
 
 function validateFaction(value: unknown, path: string, addIssue: IssueRecorder): value is Faction {
@@ -261,12 +254,12 @@ function validateCharacterCreature(
 	addIssue: IssueRecorder
 ): value is UnknownRecord & CharacterCreature {
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
-	const isValidCharacterId = validateStableId(value.characterId, `${path}.characterId`, addIssue);
+	const isValidDetails = validateCharacterDetails(value, path, addIssue);
 	const isValidFactionId = validateStableId(value.factionId, `${path}.factionId`, addIssue);
 	const isValidHidden = typeof value.isHidden === 'boolean';
 	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
 	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue);
-	return isValidId && isValidCharacterId && isValidFactionId && isValidHidden && isValidTurns;
+	return isValidId && isValidDetails && isValidFactionId && isValidHidden && isValidTurns;
 }
 
 function validateNpcCreature(
@@ -414,19 +407,13 @@ function validateLibraryShape(value: unknown, addIssue: IssueRecorder): value is
 
 	const isValidVersion = value.formatVersion === 1;
 	if (!isValidVersion) addIssue('$.formatVersion', 'Unsupported challenge library version.');
-	const isValidCharacters = validateArray(
-		value.characters,
-		'$.characters',
-		addIssue,
-		validatePlayerCharacter
-	);
 	const isValidChallenges = validateArray(
 		value.challenges,
 		'$.challenges',
 		addIssue,
 		validateChallenge
 	);
-	return isValidVersion && isValidCharacters && isValidChallenges;
+	return isValidVersion && isValidChallenges;
 }
 
 function getArray(value: unknown): readonly unknown[] {
@@ -440,10 +427,6 @@ function getEntityId(value: unknown): string | undefined {
 
 function getEntityPaths(value: UnknownRecord): readonly { id: string; path: string }[] {
 	return [
-		...getArray(value.characters).flatMap((character, index) => {
-			const id = getEntityId(character);
-			return id ? [{ id, path: `$.characters[${index}].id` }] : [];
-		}),
 		...getArray(value.challenges).flatMap((challenge, challengeIndex) => {
 			if (!isRecord(challenge)) return [];
 			const path = `$.challenges[${challengeIndex}]`;
@@ -510,7 +493,6 @@ function getTurnEntries(
 
 function validateChallengeReferences(
 	challenge: UnknownRecord,
-	characterIds: ReadonlySet<string>,
 	path: string,
 	addIssue: IssueRecorder
 ): void {
@@ -536,17 +518,6 @@ function validateChallengeReferences(
 				: undefined;
 		if (creature.kind === 'npc' && creatureTypeId && !npcTypeIds.has(creatureTypeId)) {
 			addIssue(`${creaturePath}.creatureTypeId`, 'References an NPC type that does not exist.');
-		}
-
-		const characterId =
-			typeof creature.characterId === 'string'
-				? parseUuid(creature.characterId)?.toLowerCase()
-				: undefined;
-		if (creature.kind === 'character' && characterId && !characterIds.has(characterId)) {
-			addIssue(
-				`${creaturePath}.characterId`,
-				'References a reusable character that does not exist.'
-			);
 		}
 	});
 
@@ -617,7 +588,7 @@ function validateRunStateReferences(
 
 /**
  * Validates untrusted runtime data as a challenge library, including entity IDs
- * and references between characters, factions, NPC types, turns, and run state.
+ * and references between factions, NPC types, turns, and run state.
  * @param value Untrusted value to validate.
  * @returns A discriminated result containing either the validated library or all issues.
  */
@@ -626,10 +597,9 @@ export function validateChallengeLibrary(value: unknown): ValidationResult<Chall
 	const isValidShape = validateLibraryShape(value, addIssue);
 	if (isRecord(value)) {
 		validateUniqueIds(value, addIssue);
-		const characterIds = getIds(value.characters);
 		getArray(value.challenges).forEach((challenge, index) => {
 			if (isRecord(challenge)) {
-				validateChallengeReferences(challenge, characterIds, `$.challenges[${index}]`, addIssue);
+				validateChallengeReferences(challenge, `$.challenges[${index}]`, addIssue);
 			}
 		});
 	}

@@ -13,12 +13,10 @@ import {
 } from './json-files';
 import { createUuid } from './uuid';
 
-const firstCharacterId = createUuid();
-const secondCharacterId = createUuid();
 const firstChallengeId = createUuid();
 const secondChallengeId = createUuid();
 
-function createChallenge(id: StableId, characterId: StableId, name: string): Challenge {
+function createChallenge(id: StableId, characterName: string, name: string): Challenge {
 	const factionId = createUuid();
 	const turnId = createUuid();
 
@@ -34,7 +32,8 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 			{
 				id: createUuid(),
 				kind: 'character',
-				characterId,
+				name: characterName,
+				initiativeStat: 4,
 				factionId,
 				isHidden: false,
 				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
@@ -49,13 +48,9 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 
 const library: ChallengeLibrary = {
 	formatVersion: 1,
-	characters: [
-		{ id: firstCharacterId, name: 'Aria' },
-		{ id: secondCharacterId, name: 'Bram' }
-	],
 	challenges: [
-		createChallenge(firstChallengeId, firstCharacterId, 'The Old Keep'),
-		createChallenge(secondChallengeId, secondCharacterId, 'The Sunken Vault')
+		createChallenge(firstChallengeId, 'Aria', 'The Old Keep'),
+		createChallenge(secondChallengeId, 'Bram', 'The Sunken Vault')
 	]
 };
 
@@ -107,27 +102,13 @@ describe('challenge and library JSON files', () => {
 		expect(parsedLibrary.challenges[0]?.updatedAt).toBeInstanceOf(Date);
 	});
 
-	it('preserves reusable character initiative stats in library JSON', () => {
-		const libraryWithCharacterStat = {
-			...library,
-			characters: library.characters.map((character) =>
-				character.id === firstCharacterId ? { ...character, initiativeStat: 4 } : character
-			)
-		};
-		const json = createChallengeLibraryJson(libraryWithCharacterStat);
-
-		expect(JSON.parse(json).characters[0].initiativeStat).toBe(4);
-		expect(parseChallengeLibraryJson(json).characters).toEqual(libraryWithCharacterStat.characters);
-	});
-
-	it('exports a single challenge with only its referenced reusable characters', () => {
+	it('exports a single challenge as a single-challenge file', () => {
 		const json = createChallengeJson(library, firstChallengeId);
 		const challengeFile = JSON.parse(json);
 
 		expect(challengeFile.challenges[0].createdAt).toBe(
 			library.challenges[0]?.createdAt.toISOString()
 		);
-		expect(challengeFile.characters).toEqual([library.characters[0]]);
 		expect(parseChallengeJson(json).challenges).toEqual([library.challenges[0]]);
 	});
 
@@ -146,12 +127,12 @@ describe('challenge and library JSON files', () => {
 	});
 
 	it('reports validation issues for malformed library data', () => {
-		const invalidJson = JSON.stringify({ formatVersion: 1, characters: null, challenges: [] });
+		const invalidJson = JSON.stringify({ formatVersion: 1, challenges: null });
 
 		expect(() => parseChallengeLibraryJson(invalidJson)).toThrowError(
 			expect.objectContaining({
 				code: 'invalid-library',
-				issues: expect.arrayContaining([expect.objectContaining({ path: '$.characters' })])
+				issues: expect.arrayContaining([expect.objectContaining({ path: '$.challenges' })])
 			})
 		);
 	});
@@ -183,7 +164,6 @@ describe('challenge and library JSON files', () => {
 		await expect(readChallengeJsonFile(file)).resolves.toEqual({
 			content: {
 				formatVersion: 1,
-				characters: [library.characters[0]],
 				challenges: [library.challenges[0]]
 			},
 			unreadableFields: [],
@@ -196,8 +176,7 @@ describe('challenge and library JSON files', () => {
 			[
 				JSON.stringify({
 					formatVersion: 1,
-					characters: [library.characters[0], { id: 'invalid-id', name: 'Broken' }],
-					challenges: [library.challenges[0]]
+					challenges: [{ ...library.challenges[0], id: 'invalid-id' }]
 				})
 			],
 			'challenge.json',
@@ -207,10 +186,9 @@ describe('challenge and library JSON files', () => {
 		await expect(readChallengeJsonFile(partialFile)).resolves.toEqual({
 			content: {
 				formatVersion: 1,
-				characters: [library.characters[0]],
-				challenges: [library.challenges[0]]
+				challenges: []
 			},
-			unreadableFields: [expect.objectContaining({ path: '$.characters[1].id' })],
+			unreadableFields: [expect.objectContaining({ path: '$.challenges[0].id' })],
 			isPartial: true
 		});
 	});

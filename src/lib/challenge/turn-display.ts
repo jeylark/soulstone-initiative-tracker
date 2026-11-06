@@ -1,5 +1,5 @@
 import type { DeepReadonly } from '../DeepReadonly';
-import type { Challenge, ChallengeCreature, Faction, PlayerCharacter, StableId } from './model';
+import type { Challenge, ChallengeCreature, Faction, StableId } from './model';
 
 /** Display metadata associated with one configured challenge turn. */
 export interface TurnDisplay {
@@ -36,20 +36,17 @@ export interface TurnOrderDisplay {
 /**
  * Creates display metadata for every configured turn in a challenge.
  * @param challenge Challenge whose creature, faction, and NPC type data defines the display metadata.
- * @param characters Reusable player characters used to resolve character creature names.
  * @returns Read-only lookup of turn display metadata keyed by turn ID.
  */
 export function createTurnDisplayLookup(
-	challenge: DeepReadonly<Challenge>,
-	characters: readonly DeepReadonly<PlayerCharacter>[]
+	challenge: DeepReadonly<Challenge>
 ): ReadonlyMap<StableId, TurnDisplay> {
 	const lookup = new Map<StableId, TurnDisplay>();
 
 	for (const creature of challenge.creatures) {
 		let creatureName: string;
 		if (creature.kind === 'character') {
-			creatureName =
-				characters.find((character) => character.id === creature.characterId)?.name ?? 'Character';
+			creatureName = creature.name;
 		} else {
 			const typeName =
 				challenge.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)?.name ?? 'NPC';
