@@ -1,4 +1,10 @@
-import type { Challenge, GeneratedTurnOrder, InitiativeResults, StableId } from './model';
+import type {
+	Challenge,
+	GeneratedTurnOrder,
+	GeneratedTurnOrderEntry,
+	InitiativeResults,
+	StableId
+} from './model';
 import type { DeepReadonly } from '../DeepReadonly';
 
 type InitiativeTurn = {
@@ -90,7 +96,7 @@ function filterFactionTurns(
  * 10+	Nearly proportional round-robin
  * @param challenge Challenge whose creature turns, placement rules and fairness weight define the order.
  * @param initiativeResults Initiative values collected for rolling turns.
- * @returns Turn IDs in generated play order.
+ * @returns Generated play order of turn entries followed by the Spawn entry.
  * @throws {TurnOrderError} If a relative placement targets a turn that is missing from the order or the placements form a cycle.
  */
 export function generateTurnOrder(
@@ -179,7 +185,10 @@ export function generateTurnOrder(
 		pendingHooks = deferredHooks;
 	}
 
-	return initiativeTurns;
+	return [
+		...initiativeTurns.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
+		{ kind: 'spawn' }
+	];
 }
 
 /** Outcome of {@link prepareTurnOrder}. */
@@ -187,7 +196,7 @@ export type TurnOrderPreparation =
 	| {
 			/** The order was generated. */
 			readonly status: 'generated';
-			/** Turn IDs in generated play order. */
+			/** Generated play order of turn entries followed by the Spawn entry. */
 			readonly order: GeneratedTurnOrder;
 	  }
 	| {

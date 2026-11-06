@@ -12,8 +12,25 @@ export type InitiativeResults = Partial<Record<StableId, number>>;
 /** Whether the app calculates a turn's initiative or the DM enters its result. */
 export type InitiativeRollMode = 'app' | 'manual';
 
-/** Turn IDs in their generated play order. */
-export type GeneratedTurnOrder = StableId[];
+/** Entry in the generated order for a configured creature turn. */
+export interface GeneratedTurnEntry {
+	/** Marks the entry as a configured creature turn. */
+	kind: 'turn';
+	/** ID of the configured turn that takes this position. */
+	turnId: StableId;
+}
+
+/** Entry in the generated order for the end-of-round Spawn step. */
+export interface GeneratedSpawnEntry {
+	/** Marks the entry as the Spawn step. */
+	kind: 'spawn';
+}
+
+/** One position in the generated play order: a creature turn or the Spawn step. */
+export type GeneratedTurnOrderEntry = GeneratedTurnEntry | GeneratedSpawnEntry;
+
+/** Entries in their generated play order; Spawn is the last entry. */
+export type GeneratedTurnOrder = GeneratedTurnOrderEntry[];
 
 /** Saved progress from initiative collection and turn-order generation. */
 export interface ChallengeRunState {

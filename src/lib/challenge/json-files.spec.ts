@@ -42,7 +42,7 @@ function createChallenge(id: StableId, characterId: StableId, name: string): Cha
 		],
 		runState: {
 			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [turnId]
+			generatedTurnOrder: [{ kind: 'turn', turnId }, { kind: 'spawn' }]
 		}
 	};
 }

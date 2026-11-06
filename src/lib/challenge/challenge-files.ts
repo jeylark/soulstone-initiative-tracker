@@ -264,7 +264,11 @@ function importChallengeEntities(
 					...(challenge.runState.generatedTurnOrder === undefined
 						? {}
 						: {
-								generatedTurnOrder: challenge.runState.generatedTurnOrder.map((id) => mapTurnId(id))
+								generatedTurnOrder: challenge.runState.generatedTurnOrder.map((entry) =>
+									entry.kind === 'turn'
+										? { kind: 'turn' as const, turnId: mapTurnId(entry.turnId) }
+										: { kind: 'spawn' as const }
+								)
 							})
 				};
 
