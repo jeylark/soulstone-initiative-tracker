@@ -40,6 +40,10 @@ foundations.
 - [ ] 1.17: Remove sorting of creatures in setup.
 - [ ] 1.18: Validate setup values.
 - [ ] 1.19: Remove faction selection from a faction's creatures in setup.
+- [ ] 1.20: Hide the initiative-stat input for faction creatures when it isn't
+      needed for rolling, while preserving any entered value in storage.
+- [ ] 1.21: Remove the navigation bar altogether.
+- [ ] 1.22: Link the header page icon (and app name) to the landing page.
 
 ## 2. Initiative and encounter play
 
@@ -76,6 +80,24 @@ foundations.
 - [ ] 2.17: Remove creature names from the cards in the roll view.
 - [ ] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
       hidden turns stay visible but greyed out.
+- [ ] 2.19: Remove "this result is still valid" explanations from warnings; the
+      warning itself is sufficient.
+- [ ] 2.20: Keep input dimensions stable when warnings or errors appear or
+      disappear.
+- [ ] 2.21: Label turn-order generation **Start challenge** and remove the
+      recalculation action while a challenge is running. This does not rename
+      the separate per-turn **Calculate roll** action.
+- [ ] 2.22: After turn-order generation starts the challenge, lock setup and
+      rolling until the challenge is reset.
+- [ ] 2.23: Show the challenge name in the run view.
+- [ ] 2.24: Make the creature name prominent inside each turn card and show its
+      numeric initiative when one exists.
+- [ ] 2.25: Remove turn numbers from card titles and order indices from run-view
+      cards.
+- [ ] 2.26: Move the hide checkbox inside each running-challenge turn card.
+- [ ] 2.27: Make faction colors stand out more clearly from the background.
+- [ ] 2.28: When an initiative stat changes, discard affected app-rolled results
+      and invalidate the generated order; preserve manual/static values.
 
 ## 3. Challenge library and file workflows
 
