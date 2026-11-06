@@ -8,7 +8,13 @@ import turnOrderPage from './challenges/[challengeId]/run/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
 import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
-import { loadChallengeLibrary, saveChallengeToLibrary, type Challenge, type StableId } from '#lib';
+import {
+	loadChallengeLibrary,
+	saveChallengeToLibrary,
+	type Challenge,
+	type GeneratedTurnOrder,
+	type StableId
+} from '#lib';
 
 async function renderSetup() {
 	render(setupChallengePage);
@@ -315,7 +321,11 @@ describe('running challenge storage', () => {
 		];
 		challenge.runState = {
 			initiativeResults: { [secondTurnId]: 8 },
-			generatedTurnOrder: [secondTurnId, firstTurnId]
+			generatedTurnOrder: [
+				{ kind: 'turn', turnId: secondTurnId },
+				{ kind: 'turn', turnId: firstTurnId },
+				{ kind: 'spawn' }
+			]
 		};
 		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
 
@@ -635,7 +645,11 @@ describe('running challenge storage', () => {
 		const manualTurnId = '00000000-0000-4000-8000-000000000008' as StableId;
 		const firstNpcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
 		const secondNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
-		const generatedTurnOrder = [savedCharacterTurnId, manualTurnId];
+		const generatedTurnOrder: GeneratedTurnOrder = [
+			{ kind: 'turn', turnId: savedCharacterTurnId },
+			{ kind: 'turn', turnId: manualTurnId },
+			{ kind: 'spawn' }
+		];
 		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 3 }];
 		challenge.creatures = [
 			{
@@ -826,7 +840,11 @@ describe('turn-order run route', () => {
 		];
 		challenge.runState = {
 			initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
-			generatedTurnOrder: [ariaTurnId, rookTurnId]
+			generatedTurnOrder: [
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'spawn' }
+			]
 		};
 		return challenge;
 	}
@@ -834,17 +852,25 @@ describe('turn-order run route', () => {
 	it('renders the saved order as numbered faction-colored cards', async () => {
 		const challenge = createRunChallenge();
 		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
-		challenge.runState!.generatedTurnOrder = [rookTurnId, ariaTurnId];
+		challenge.runState!.generatedTurnOrder = [
+			{ kind: 'turn', turnId: rookTurnId },
+			{ kind: 'turn', turnId: ariaTurnId },
+			{ kind: 'spawn' }
+		];
 		await saveChallengeToLibrary(challenge, runCharacters);
 
 		render(turnOrderPage);
 
 		const savedOrder = await screen.findByRole('list', { name: 'Generated turn order' });
 		const items = within(savedOrder).getAllByRole('listitem');
-		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual(['Rook', 'Aria']);
+		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
+			'Rook',
+			'Aria',
+			'Spawn'
+		]);
 		expect(
 			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
-		).toEqual(['1', '2']);
+		).toEqual(['1', '2', '3']);
 		expect(items[0]?.textContent).toContain('Enemies');
 		expect(items[1]?.textContent).toContain('Players');
 		expect(
@@ -853,7 +879,7 @@ describe('turn-order run route', () => {
 					.querySelector<HTMLElement>('.turn-order-card-tone')
 					?.style.getPropertyValue('--faction-color')
 			)
-		).toEqual(['#c76a6e', '#5687c8']);
+		).toEqual(['#c76a6e', '#5687c8', undefined]);
 	});
 
 	it('hides and restores all turns for a creature without changing the saved order or results', async () => {
@@ -863,7 +889,12 @@ describe('turn-order run route', () => {
 			initiative: { kind: 'roll', mode: 'manual' }
 		});
 		challenge.runState!.initiativeResults[ariaSecondTurnId] = 8;
-		challenge.runState!.generatedTurnOrder = [ariaTurnId, rookTurnId, ariaSecondTurnId];
+		challenge.runState!.generatedTurnOrder = [
+			{ kind: 'turn', turnId: ariaTurnId },
+			{ kind: 'turn', turnId: rookTurnId },
+			{ kind: 'turn', turnId: ariaSecondTurnId },
+			{ kind: 'spawn' }
+		];
 		await saveChallengeToLibrary(challenge, runCharacters);
 
 		render(turnOrderPage);
@@ -877,11 +908,7 @@ describe('turn-order run route', () => {
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.creatures[0]?.isHidden).toBe(true);
-			expect(saved?.runState?.generatedTurnOrder).toEqual([
-				ariaTurnId,
-				rookTurnId,
-				ariaSecondTurnId
-			]);
+			expect(saved?.runState?.generatedTurnOrder).toEqual(challenge.runState?.generatedTurnOrder);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
 
@@ -890,7 +917,8 @@ describe('turn-order run route', () => {
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
 			'Aria - Turn 1',
 			'Rook',
-			'Aria - Turn 2'
+			'Aria - Turn 2',
+			'Spawn'
 		]);
 		const ariaItems = items.filter((item) =>
 			item.querySelector('h2')?.textContent?.startsWith('Aria')
@@ -937,13 +965,17 @@ describe('turn-order run route', () => {
 			within(savedOrder)
 				.getAllByRole('listitem')
 				.map((item) => item.querySelector('h2')?.textContent)
-		).toEqual(['Aria', 'Rook']);
+		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
 		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'spawn' }
+			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
 		expect(mockedGoto).not.toHaveBeenCalled();
@@ -965,7 +997,11 @@ describe('turn-order run route', () => {
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'spawn' }
+			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
 		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
@@ -985,8 +1021,9 @@ describe('turn-order run route', () => {
 		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
-			ariaTurnId,
-			rookTurnId
+			{ kind: 'turn', turnId: ariaTurnId },
+			{ kind: 'turn', turnId: rookTurnId },
+			{ kind: 'spawn' }
 		]);
 	});
 
@@ -1063,7 +1100,7 @@ describe('new challenge setup', () => {
 		];
 		challenge.runState = {
 			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [turnId]
+			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
 		};
 		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
 
@@ -1094,7 +1131,7 @@ describe('new challenge setup', () => {
 		];
 		challenge.runState = {
 			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [turnId]
+			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
 		};
 		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
 
@@ -1129,7 +1166,7 @@ describe('new challenge setup', () => {
 		];
 		challenge.runState = {
 			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [turnId]
+			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
 		};
 		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
 
@@ -1141,7 +1178,10 @@ describe('new challenge setup', () => {
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.name).toBe('Ashen Company');
-			expect(saved?.runState?.generatedTurnOrder).toEqual([turnId]);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: turnId },
+				{ kind: 'spawn' }
+			]);
 		});
 	});
 

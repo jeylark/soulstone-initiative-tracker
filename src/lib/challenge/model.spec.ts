@@ -26,7 +26,11 @@ const initiativeResults = {
 	[ids.turn]: 12
 } satisfies InitiativeResults;
 
-const generatedTurnOrder = [ids.turn, ids.secondTurn] satisfies GeneratedTurnOrder;
+const generatedTurnOrder = [
+	{ kind: 'turn', turnId: ids.turn },
+	{ kind: 'turn', turnId: ids.secondTurn },
+	{ kind: 'spawn' }
+] satisfies GeneratedTurnOrder;
 
 const initiativeExamples = [
 	{ kind: 'roll', mode: 'app' },
@@ -67,7 +71,12 @@ const library = {
 			fairnessWeight: 3,
 			runState: {
 				initiativeResults: { [ids.turn]: 12, [ids.secondTurnId]: 8 },
-				generatedTurnOrder: [ids.turn, ids.secondTurn, ids.secondTurnId]
+				generatedTurnOrder: [
+					{ kind: 'turn', turnId: ids.turn },
+					{ kind: 'turn', turnId: ids.secondTurn },
+					{ kind: 'turn', turnId: ids.secondTurnId },
+					{ kind: 'spawn' }
+				]
 			},
 			creatures: [
 				{
@@ -577,10 +586,24 @@ const invalidFieldCases = [
 		message: 'Expected an array.'
 	},
 	{
-		field: 'generated turn order id',
+		field: 'generated turn order entry',
 		path: ['challenges', 0, 'runState', 'generatedTurnOrder', 0],
 		value: 'invalid',
 		issuePath: '$.challenges[0].runState.generatedTurnOrder[0]',
+		message: 'Expected a turn or spawn entry object.'
+	},
+	{
+		field: 'generated turn order entry kind',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder', 0],
+		value: { kind: 'other' },
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[0].kind',
+		message: "Expected 'turn' or 'spawn'."
+	},
+	{
+		field: 'generated turn order id',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder', 0],
+		value: { kind: 'turn', turnId: 'invalid' },
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[0].turnId',
 		message: 'Expected a valid UUID.'
 	}
 ];
@@ -657,16 +680,26 @@ const invalidReferenceCases = [
 	{
 		field: 'generated turn order turn reference',
 		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
-		value: [missingTurnId],
+		value: [{ kind: 'turn', turnId: missingTurnId }],
 		issuePath: '$.challenges[0].runState.generatedTurnOrder[0]',
 		message: 'References a turn that does not exist in this challenge.'
 	},
 	{
 		field: 'duplicate generated turn order entry',
 		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
-		value: [ids.turn, ids.turn],
+		value: [
+			{ kind: 'turn', turnId: ids.turn },
+			{ kind: 'turn', turnId: ids.turn }
+		],
 		issuePath: '$.challenges[0].runState.generatedTurnOrder[1]',
 		message: 'Turn appears more than once in the order.'
+	},
+	{
+		field: 'duplicate spawn entry',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: [{ kind: 'spawn' }, { kind: 'spawn' }],
+		issuePath: '$.challenges[0].runState.generatedTurnOrder[1]',
+		message: 'Spawn appears more than once in the order.'
 	}
 ];
 
@@ -930,12 +963,17 @@ describe('challenge domain models', () => {
 		expect('groups' in library).toBe(false);
 		expect('groupIds' in challenge).toBe(false);
 		expect(initiativeResults[ids.turn]).toBe(12);
-		expect(generatedTurnOrder).toEqual([ids.turn, ids.secondTurn]);
+		expect(generatedTurnOrder).toEqual([
+			{ kind: 'turn', turnId: ids.turn },
+			{ kind: 'turn', turnId: ids.secondTurn },
+			{ kind: 'spawn' }
+		]);
 		expect(challenge.runState.initiativeResults[ids.turn]).toBe(12);
 		expect(challenge.runState.generatedTurnOrder).toEqual([
-			ids.turn,
-			ids.secondTurn,
-			ids.secondTurnId
+			{ kind: 'turn', turnId: ids.turn },
+			{ kind: 'turn', turnId: ids.secondTurn },
+			{ kind: 'turn', turnId: ids.secondTurnId },
+			{ kind: 'spawn' }
 		]);
 		expect(initiativeExamples.map(({ kind }) => kind)).toEqual([
 			'roll',

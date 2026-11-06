@@ -77,7 +77,11 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 						initiativeResults: { ...challenge.runState.initiativeResults },
 						...(challenge.runState.generatedTurnOrder === undefined
 							? {}
-							: { generatedTurnOrder: [...challenge.runState.generatedTurnOrder] })
+							: {
+									generatedTurnOrder: challenge.runState.generatedTurnOrder.map((entry) => ({
+										...entry
+									}))
+								})
 					}
 				})
 	};
