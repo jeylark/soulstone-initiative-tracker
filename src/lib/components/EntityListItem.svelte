@@ -21,7 +21,6 @@
 
 <fieldset {...rest}>
 	<legend>{legend}</legend>
-	{@render children()}
 	<ActionButton
 		variant="danger"
 		class="entity-remove-button"
@@ -30,6 +29,7 @@
 	>
 		{removeText}
 	</ActionButton>
+	{@render children()}
 </fieldset>
 
 <style>

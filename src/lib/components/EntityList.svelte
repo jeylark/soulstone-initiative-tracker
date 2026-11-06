@@ -31,6 +31,9 @@
 </script>
 
 <div class="entity-list">
+	<div class={`entity-list-items entity-list-items--${layout}`}>
+		{@render children()}
+	</div>
 	<div class="entity-list-actions">
 		{#if actions}
 			{@render actions()}
@@ -39,9 +42,6 @@
 				{addLabel}
 			</ActionButton>
 		{/if}
-	</div>
-	<div class={`entity-list-items entity-list-items--${layout}`}>
-		{@render children()}
 	</div>
 </div>
 
