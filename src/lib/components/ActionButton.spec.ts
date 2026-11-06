@@ -15,14 +15,14 @@ describe('ActionButton', () => {
 
 		const button = screen.getByRole('button', { name: 'Save' });
 		expect(button.getAttribute('type')).toBe('button');
-		expect(button.classList.contains('action-button--primary')).toBe(true);
+		expect(button.classList.contains('ui-button--primary')).toBe(true);
 	});
 
 	it('applies the requested variant and extra classes', () => {
 		render(ActionButton, { variant: 'danger', class: 'extra', children: label });
 
 		const button = screen.getByRole('button', { name: 'Save' });
-		expect(button.classList.contains('action-button--danger')).toBe(true);
+		expect(button.classList.contains('ui-button--danger')).toBe(true);
 		expect(button.classList.contains('extra')).toBe(true);
 	});
 

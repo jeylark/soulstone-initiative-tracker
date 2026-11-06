@@ -211,6 +211,7 @@ describe('challenge setup persistence', () => {
 		render(setupChallengePage);
 		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
 		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
+		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
 		expect(
 			await screen.findAllByText(
 				'An initiative stat is required for characters with app-rolled turns.'
@@ -227,6 +228,7 @@ describe('challenge setup persistence', () => {
 		);
 		const startLink = await screen.findByRole('link', { name: 'Roll Initiatives' });
 		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
+		expect(startLink.classList.contains('ui-button')).toBe(true);
 		await fireEvent.click(startLink);
 		await waitFor(() =>
 			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`)
@@ -1661,14 +1663,14 @@ describe('new challenge setup', () => {
 		expect(
 			within(player)
 				.getByRole('button', { name: 'Remove Player 1' })
-				.classList.contains('action-button--danger')
+				.classList.contains('ui-button--danger')
 		).toBe(true);
 
 		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const removeFactionButton = within(factionPanel).getByRole('button', {
 			name: 'Remove faction Players'
 		});
-		expect(removeFactionButton.classList.contains('action-button--danger')).toBe(true);
+		expect(removeFactionButton.classList.contains('ui-button--danger')).toBe(true);
 		await fireEvent.click(removeFactionButton);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
@@ -1702,7 +1704,7 @@ describe('new challenge setup', () => {
 		const removeNpcTypeButton = screen.getByRole('button', {
 			name: 'Remove NPC type NPC Type 1'
 		});
-		expect(removeNpcTypeButton.classList.contains('action-button--danger')).toBe(true);
+		expect(removeNpcTypeButton.classList.contains('ui-button--danger')).toBe(true);
 		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')
