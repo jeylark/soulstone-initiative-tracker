@@ -46,6 +46,7 @@
 		initiativeInputs[turnId] = value;
 		if (!challenge) return;
 
+		const previousInitiative = challenge.runState?.initiativeResults[turnId];
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
 		const initiative = parseInitiativeInput(value);
 		if (initiative === undefined) {
@@ -53,7 +54,9 @@
 		} else {
 			initiativeResults[turnId] = initiative;
 		}
-		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+		const runState = { ...(challenge.runState ?? {}), initiativeResults };
+		if (previousInitiative !== initiative) delete runState.generatedTurnOrder;
+		challenge.runState = runState;
 	}
 
 	function initiativeStat(creature: DeepReadonly<ChallengeCreature>): number | undefined {
@@ -79,15 +82,17 @@
 		const diceCount = initiativeStat(creature);
 		if (diceCount === undefined) return;
 
+		const previousInitiative = challenge.runState?.initiativeResults[turnId];
+		const initiative = rollInitiative(diceCount);
 		const initiativeResults = {
 			...(challenge.runState?.initiativeResults ?? {}),
-			[turnId]: rollInitiative(diceCount)
+			[turnId]: initiative
 		};
 		const runState = {
 			...(challenge.runState ?? {}),
 			initiativeResults
 		};
-		if (challenge.runState?.initiativeResults[turnId] !== undefined) {
+		if (previousInitiative !== initiative) {
 			delete runState.generatedTurnOrder;
 		}
 		challenge.runState = runState;
@@ -97,6 +102,7 @@
 		if (!challenge) return;
 
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
+		let hasResultChanged = false;
 		for (const creature of challenge.creatures) {
 			const diceCount = initiativeStat(creature);
 			if (diceCount === undefined) continue;
@@ -107,12 +113,16 @@
 					turn.initiative.mode === 'app' &&
 					initiativeResults[turn.id] === undefined
 				) {
-					initiativeResults[turn.id] = rollInitiative(diceCount);
+					const initiative = rollInitiative(diceCount);
+					if (initiativeResults[turn.id] !== initiative) hasResultChanged = true;
+					initiativeResults[turn.id] = initiative;
 				}
 			}
 		}
 
-		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+		const runState = { ...(challenge.runState ?? {}), initiativeResults };
+		if (hasResultChanged) delete runState.generatedTurnOrder;
+		challenge.runState = runState;
 	}
 
 	function hasRollableAppTurns(): boolean {
@@ -207,6 +217,25 @@
 		try {
 			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
 			await goto(resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id }));
+		} catch {
+			hasSaveError = true;
+		}
+	}
+
+	async function continueToTurnOrder(
+		event: Readonly<{ preventDefault: () => void }>
+	): Promise<void> {
+		event.preventDefault();
+		if (!challenge) return;
+
+		if (saveTimeout !== undefined) {
+			clearTimeout(saveTimeout);
+			saveTimeout = undefined;
+		}
+
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await goto(resolve('/challenges/[challengeId]/run', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
 		}
@@ -335,6 +364,12 @@
 			onclick={returnToSetup}
 		>
 			Return to setup
+		</a>
+		<a
+			href={resolve('/challenges/[challengeId]/run', { challengeId: challenge.id })}
+			onclick={continueToTurnOrder}
+		>
+			Continue to turn order
 		</a>
 	{:else}
 		<p>Challenge unavailable</p>
