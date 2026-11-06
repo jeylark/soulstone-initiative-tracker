@@ -52,7 +52,7 @@ animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
 - [x] 6. Add "Continue to turn order" on the roll page that saves pending edits
       first; make sure any result or setup change that invalidates the order
       clears `generatedTurnOrder`.
-- [ ] 7. Run `npm test`, `npm run check`, `npm run lint` and `npm run build`;
+- [x] 7. Run `npm test`, `npm run check`, `npm run lint` and `npm run build`;
       inspect the diff; tick the finished items in `TODO.md`.
 
 ## Verification

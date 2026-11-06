@@ -55,11 +55,11 @@ foundations.
       character stat for app-configured character turns, and handle missing or
       invalid stats in imported data. Persist results by turn ID, preserve
       existing results until an explicit reroll, and restore them on reload.
-- [ ] 2.3: Preserve collected results when recalculating the order.
+- [x] 2.3: Preserve collected results when recalculating the order.
 - [x] 2.4: Provide an explicit reroll action for collected results.
-- [ ] 2.5: Connect setup and collected results to turn-order generation, including
+- [x] 2.5: Connect setup and collected results to turn-order generation, including
       fixed and relative placement hooks.
-- [ ] 2.6: Show clear feedback for invalid placement hooks.
+- [x] 2.6: Show clear feedback for invalid placement hooks.
 - [x] 2.7: Display the DM turn list using each faction's selected color.
 - [ ] 2.8: Omit hidden turns from the read-only view.
 - [x] 2.9: Save collected initiative results as run state so a challenge can
@@ -74,11 +74,11 @@ foundations.
 - [ ] 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - [ ] 2.14: After Spawn changes, recollect initiatives as needed and regenerate
       the order.
-- [ ] 2.15: Save generated turn order as run state so a challenge can resume with
+- [x] 2.15: Save generated turn order as run state so a challenge can resume with
       the generated order.
 - [ ] 2.16: Add an animated "rolling" effect for initiative rolls.
 - [ ] 2.17: Remove creature names from the cards in the roll view.
-- [ ] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
+- [x] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
       hidden turns stay visible but greyed out.
 - [ ] 2.19: Remove "this result is still valid" explanations from warnings; the
       warning itself is sufficient.
