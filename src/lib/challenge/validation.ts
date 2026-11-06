@@ -7,6 +7,7 @@ import type {
 	ChallengeRunState,
 	CharacterCreature,
 	Faction,
+	GeneratedTurnOrderEntry,
 	InitiativeRollMode,
 	NpcCreature,
 	NpcType,
@@ -86,6 +87,21 @@ function validateStableId(
 ): value is StableId {
 	if (typeof value === 'string' && parseUuid(value) !== null) return true;
 	addIssue(path, 'Expected a valid UUID.');
+	return false;
+}
+
+function validateGeneratedTurnOrderEntry(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder
+): value is GeneratedTurnOrderEntry {
+	if (!isRecord(value)) {
+		addIssue(path, 'Expected a turn or spawn entry object.');
+		return false;
+	}
+	if (value.kind === 'spawn') return true;
+	if (value.kind === 'turn') return validateStableId(value.turnId, `${path}.turnId`, addIssue);
+	addIssue(`${path}.kind`, "Expected 'turn' or 'spawn'.");
 	return false;
 }
 
@@ -336,7 +352,7 @@ function validateRunState(
 			value.generatedTurnOrder,
 			`${path}.generatedTurnOrder`,
 			addIssue,
-			validateStableId
+			validateGeneratedTurnOrderEntry
 		);
 	}
 	return isValidResults && isValidOrder;
@@ -574,10 +590,19 @@ function validateRunStateReferences(
 	const generatedTurnOrder = runState.generatedTurnOrder;
 	if (!Array.isArray(generatedTurnOrder)) return;
 	const orderedIds = new Set<string>();
+	let hasSpawn = false;
 	generatedTurnOrder.forEach((item, index) => {
-		const id = typeof item === 'string' ? parseUuid(item)?.toLowerCase() : undefined;
-		if (!id) return;
 		const orderPath = `${path}.runState.generatedTurnOrder[${index}]`;
+		if (isRecord(item) && item.kind === 'spawn') {
+			if (hasSpawn) addIssue(orderPath, 'Spawn appears more than once in the order.');
+			hasSpawn = true;
+			return;
+		}
+		const id =
+			isRecord(item) && typeof item.turnId === 'string'
+				? parseUuid(item.turnId)?.toLowerCase()
+				: undefined;
+		if (!id) return;
 		if (!turnIds.has(id)) {
 			addIssue(orderPath, 'References a turn that does not exist in this challenge.');
 		}

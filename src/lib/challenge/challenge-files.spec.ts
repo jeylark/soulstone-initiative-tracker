@@ -52,7 +52,11 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 		],
 		runState: {
 			initiativeResults: { [secondTurnId]: 13 },
-			generatedTurnOrder: [turnId, secondTurnId]
+			generatedTurnOrder: [
+				{ kind: 'turn', turnId },
+				{ kind: 'turn', turnId: secondTurnId },
+				{ kind: 'spawn' }
+			]
 		}
 	};
 }
@@ -240,8 +244,9 @@ describe('challenge file workflows', () => {
 			targetTurnId: copiedChallenge.creatures[0]?.turns[1]?.id
 		});
 		expect(copiedChallenge.runState?.generatedTurnOrder).toEqual([
-			copiedChallenge.creatures[0]?.turns[0]?.id,
-			copiedChallenge.creatures[0]?.turns[1]?.id
+			{ kind: 'turn', turnId: copiedChallenge.creatures[0]?.turns[0]?.id },
+			{ kind: 'turn', turnId: copiedChallenge.creatures[0]?.turns[1]?.id },
+			{ kind: 'spawn' }
 		]);
 		expect(updatedLibrary.challenges).toHaveLength(2);
 		expect(updatedLibrary.challenges[0]?.createdAt).toBeInstanceOf(Date);

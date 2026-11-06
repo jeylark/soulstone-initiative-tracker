@@ -59,10 +59,27 @@ function order(
 	results: Readonly<InitiativeResults> = {},
 	fairnessWeight = 0
 ): StableId[] {
-	return generateTurnOrder(createChallenge(creatures, fairnessWeight), results);
+	return generateTurnOrder(createChallenge(creatures, fairnessWeight), results).flatMap((entry) =>
+		entry.kind === 'turn' ? [entry.turnId] : []
+	);
 }
 
 describe('generateTurnOrder', () => {
+	it('ends the order with a Spawn entry after hooked turns', () => {
+		const factionId = createUuid();
+		const roll = createTurn({ kind: 'static', value: 5 });
+		const bottom = createTurn({ kind: 'fixed-position', from: 'bottom', position: 1 });
+
+		expect(
+			generateTurnOrder(createChallenge([createCreature(factionId, [roll, bottom])], 0), {})
+		).toEqual([
+			{ kind: 'turn', turnId: roll.id },
+			{ kind: 'turn', turnId: bottom.id },
+			{ kind: 'spawn' }
+		]);
+		expect(generateTurnOrder(createChallenge([], 0), {})).toEqual([{ kind: 'spawn' }]);
+	});
+
 	it('returns an empty order when the challenge has no creatures or turns', () => {
 		expect(order([])).toEqual([]);
 		expect(order([createCreature(createUuid(), [])])).toEqual([]);
@@ -430,7 +447,11 @@ describe('prepareTurnOrder', () => {
 
 		expect(prepareTurnOrder(challenge, { [low.id]: 2, [high.id]: 9 })).toEqual({
 			status: 'generated',
-			order: [high.id, low.id]
+			order: [
+				{ kind: 'turn', turnId: high.id },
+				{ kind: 'turn', turnId: low.id },
+				{ kind: 'spawn' }
+			]
 		});
 	});
 

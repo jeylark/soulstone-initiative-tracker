@@ -101,7 +101,7 @@ describe('createTurnDisplayLookup', () => {
 });
 
 describe('createTurnOrderDisplay', () => {
-	it('filters unknown turn IDs while retaining their positions', () => {
+	it('filters unknown turn IDs while retaining their positions and keeps Spawn', () => {
 		const turn = createTurn({ kind: 'static', value: 8 });
 		const creature: ChallengeCreature = {
 			id: createUuid(),
@@ -115,10 +115,20 @@ describe('createTurnOrderDisplay', () => {
 		const lookup = createTurnDisplayLookup(challenge);
 		const unknownTurnId = createUuid();
 
-		const orderDisplay = createTurnOrderDisplay([unknownTurnId, turn.id], lookup);
+		const orderDisplay = createTurnOrderDisplay(
+			[
+				{ kind: 'turn', turnId: unknownTurnId },
+				{ kind: 'turn', turnId: turn.id },
+				{ kind: 'spawn' }
+			],
+			lookup
+		);
 
 		expect(orderDisplay).toEqual({
-			items: [{ turnId: turn.id, position: 2, display: lookup.get(turn.id) }],
+			items: [
+				{ kind: 'turn', turnId: turn.id, position: 2, display: lookup.get(turn.id) },
+				{ kind: 'spawn', position: 3 }
+			],
 			hasUnknownTurnIds: true
 		});
 	});

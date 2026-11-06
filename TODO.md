@@ -30,7 +30,7 @@ foundations.
       references, including turn IDs in saved tie decisions.
 - [x] 1.11: Persist setup changes to the local challenge library and restore saved
       setup when reopening a challenge.
-- [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
+- [x] 1.12: Reduce the height of faction name inputs in challenge setup.
 - [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
       action.
 - [ ] 1.14: Move the "Add" buttons in setup to the bottom of their containers.
