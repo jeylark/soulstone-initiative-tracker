@@ -4,6 +4,7 @@ import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './challenges/+page.svelte';
 import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
+import turnOrderPage from './challenges/[challengeId]/run/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
 import newChallengeEntryPage from './challenges/new/+page.svelte';
 import joinSessionPage from './join/+page.svelte';
@@ -329,7 +330,7 @@ describe('running challenge storage', () => {
 			const saved = library.challenges[0];
 			expect(saved?.runState?.initiativeResults[firstTurnId]).toBe(14);
 			expect(saved?.runState?.initiativeResults[secondTurnId]).toBe(8);
-			expect(saved?.runState?.generatedTurnOrder).toEqual([secondTurnId, firstTurnId]);
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
 			expect(library.characters).toEqual([{ id: characterId, name: 'Aria' }]);
 		});
 
@@ -345,7 +346,7 @@ describe('running challenge storage', () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.runState?.initiativeResults[firstTurnId]).toBeUndefined();
 			expect(saved?.runState?.initiativeResults[secondTurnId]).toBe(8);
-			expect(saved?.runState?.generatedTurnOrder).toEqual([secondTurnId, firstTurnId]);
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
 		});
 	});
 
@@ -378,6 +379,35 @@ describe('running challenge storage', () => {
 		);
 	});
 
+	it('saves the latest initiative before continuing to turn order', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		render(rollChallengePage);
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+		await fireEvent.input(input, { target: { value: '12' } });
+		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+
+		await waitFor(() =>
+			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/run`)
+		);
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
+			12
+		);
+	});
+
 	it('shows a save error and stays on the roll page when persistence fails', async () => {
 		const challenge = createSetupChallenge();
 		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
@@ -401,6 +431,32 @@ describe('running challenge storage', () => {
 
 		expect(await screen.findByRole('alert')).toBeTruthy();
 		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('does not continue to turn order when saving pending edits fails', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		render(rollChallengePage);
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.input(input, { target: { value: '12' } });
+		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -635,7 +691,7 @@ describe('running challenge storage', () => {
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toEqual(generatedTurnOrder);
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
 		});
 		await fireEvent.click(
 			screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 2' })
@@ -736,7 +792,359 @@ describe('running challenge storage', () => {
 	);
 });
 
+describe('turn-order run route', () => {
+	const ariaCharacterId = '00000000-0000-4000-8000-000000000021' as StableId;
+	const rookCharacterId = '00000000-0000-4000-8000-000000000022' as StableId;
+	const ariaTurnId = '00000000-0000-4000-8000-000000000023' as StableId;
+	const rookTurnId = '00000000-0000-4000-8000-000000000024' as StableId;
+	const ariaSecondTurnId = '00000000-0000-4000-8000-000000000027' as StableId;
+	const runCharacters = [
+		{ id: ariaCharacterId, name: 'Aria' },
+		{ id: rookCharacterId, name: 'Rook' }
+	];
+
+	function createRunChallenge(): Challenge {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Ashen Company';
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000025' as StableId,
+				kind: 'character',
+				characterId: ariaCharacterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: ariaTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000026' as StableId,
+				kind: 'character',
+				characterId: rookCharacterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: rookTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
+			generatedTurnOrder: [ariaTurnId, rookTurnId]
+		};
+		return challenge;
+	}
+
+	it('renders the saved order as numbered faction-colored cards', async () => {
+		const challenge = createRunChallenge();
+		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
+		challenge.runState!.generatedTurnOrder = [rookTurnId, ariaTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		const savedOrder = await screen.findByRole('list', { name: 'Generated turn order' });
+		const items = within(savedOrder).getAllByRole('listitem');
+		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual(['Rook', 'Aria']);
+		expect(
+			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
+		).toEqual(['1', '2']);
+		expect(items[0]?.textContent).toContain('Enemies');
+		expect(items[1]?.textContent).toContain('Players');
+		expect(
+			items.map((item) =>
+				item
+					.querySelector<HTMLElement>('.turn-order-card-tone')
+					?.style.getPropertyValue('--faction-color')
+			)
+		).toEqual(['#c76a6e', '#5687c8']);
+	});
+
+	it('hides and restores all turns for a creature without changing the saved order or results', async () => {
+		const challenge = createRunChallenge();
+		challenge.creatures[0]!.turns.push({
+			id: ariaSecondTurnId,
+			initiative: { kind: 'roll', mode: 'manual' }
+		});
+		challenge.runState!.initiativeResults[ariaSecondTurnId] = 8;
+		challenge.runState!.generatedTurnOrder = [ariaTurnId, rookTurnId, ariaSecondTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		const visibility = (await screen.findByRole('checkbox', {
+			name: 'Hidden from viewers: Aria'
+		})) as HTMLInputElement;
+		expect(visibility.checked).toBe(false);
+		await fireEvent.click(visibility);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.creatures[0]?.isHidden).toBe(true);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				ariaTurnId,
+				rookTurnId,
+				ariaSecondTurnId
+			]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+
+		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		const items = within(savedOrder).getAllByRole('listitem');
+		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
+			'Aria - Turn 1',
+			'Rook',
+			'Aria - Turn 2'
+		]);
+		const ariaItems = items.filter((item) =>
+			item.querySelector('h2')?.textContent?.startsWith('Aria')
+		);
+		for (const item of ariaItems) {
+			expect(item.textContent).toContain('Hidden');
+			expect(item.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
+				true
+			);
+		}
+		expect(items[1]?.textContent).not.toContain('Hidden');
+		expect(items[1]?.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
+			false
+		);
+
+		cleanup();
+		render(turnOrderPage);
+		const restoredVisibility = (await screen.findByRole('checkbox', {
+			name: 'Hidden from viewers: Aria'
+		})) as HTMLInputElement;
+		expect(restoredVisibility.checked).toBe(true);
+
+		await fireEvent.click(restoredVisibility);
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.creatures[0]?.isHidden).toBe(false);
+		});
+		expect(screen.getByRole('list', { name: 'Generated turn order' }).textContent).not.toContain(
+			'Hidden'
+		);
+	});
+
+	it('restores a saved order and recalculates without changing initiative results', async () => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Turn order' })).toBeTruthy();
+		expect(await screen.findByText('Ashen Company')).toBeTruthy();
+		expect(document.title).toBe('Turn order | Soulstone Initiative Tracker');
+		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		expect(
+			within(savedOrder)
+				.getAllByRole('listitem')
+				.map((item) => item.querySelector('h2')?.textContent)
+		).toEqual(['Aria', 'Rook']);
+		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('shows a loading state while the challenge library is being read', () => {
+		render(turnOrderPage);
+
+		expect(screen.getByText('Loading challenge…')).toBeTruthy();
+	});
+
+	it('generates and saves an order when no saved order exists', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual([rookTurnId, ariaTurnId]);
+			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
+		});
+		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+	});
+
+	it('lists missing results and preserves the saved order without navigating away', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.initiativeResults[ariaTurnId];
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Recalculate' }));
+
+		const missingTurns = await screen.findByRole('list', {
+			name: 'Turns missing initiative results'
+		});
+		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
+			ariaTurnId,
+			rookTurnId
+		]);
+	});
+
+	it('lists turns with unresolved placement rules', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		challenge.creatures[0]!.turns[0]!.initiative = {
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: rookTurnId
+		};
+		challenge.creatures[1]!.turns[0]!.initiative = {
+			kind: 'relative-position',
+			relation: 'before',
+			distance: 0,
+			targetTurnId: ariaTurnId
+		};
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		const invalidTurns = await screen.findByRole('list', { name: 'Turns with invalid placement' });
+		expect(within(invalidTurns).getByText('Aria')).toBeTruthy();
+		expect(within(invalidTurns).getByText('Rook')).toBeTruthy();
+	});
+
+	it.each([
+		{ kind: 'unknown', message: 'The challenge was not found.' },
+		{ kind: 'unreadable', message: 'The challenge could not be loaded.' }
+	] as const)('shows recovery when the challenge is $kind', async ({ kind, message }) => {
+		if (kind === 'unknown') {
+			mockedPage.params = { challengeId: '00000000-0000-4000-8000-000000000099' };
+		} else {
+			vi.stubGlobal('indexedDB', undefined);
+		}
+
+		render(turnOrderPage);
+
+		expect(await screen.findByText(message)).toBeTruthy();
+		expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+	});
+
+	it('shows a save error when generating cannot be persisted', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge, runCharacters);
+
+		render(turnOrderPage);
+		const generateButton = await screen.findByRole('button', { name: 'Generate turn order' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.click(generateButton);
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+});
+
 describe('new challenge setup', () => {
+	it('clears the generated order when fairness weight changes', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [turnId]: 12 },
+			generatedTurnOrder: [turnId]
+		};
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		await renderSetup();
+		await fireEvent.input(screen.getByRole('slider', { name: 'Fairness weight slider' }), {
+			target: { value: '4.25' }
+		});
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
+		});
+	});
+
+	it('clears the generated order when turn placement changes', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [turnId]: 12 },
+			generatedTurnOrder: [turnId]
+		};
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		await renderSetup();
+		const turn = within(screen.getByRole('group', { name: 'Aria' })).getByRole('group', {
+			name: 'Turn 1'
+		});
+		await fireEvent.change(within(turn).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'static' }
+		});
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults[turnId]).toBeUndefined();
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
+		});
+	});
+
+	it('preserves the generated order when only the challenge name changes', async () => {
+		const challenge = createSetupChallenge();
+		const characterId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				characterId,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [turnId]: 12 },
+			generatedTurnOrder: [turnId]
+		};
+		await saveChallengeToLibrary(challenge, [{ id: characterId, name: 'Aria' }]);
+
+		await renderSetup();
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Ashen Company' }
+		});
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Ashen Company');
+			expect(saved?.runState?.generatedTurnOrder).toEqual([turnId]);
+		});
+	});
+
 	it('uses shared card surfaces while preserving named form groups', async () => {
 		await renderSetup();
 

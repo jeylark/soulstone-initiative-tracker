@@ -1,0 +1,285 @@
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { onMount } from 'svelte';
+	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import {
+		createTurnOrderDisplay,
+		createTurnDisplayLookup,
+		loadChallengeLibrary,
+		saveChallengeToLibrary,
+		type Challenge,
+		type PlayerCharacter,
+		type StableId
+	} from '#lib';
+	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
+	import { prepareTurnOrder } from '#lib/challenge/turn-order.js';
+	import ActionButton from '#lib/components/ActionButton.svelte';
+	import Card from '#lib/components/Card.svelte';
+	import ViewPage from '#lib/components/ViewPage.svelte';
+
+	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
+	type GenerationIssue = {
+		readonly status: 'missing-results' | 'placement-error';
+		readonly turnIds: readonly StableId[];
+	};
+
+	let loadStatus = $state<LoadStatus>('loading');
+	let hasSaveError = $state(false);
+	let isSaving = $state(false);
+	let challenge = $state<Challenge>();
+	let reusableCharacters = $state<PlayerCharacter[]>([]);
+	let generationIssue = $state<GenerationIssue>();
+	let saveQueue: Promise<void> = Promise.resolve();
+	let turnDisplayLookup = $derived.by(() =>
+		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
+	);
+	let generatedOrderDisplay = $derived.by(() => {
+		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
+		return generatedTurnOrder
+			? createTurnOrderDisplay(generatedTurnOrder, turnDisplayLookup)
+			: undefined;
+	});
+
+	onMount(() => {
+		void (async () => {
+			try {
+				const library = await loadChallengeLibrary();
+				const loadedChallenge = library.challenges.find(
+					(item) => item.id === page.params.challengeId
+				);
+				if (!loadedChallenge) {
+					loadStatus = 'not-found';
+					return;
+				}
+				challenge = loadedChallenge;
+				reusableCharacters = library.characters;
+				loadStatus = 'ready';
+			} catch {
+				loadStatus = 'error';
+			}
+		})();
+	});
+
+	function enqueueSave(
+		snapshotChallenge: DeepReadonly<Challenge>,
+		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
+	): Promise<void> {
+		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		saveQueue = pendingSave.then(
+			() => {
+				hasSaveError = false;
+			},
+			() => {
+				hasSaveError = true;
+			}
+		);
+		return pendingSave;
+	}
+
+	async function generateTurnOrder(): Promise<void> {
+		if (!challenge || isSaving) return;
+
+		generationIssue = undefined;
+		const runState = challenge.runState ?? { initiativeResults: {} };
+		const preparation = prepareTurnOrder(challenge, runState.initiativeResults);
+		if (preparation.status !== 'generated') {
+			generationIssue = preparation;
+			return;
+		}
+
+		const snapshotChallenge = $state.snapshot(challenge);
+		const nextRunState = {
+			...(snapshotChallenge.runState ?? { initiativeResults: {} }),
+			generatedTurnOrder: [...preparation.order]
+		};
+		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
+		isSaving = true;
+		try {
+			await enqueueSave(challengeToSave, $state.snapshot(reusableCharacters));
+			challenge.runState = nextRunState;
+			hasSaveError = false;
+		} catch {
+			hasSaveError = true;
+		} finally {
+			isSaving = false;
+		}
+	}
+
+	async function updateCreatureVisibility(creatureId: StableId, isHidden: boolean): Promise<void> {
+		if (!challenge) return;
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature || creature.isHidden === isHidden) return;
+
+		creature.isHidden = isHidden;
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+		} catch {
+			hasSaveError = true;
+		}
+	}
+</script>
+
+<ViewPage title="Turn order">
+	{#if loadStatus === 'loading'}
+		<p>Loading challenge…</p>
+	{:else if loadStatus === 'ready' && challenge}
+		<p>{challenge.name}</p>
+		{#if generatedOrderDisplay}
+			{#if generatedOrderDisplay.hasUnknownTurnIds}
+				<p role="status">
+					Some saved turns are no longer in this challenge. Recalculate the turn order to update it.
+				</p>
+			{/if}
+		{/if}
+		{#if challenge.creatures.some((creature) => creature.turns.length > 0)}
+			<fieldset class="turn-order-visibility">
+				<legend>Creature visibility</legend>
+				{#each challenge.creatures as creature (creature.id)}
+					{@const firstTurn = creature.turns[0]}
+					{@const display = firstTurn ? turnDisplayLookup.get(firstTurn.id) : undefined}
+					{#if display}
+						<label>
+							<input
+								type="checkbox"
+								checked={creature.isHidden}
+								onchange={(event) =>
+									updateCreatureVisibility(creature.id, event.currentTarget.checked)}
+							/>
+							Hidden from viewers: {display.creatureName}
+						</label>
+					{/if}
+				{/each}
+			</fieldset>
+		{/if}
+		{#if generatedOrderDisplay}
+			<ol aria-label="Generated turn order" class="turn-order-list">
+				{#each generatedOrderDisplay.items as item (item.turnId)}
+					{@const factionColor = item.display.faction
+						? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
+						: undefined}
+					<li>
+						<div
+							class="turn-order-card-tone"
+							class:is-hidden={item.display.isHidden}
+							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
+						>
+							<Card
+								title={item.display.label}
+								headingLevel="h2"
+								headerSize="small"
+								spacing="compact"
+								class="turn-order-card"
+							>
+								<div class="turn-order-card-details">
+									<span class="turn-order-position">{item.position}</span>
+									{#if item.display.faction}
+										<span>{item.display.faction.name}</span>
+									{/if}
+								</div>
+								{#if item.display.isHidden}
+									<p class="turn-order-hidden">Hidden</p>
+								{/if}
+							</Card>
+						</div>
+					</li>
+				{/each}
+			</ol>
+		{/if}
+
+		{#if generationIssue?.status === 'missing-results'}
+			<p>Turn order cannot be generated until every rolling turn has a result.</p>
+			<ul aria-label="Turns missing initiative results">
+				{#each generationIssue.turnIds as turnId (turnId)}
+					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+				{/each}
+			</ul>
+		{:else if generationIssue?.status === 'placement-error'}
+			<p>Turn placement could not be resolved.</p>
+			<ul aria-label="Turns with invalid placement">
+				{#each generationIssue.turnIds as turnId (turnId)}
+					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+				{/each}
+			</ul>
+		{/if}
+
+		<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
+			{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
+		</ActionButton>
+		{#if hasSaveError}
+			<p role="alert">Changes could not be saved.</p>
+		{/if}
+	{:else}
+		<p>Challenge unavailable</p>
+		{#if loadStatus === 'not-found'}
+			<p>The challenge was not found.</p>
+		{:else}
+			<p>The challenge could not be loaded.</p>
+		{/if}
+		<a href={resolve('/')}>Return to home</a>
+	{/if}
+</ViewPage>
+
+<style>
+	.turn-order-list {
+		display: grid;
+		gap: 12px;
+		margin-block: 24px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.turn-order-list li,
+	.turn-order-card-tone {
+		min-width: 0;
+	}
+
+	.turn-order-visibility {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 16px;
+		margin: 0 0 16px;
+		padding: 0;
+		border: 0;
+	}
+
+	.turn-order-visibility legend {
+		margin-bottom: 8px;
+		font-weight: 600;
+	}
+
+	.turn-order-visibility label {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.turn-order-card-tone :global(.turn-order-card) {
+		background: color-mix(
+			in srgb,
+			var(--faction-color, var(--color-surface)) 12%,
+			var(--color-surface)
+		);
+	}
+
+	.turn-order-card-tone.is-hidden :global(.turn-order-card) {
+		background: color-mix(in srgb, #808080 18%, var(--color-surface));
+	}
+
+	.turn-order-card-details {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.turn-order-position {
+		font-variant-numeric: tabular-nums;
+		font-weight: 700;
+	}
+
+	.turn-order-hidden {
+		margin-block: 8px 0;
+		font-weight: 600;
+	}
+</style>

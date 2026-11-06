@@ -11,7 +11,9 @@
 		type Challenge,
 		type ChallengeCreature,
 		type PlayerCharacter,
-		type StableId
+		type StableId,
+		type TurnDisplay,
+		createTurnDisplayLookup
 	} from '#lib';
 	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
@@ -26,6 +28,9 @@
 	let challenge = $state<Challenge>();
 	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
+	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
+		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
+	);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -41,6 +46,7 @@
 		initiativeInputs[turnId] = value;
 		if (!challenge) return;
 
+		const previousInitiative = challenge.runState?.initiativeResults[turnId];
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
 		const initiative = parseInitiativeInput(value);
 		if (initiative === undefined) {
@@ -48,7 +54,9 @@
 		} else {
 			initiativeResults[turnId] = initiative;
 		}
-		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+		const runState = { ...(challenge.runState ?? {}), initiativeResults };
+		if (previousInitiative !== initiative) delete runState.generatedTurnOrder;
+		challenge.runState = runState;
 	}
 
 	function initiativeStat(creature: DeepReadonly<ChallengeCreature>): number | undefined {
@@ -74,15 +82,17 @@
 		const diceCount = initiativeStat(creature);
 		if (diceCount === undefined) return;
 
+		const previousInitiative = challenge.runState?.initiativeResults[turnId];
+		const initiative = rollInitiative(diceCount);
 		const initiativeResults = {
 			...(challenge.runState?.initiativeResults ?? {}),
-			[turnId]: rollInitiative(diceCount)
+			[turnId]: initiative
 		};
 		const runState = {
 			...(challenge.runState ?? {}),
 			initiativeResults
 		};
-		if (challenge.runState?.initiativeResults[turnId] !== undefined) {
+		if (previousInitiative !== initiative) {
 			delete runState.generatedTurnOrder;
 		}
 		challenge.runState = runState;
@@ -92,6 +102,7 @@
 		if (!challenge) return;
 
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
+		let hasResultChanged = false;
 		for (const creature of challenge.creatures) {
 			const diceCount = initiativeStat(creature);
 			if (diceCount === undefined) continue;
@@ -102,12 +113,16 @@
 					turn.initiative.mode === 'app' &&
 					initiativeResults[turn.id] === undefined
 				) {
-					initiativeResults[turn.id] = rollInitiative(diceCount);
+					const initiative = rollInitiative(diceCount);
+					if (initiativeResults[turn.id] !== initiative) hasResultChanged = true;
+					initiativeResults[turn.id] = initiative;
 				}
 			}
 		}
 
-		challenge.runState = { ...(challenge.runState ?? {}), initiativeResults };
+		const runState = { ...(challenge.runState ?? {}), initiativeResults };
+		if (hasResultChanged) delete runState.generatedTurnOrder;
+		challenge.runState = runState;
 	}
 
 	function hasRollableAppTurns(): boolean {
@@ -207,17 +222,31 @@
 		}
 	}
 
-	function creatureName(creature: DeepReadonly<ChallengeCreature>): string {
-		if (creature.kind === 'character') {
-			return (
-				reusableCharacters.find((character) => character.id === creature.characterId)?.name ??
-				'Character'
-			);
+	async function continueToTurnOrder(
+		event: Readonly<{ preventDefault: () => void }>
+	): Promise<void> {
+		event.preventDefault();
+		if (!challenge) return;
+
+		if (saveTimeout !== undefined) {
+			clearTimeout(saveTimeout);
+			saveTimeout = undefined;
 		}
 
-		const typeName =
-			challenge?.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)?.name ?? 'NPC';
-		return `${typeName} ${creature.identifier}`.trim();
+		try {
+			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await goto(resolve('/challenges/[challengeId]/run', { challengeId: challenge.id }));
+		} catch {
+			hasSaveError = true;
+		}
+	}
+
+	function rollingTurns(creature: DeepReadonly<ChallengeCreature>) {
+		return creature.turns.flatMap((turn) => {
+			if (turn.initiative.kind !== 'roll') return [];
+			const display = turnDisplayLookup.get(turn.id);
+			return display ? [{ turn, display, mode: turn.initiative.mode }] : [];
+		});
 	}
 </script>
 
@@ -245,15 +274,9 @@
 						>
 							<div class="initiative-cards">
 								{#each factionCreatures as creature (creature.id)}
-									{@const rollingTurns = creature.turns.flatMap((turn, index) =>
-										turn.initiative.kind === 'roll'
-											? [{ turn, turnNumber: index + 1, mode: turn.initiative.mode }]
-											: []
-									)}
-									{@const name = creatureName(creature)}
-									{#each rollingTurns as { turn, turnNumber, mode } (turn.id)}
-										{@const title =
-											creature.turns.length > 1 ? `${name} - Turn ${turnNumber}` : name}
+									{@const turnsToRoll = rollingTurns(creature)}
+									{#each turnsToRoll as { turn, display, mode } (turn.id)}
+										{@const title = display.label}
 										{@const label = `Initiative for ${title}`}
 										{@const result = challenge.runState?.initiativeResults[turn.id]}
 										<div
@@ -341,6 +364,12 @@
 			onclick={returnToSetup}
 		>
 			Return to setup
+		</a>
+		<a
+			href={resolve('/challenges/[challengeId]/run', { challengeId: challenge.id })}
+			onclick={continueToTurnOrder}
+		>
+			Continue to turn order
 		</a>
 	{:else}
 		<p>Challenge unavailable</p>

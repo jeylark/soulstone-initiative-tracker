@@ -28,7 +28,7 @@ foundations.
       setup entity.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
       references, including turn IDs in saved tie decisions.
-- [ ] 1.11: Persist setup changes to the local challenge library and restore saved
+- [x] 1.11: Persist setup changes to the local challenge library and restore saved
       setup when reopening a challenge.
 - [ ] 1.12: Reduce the height of faction name inputs in challenge setup.
 - [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
@@ -40,24 +40,27 @@ foundations.
 - [ ] 1.17: Remove sorting of creatures in setup.
 - [ ] 1.18: Validate setup values.
 - [ ] 1.19: Remove faction selection from a faction's creatures in setup.
+- [ ] 1.20: Hide the initiative-stat input for faction creatures when it isn't
+      needed for rolling, while preserving any entered value in storage.
+- [ ] 1.21: Remove the navigation bar altogether.
+- [ ] 1.22: Link the header page icon (and app name) to the landing page.
 
 ## 2. Initiative and encounter play
 
-- [ ] 2.1: Collect initiative manually for player characters.
-- [ ] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
+- [x] 2.1: Collect initiative manually for player characters.
+- [x] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
       Roll every app-configured turn using the NPC type's or reusable
       character's initiative stat as the number of d6; sum all dice when fewer
       than three are rolled, otherwise sum the highest three. Require a valid
       character stat for app-configured character turns, and handle missing or
       invalid stats in imported data. Persist results by turn ID, preserve
       existing results until an explicit reroll, and restore them on reload.
-- [ ] 2.3: Preserve collected results when recalculating the order.
-- [ ] 2.4: Provide an explicit reroll action for collected results.
-- [ ] 2.5: Connect setup and collected results to turn-order generation, including
+- [x] 2.3: Preserve collected results when recalculating the order.
+- [x] 2.4: Provide an explicit reroll action for collected results.
+- [x] 2.5: Connect setup and collected results to turn-order generation, including
       fixed and relative placement hooks.
-- [ ] 2.6: Show clear feedback for invalid placement hooks.
-- [ ] 2.7: Display the DM turn list using each faction's selected color, with
-      controls to reorder turns and hide or show them.
+- [x] 2.6: Show clear feedback for invalid placement hooks.
+- [x] 2.7: Display the DM turn list using each faction's selected color.
 - [ ] 2.8: Omit hidden turns from the read-only view.
 - [x] 2.9: Save collected initiative results as run state so a challenge can
       resume initiative collection.
@@ -71,10 +74,30 @@ foundations.
 - [ ] 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - [ ] 2.14: After Spawn changes, recollect initiatives as needed and regenerate
       the order.
-- [ ] 2.15: Save generated turn order as run state so a challenge can resume with
+- [x] 2.15: Save generated turn order as run state so a challenge can resume with
       the generated order.
 - [ ] 2.16: Add an animated "rolling" effect for initiative rolls.
 - [ ] 2.17: Remove creature names from the cards in the roll view.
+- [x] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
+      hidden turns stay visible but greyed out.
+- [ ] 2.19: Remove "this result is still valid" explanations from warnings; the
+      warning itself is sufficient.
+- [ ] 2.20: Keep input dimensions stable when warnings or errors appear or
+      disappear.
+- [ ] 2.21: Label turn-order generation **Start challenge** and remove the
+      recalculation action while a challenge is running. This does not rename
+      the separate per-turn **Calculate roll** action.
+- [ ] 2.22: After turn-order generation starts the challenge, lock setup and
+      rolling until the challenge is reset.
+- [ ] 2.23: Show the challenge name in the run view.
+- [ ] 2.24: Make the creature name prominent inside each turn card and show its
+      numeric initiative when one exists.
+- [ ] 2.25: Remove turn numbers from card titles and order indices from run-view
+      cards.
+- [ ] 2.26: Move the hide checkbox inside each running-challenge turn card.
+- [ ] 2.27: Make faction colors stand out more clearly from the background.
+- [ ] 2.28: When an initiative stat changes, discard affected app-rolled results
+      and invalidate the generated order; preserve manual/static values.
 
 ## 3. Challenge library and file workflows
 
@@ -154,3 +177,30 @@ foundations.
       failure cases.
 - [ ] 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
       and `npm run build`; ensure CI passes.
+- [ ] 6.7: Organize files in `src/lib/challenge` into one or more logical
+      subdirectories to reduce the number of files at the folder root.
+- [ ] 6.8: Split the landing-page view (`/`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.9: Split the challenge-list view (`/challenges`) into smaller
+      sub-components where feasible, improving readability and following single
+      responsibility.
+- [ ] 6.10: Split the new-challenge view (`/challenges/new`) into smaller
+      sub-components where feasible, improving readability and following single
+      responsibility.
+- [ ] 6.11: Split the challenge-setup view
+      (`/challenges/[challengeId]/setup`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.12: Split the initiative-roll view
+      (`/challenges/[challengeId]/roll`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.13: Split the running-challenge view
+      (`/challenges/[challengeId]/run`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.14: Split the join view (`/join`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.15: Extract a reusable checkbox input component and use it throughout
+      the app wherever checkbox controls are needed.
+- [ ] 6.16: Extract a reusable color-picker component and use it throughout the
+      app wherever color-picking controls are needed.
+- [ ] 6.17: Extract reusable radio-button controls and use them throughout the
+      app wherever radio-button controls are needed.

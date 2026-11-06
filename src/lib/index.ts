@@ -8,3 +8,4 @@ export * from './challenge/library-files';
 export * from './challenge/challenge-files';
 export * from './challenge/initiative-roll';
 export * from './challenge/turn-order';
+export * from './challenge/turn-display';

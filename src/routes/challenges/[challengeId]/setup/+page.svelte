@@ -100,6 +100,10 @@
 		return pendingSave;
 	}
 
+	function invalidateGeneratedTurnOrder(): void {
+		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
+	}
+
 	async function startChallenge(event: Readonly<{ preventDefault: () => void }>) {
 		event.preventDefault();
 		if (setupIssues.length > 0) return;
@@ -121,7 +125,9 @@
 	}
 
 	function updateFairnessWeight(weight: number) {
+		if (challenge.fairnessWeight === weight) return;
 		challenge.fairnessWeight = weight;
+		invalidateGeneratedTurnOrder();
 	}
 
 	function addFaction() {
@@ -227,6 +233,7 @@
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
 		creature.turns.push(createTurn(creature.kind === 'character' ? 'manual' : 'app'));
+		invalidateGeneratedTurnOrder();
 	}
 
 	function moveTurn(creatureId: StableId, turnId: StableId, direction: 'up' | 'down') {
@@ -236,7 +243,10 @@
 		if (!creature || turnIndex < 0 || nextIndex < 0 || nextIndex >= creature.turns.length) return;
 
 		const [turn] = creature.turns.splice(turnIndex, 1);
-		if (turn) creature.turns.splice(nextIndex, 0, turn);
+		if (turn) {
+			creature.turns.splice(nextIndex, 0, turn);
+			invalidateGeneratedTurnOrder();
+		}
 	}
 
 	function moveCreature(creatureId: StableId, direction: 'up' | 'down') {
@@ -255,6 +265,7 @@
 
 		challenge.creatures[creatureIndex] = neighbor;
 		challenge.creatures[neighborIndex] = creature;
+		invalidateGeneratedTurnOrder();
 	}
 
 	function addCharacter(factionId: StableId) {
@@ -273,6 +284,7 @@
 			isHidden: false,
 			turns: [createTurn('manual')]
 		});
+		invalidateGeneratedTurnOrder();
 	}
 
 	function addNpc(factionId: StableId) {
@@ -294,6 +306,7 @@
 			isHidden: false,
 			turns: [createTurn('app')]
 		});
+		invalidateGeneratedTurnOrder();
 	}
 
 	function updateNpcType(creatureId: StableId, npcTypeId: StableId) {
@@ -345,7 +358,9 @@
 		const turn = creature?.turns.find((item) => item.id === turnId);
 		if (!turn) return;
 
+		const previousInitiative = turn.initiative;
 		const otherTurn = challenge.creatures.find((item) => item.id !== creatureId)?.turns[0];
+		let hasChanged = true;
 		if (choice === 'roll-app') turn.initiative = { kind: 'roll', mode: 'app' };
 		else if (choice === 'roll-manual') turn.initiative = { kind: 'roll', mode: 'manual' };
 		else if (choice === 'static') turn.initiative = { kind: 'static', value: 0 };
@@ -362,6 +377,12 @@
 				distance: 1,
 				targetTurnId: otherTurn.id
 			};
+		} else hasChanged = false;
+		if (hasChanged) {
+			if (previousInitiative.kind === 'roll' && turn.initiative.kind !== 'roll') {
+				if (challenge.runState) delete challenge.runState.initiativeResults[turnId];
+			}
+			invalidateGeneratedTurnOrder();
 		}
 	}
 
@@ -381,24 +402,35 @@
 		const initiative = turn?.initiative;
 		if (!initiative) return;
 
+		let hasChanged = false;
 		if (change.kind === 'static-value' && initiative.kind === 'static') {
+			hasChanged = initiative.value !== change.value;
 			initiative.value = change.value;
 		} else if (change.kind === 'fixed-from' && initiative.kind === 'fixed-position') {
+			hasChanged = initiative.from !== change.from;
 			initiative.from = change.from;
 		} else if (change.kind === 'fixed-position' && initiative.kind === 'fixed-position') {
+			hasChanged = initiative.position !== change.position;
 			initiative.position = change.position;
 		} else if (change.kind === 'relative-relation' && initiative.kind === 'relative-position') {
+			hasChanged = initiative.relation !== change.relation;
 			initiative.relation = change.relation;
 		} else if (change.kind === 'relative-distance' && initiative.kind === 'relative-position') {
+			hasChanged = initiative.distance !== change.distance;
 			initiative.distance = change.distance;
 		} else if (change.kind === 'relative-target' && initiative.kind === 'relative-position') {
+			hasChanged = initiative.targetTurnId !== change.targetTurnId;
 			initiative.targetTurnId = change.targetTurnId;
 		}
+		if (hasChanged) invalidateGeneratedTurnOrder();
 	}
 
 	function updateCreatureFaction(creatureId: StableId, factionId: StableId) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
-		if (creature) creature.factionId = factionId;
+		if (creature && creature.factionId !== factionId) {
+			creature.factionId = factionId;
+			invalidateGeneratedTurnOrder();
+		}
 	}
 
 	function updateCreatureVisibility(creatureId: StableId, isHidden: boolean) {
@@ -463,11 +495,7 @@
 
 		if (challenge.runState) {
 			for (const turnId of turnIds) delete challenge.runState.initiativeResults[turnId];
-			if (challenge.runState.generatedTurnOrder) {
-				challenge.runState.generatedTurnOrder = challenge.runState.generatedTurnOrder.filter(
-					(turnId) => !turnIds.has(turnId)
-				);
-			}
+			invalidateGeneratedTurnOrder();
 		}
 	}
 
