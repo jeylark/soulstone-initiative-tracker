@@ -177,3 +177,30 @@ foundations.
       failure cases.
 - [ ] 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
       and `npm run build`; ensure CI passes.
+- [ ] 6.7: Organize files in `src/lib/challenge` into one or more logical
+      subdirectories to reduce the number of files at the folder root.
+- [ ] 6.8: Split the landing-page view (`/`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.9: Split the challenge-list view (`/challenges`) into smaller
+      sub-components where feasible, improving readability and following single
+      responsibility.
+- [ ] 6.10: Split the new-challenge view (`/challenges/new`) into smaller
+      sub-components where feasible, improving readability and following single
+      responsibility.
+- [ ] 6.11: Split the challenge-setup view
+      (`/challenges/[challengeId]/setup`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.12: Split the initiative-roll view
+      (`/challenges/[challengeId]/roll`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.13: Split the running-challenge view
+      (`/challenges/[challengeId]/run`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.14: Split the join view (`/join`) into smaller sub-components where
+      feasible, improving readability and following single responsibility.
+- [ ] 6.15: Extract a reusable checkbox input component and use it throughout
+      the app wherever checkbox controls are needed.
+- [ ] 6.16: Extract a reusable color-picker component and use it throughout the
+      app wherever color-picking controls are needed.
+- [ ] 6.17: Extract reusable radio-button controls and use them throughout the
+      app wherever radio-button controls are needed.
