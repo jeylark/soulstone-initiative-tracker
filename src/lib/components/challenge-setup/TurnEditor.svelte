@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Turn, TurnInitiative } from '#lib';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
-	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
 	import EntityListItem from '../EntityListItem.svelte';
 	import NumberInput from '../forms/NumberInput.svelte';
@@ -12,24 +11,11 @@
 		turnNumber: number;
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
-		canMoveUp: boolean;
-		canMoveDown: boolean;
 		onChange: (change: Readonly<TurnEditorChange>) => void;
-		onMove: (direction: 'up' | 'down') => void;
 		onRemove: () => void;
 	}
 
-	let {
-		turn,
-		turnNumber,
-		creatureName,
-		targetTurns,
-		canMoveUp,
-		canMoveDown,
-		onChange,
-		onMove,
-		onRemove
-	}: Props = $props();
+	let { turn, turnNumber, creatureName, targetTurns, onChange, onRemove }: Props = $props();
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
 		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
@@ -133,24 +119,6 @@
 					{/each}
 				</SelectInput>
 			{/if}
-		</div>
-		<div class="turn-order-controls">
-			<ActionButton
-				variant="neutral"
-				disabled={!canMoveUp}
-				aria-label={`Move Turn ${turnNumber} up for ${creatureName}`}
-				onclick={() => onMove('up')}
-			>
-				Move up
-			</ActionButton>
-			<ActionButton
-				variant="neutral"
-				disabled={!canMoveDown}
-				aria-label={`Move Turn ${turnNumber} down for ${creatureName}`}
-				onclick={() => onMove('down')}
-			>
-				Move down
-			</ActionButton>
 		</div>
 	</EntityListItem>
 </Card>

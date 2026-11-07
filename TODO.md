@@ -37,7 +37,7 @@ foundations.
 - [x] 1.15: Move the "Remove" buttons in setup to the top of their containers.
 - [x] 1.16: Make every "Remove" button in setup state which kind of entity it
       removes.
-- [ ] 1.17: Remove sorting of creatures in setup.
+- [x] 1.17: Remove sorting of creatures in setup.
 - [ ] 1.18: Validate setup values.
 - [x] 1.19: Remove faction selection from a faction's creatures in setup.
 - [x] 1.20: Hide the initiative-stat input for faction creatures when it isn't
