@@ -66,6 +66,58 @@ describe('challenge setup persistence', () => {
 		});
 	});
 
+	it('autosaves finite invalid values and blocks rolling until corrected', async () => {
+		await renderSetup();
+		const fairnessInput = screen.getByRole('spinbutton', { name: 'Fairness weight value' });
+
+		await fireEvent.input(fairnessInput, { target: { value: '-1' } });
+
+		await waitFor(async () => {
+			expect((await loadChallengeLibrary()).challenges[0]?.fairnessWeight).toBe(-1);
+		});
+		expect(
+			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
+		).toBe(true);
+		expect(screen.getByText('Fairness weight must be a non-negative number.')).toBeTruthy();
+	});
+
+	it('persists invalid finite placement values in editable drafts', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Draft';
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: challenge.factions[0]!.id,
+				isHidden: false,
+				turns: [
+					{
+						id: '00000000-0000-4000-8000-000000000006' as StableId,
+						initiative: { kind: 'roll', mode: 'manual' }
+					}
+				]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'fixed-top' }
+		});
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Position' }), {
+			target: { value: '0.5' }
+		});
+
+		await waitFor(async () => {
+			const turn = (await loadChallengeLibrary()).challenges[0]?.creatures[0]?.turns[0];
+			expect(turn?.initiative).toEqual({ kind: 'fixed-position', from: 'top', position: 0.5 });
+		});
+		expect(
+			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
+		).toBe(true);
+	});
+
 	it('hides the character initiative stat unless a turn is app-rolled, keeping the value', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [

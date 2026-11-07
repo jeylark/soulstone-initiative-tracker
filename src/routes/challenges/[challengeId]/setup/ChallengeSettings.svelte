@@ -44,7 +44,7 @@
 				onSliderInput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
 				onNumberInput={(event) => {
 					const weight = event.currentTarget.valueAsNumber;
-					if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
+					if (Number.isFinite(weight)) onFairnessWeightChange(weight);
 				}}
 			/>
 			<p class="fairness-description" aria-live="polite">

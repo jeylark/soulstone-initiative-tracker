@@ -103,6 +103,13 @@ export function generateTurnOrder(
 	challenge: DeepReadonly<Challenge>,
 	initiativeResults: Readonly<InitiativeResults>
 ): GeneratedTurnOrder {
+	return generateTurnOrderWithWarnings(challenge, initiativeResults).order;
+}
+
+function generateTurnOrderWithWarnings(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>
+): { readonly order: GeneratedTurnOrder; readonly clampedTurnIds: readonly StableId[] } {
 	const { fairnessWeight } = challenge;
 	const [turnsByFaction, hookedTurns] = filterFactionTurns(challenge, initiativeResults);
 
@@ -141,6 +148,7 @@ export function generateTurnOrder(
 		return factions.some((faction) => faction.hasRemainingTurns());
 	}
 	const initiativeTurns: StableId[] = [];
+	const clampedTurnIds: StableId[] = [];
 	while (hasRemainingTurns()) {
 		const sortedTurnCount = initiativeTurns.length;
 		const nextTurn = [
@@ -176,7 +184,9 @@ export function generateTurnOrder(
 						: targetIndex + 1 + hook.distance;
 			}
 
-			initiativeTurns.splice(clamp(index, 0, initiativeTurns.length), 0, hook.id);
+			const clampedIndex = clamp(index, 0, initiativeTurns.length);
+			if (clampedIndex !== index) clampedTurnIds.push(hook.id);
+			initiativeTurns.splice(clampedIndex, 0, hook.id);
 		}
 
 		if (deferredHooks.length === pendingHooks.length) {
@@ -185,10 +195,13 @@ export function generateTurnOrder(
 		pendingHooks = deferredHooks;
 	}
 
-	return [
-		...initiativeTurns.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
-		{ kind: 'spawn' }
-	];
+	return {
+		order: [
+			...initiativeTurns.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
+			{ kind: 'spawn' }
+		],
+		clampedTurnIds
+	};
 }
 
 /** Outcome of {@link prepareTurnOrder}. */
@@ -198,6 +211,8 @@ export type TurnOrderPreparation =
 			readonly status: 'generated';
 			/** Generated play order of turn entries followed by the Spawn entry. */
 			readonly order: GeneratedTurnOrder;
+			/** Turn IDs whose fixed or relative placement was clamped to the available order bounds. */
+			readonly clampedTurnIds: readonly StableId[];
 	  }
 	| {
 			/** Generation is blocked because rolling turns have no initiative result. */
@@ -233,7 +248,12 @@ export function prepareTurnOrder(
 	}
 
 	try {
-		return { status: 'generated', order: generateTurnOrder(challenge, initiativeResults) };
+		const generated = generateTurnOrderWithWarnings(challenge, initiativeResults);
+		return {
+			status: 'generated',
+			order: generated.order,
+			clampedTurnIds: generated.clampedTurnIds
+		};
 	} catch (error) {
 		if (error instanceof TurnOrderError) {
 			return { status: 'placement-error', turnIds: error.turnIds };

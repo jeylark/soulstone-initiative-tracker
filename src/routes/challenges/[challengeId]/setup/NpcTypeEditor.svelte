@@ -44,8 +44,10 @@
 							value={npcType.initiativeStat}
 							min="1"
 							step="1"
-							oninput={(event) =>
-								onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
+							oninput={(event) => {
+								const value = event.currentTarget.valueAsNumber;
+								if (Number.isFinite(value)) onInitiativeStatChange(npcType.id, value);
+							}}
 						/>
 					</EntityListItem>
 				</Card>

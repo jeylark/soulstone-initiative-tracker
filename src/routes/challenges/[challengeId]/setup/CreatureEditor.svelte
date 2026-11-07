@@ -91,7 +91,7 @@
 						const value = event.currentTarget.valueAsNumber;
 						onCharacterInitiativeStatChange(
 							creature.id,
-							Number.isSafeInteger(value) && value > 0 ? value : undefined
+							Number.isFinite(value) ? value : undefined
 						);
 					}}
 				/>

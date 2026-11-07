@@ -60,8 +60,10 @@
 					label="Static initiative"
 					value={turn.initiative.value}
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'static-value', value: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const value = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(value)) onChange({ kind: 'static-value', value });
+					}}
 				/>
 			{:else if turn.initiative.kind === 'fixed-position'}
 				<SelectInput
@@ -78,8 +80,10 @@
 					value={turn.initiative.position}
 					min="1"
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'fixed-position', position: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const position = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(position)) onChange({ kind: 'fixed-position', position });
+					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
 				<SelectInput
@@ -99,8 +103,10 @@
 					value={turn.initiative.distance}
 					min="0"
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'relative-distance', distance: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const distance = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(distance)) onChange({ kind: 'relative-distance', distance });
+					}}
 				/>
 				<SelectInput
 					label="Target turn"

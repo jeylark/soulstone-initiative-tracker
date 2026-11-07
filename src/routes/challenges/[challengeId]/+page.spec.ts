@@ -19,6 +19,7 @@ afterEach(() => {
 beforeEach(async () => {
 	vi.stubGlobal('indexedDB', new IDBFactory());
 	const challenge = createSetupChallenge();
+	challenge.name = 'Tab navigation';
 	await saveChallengeToLibrary(challenge);
 	mockedPage.params = { challengeId: challenge.id };
 });
@@ -53,6 +54,24 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
 		const restoredInput = await screen.findByRole('textbox', { name: 'Challenge name' });
 		expect((restoredInput as HTMLInputElement).value).toBe('One session');
+	});
+
+	it('keeps the user in Setup when setup values are invalid', async () => {
+		const invalidChallenge = createSetupChallenge();
+		await saveChallengeToLibrary(invalidChallenge);
+		render(challengePage);
+
+		const rollTab = await screen.findByRole('tab', { name: 'Roll' });
+		expect(rollTab.getAttribute('aria-disabled')).toBe('true');
+		await fireEvent.click(rollTab);
+
+		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		expect(rollTab.getAttribute('aria-selected')).toBe('false');
+
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(runTab.getAttribute('aria-disabled')).toBe('true');
+		await fireEvent.click(runTab);
+		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
 	});
 
 	it('supports keyboard navigation between tabs', async () => {
