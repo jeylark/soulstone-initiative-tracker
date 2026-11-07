@@ -35,7 +35,7 @@ keeping its task number and wording.
 
 #### Run
 
-- 2.34: Add an option to disable all available input controls and buttons.
+- 2.34: Add a separate disable option for each input control and button.
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
