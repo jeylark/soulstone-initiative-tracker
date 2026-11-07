@@ -5,7 +5,6 @@
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
-		FACTION_COLORS,
 		loadChallengeLibrary,
 		rollInitiative,
 		saveChallengeToLibrary,
@@ -15,8 +14,8 @@
 		type TurnDisplay,
 		createTurnDisplayLookup
 	} from '#lib/challenge';
-	import { ActionButton, Card, ErrorDisplay, ViewPage } from '#lib/components';
-	import InitiativeTurnCard from './InitiativeTurnCard.svelte';
+	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import InitiativeFactionSection from './InitiativeFactionSection.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -230,14 +229,6 @@
 			hasSaveError = true;
 		}
 	}
-
-	function rollingTurns(creature: DeepReadonly<ChallengeCreature>) {
-		return creature.turns.flatMap((turn) => {
-			if (turn.initiative.kind !== 'roll') return [];
-			const display = turnDisplayLookup.get(turn.id);
-			return display ? [{ turn, display, mode: turn.initiative.mode }] : [];
-		});
-	}
 </script>
 
 <ViewPage title="Initiative rolling">
@@ -247,45 +238,17 @@
 		<p>{challenge.name}</p>
 		<div class="faction-board">
 			{#each challenge.factions as faction (faction.id)}
-				{@const factionColor = FACTION_COLORS.find((color) => color.value === faction.color)}
-				{@const factionCreatures = challenge.creatures.filter(
-					(creature) =>
-						creature.factionId === faction.id &&
-						creature.turns.some((turn) => turn.initiative.kind === 'roll')
-				)}
-				{#if factionCreatures.length > 0}
-					<section aria-label={faction.name} class="faction-section">
-						<Card
-							title={faction.name}
-							headingLevel="h2"
-							headerSize="medium"
-							variant="inset"
-							spacing="compact"
-						>
-							<div class="initiative-cards">
-								{#each factionCreatures as creature (creature.id)}
-									{@const turnsToRoll = rollingTurns(creature)}
-									{#each turnsToRoll as { turn, display, mode } (turn.id)}
-										{@const result = challenge.runState?.initiativeResults[turn.id]}
-										{@const inputValue = initiativeInputs[turn.id] ?? ''}
-										<InitiativeTurnCard
-											title={display.label}
-											{mode}
-											factionColor={factionColor?.hex}
-											{result}
-											{inputValue}
-											isInvalid={inputValue !== '' &&
-												parseInitiativeInput(inputValue) === undefined}
-											canRoll={initiativeStat(creature) !== undefined}
-											onInput={(value) => updateInitiative(turn.id, value)}
-											onRoll={() => rollInitiativeForTurn(creature, turn.id)}
-										/>
-									{/each}
-								{/each}
-							</div>
-						</Card>
-					</section>
-				{/if}
+				<InitiativeFactionSection
+					{faction}
+					creatures={challenge.creatures}
+					{turnDisplayLookup}
+					initiativeResults={challenge.runState?.initiativeResults ?? {}}
+					{initiativeInputs}
+					isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}
+					canRoll={(creature) => initiativeStat(creature) !== undefined}
+					onInput={updateInitiative}
+					onRoll={rollInitiativeForTurn}
+				/>
 			{/each}
 		</div>
 		{#if hasRollableAppTurns()}
@@ -323,16 +286,5 @@
 		align-items: start;
 		gap: 24px 16px;
 		margin-block: 24px 16px;
-	}
-
-	.faction-section {
-		min-width: 0;
-	}
-
-	.initiative-cards {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: start;
-		gap: 12px;
 	}
 </style>

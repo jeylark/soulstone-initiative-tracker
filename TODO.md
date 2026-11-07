@@ -126,9 +126,6 @@ keeping its task number and wording.
 - 6.10: Split the new-challenge view (`/challenges/new`) into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
-- 6.12: Split the initiative-roll view
-  (`/challenges/[challengeId]/roll`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
 - 6.13: Split the running-challenge view
   (`/challenges/[challengeId]/run`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
@@ -215,4 +212,7 @@ keeping its task number and wording.
   feasible, improving readability and following single responsibility.
 - 6.11: Split the challenge-setup view
   (`/challenges/[challengeId]/setup`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
+- 6.12: Split the initiative-roll view
+  (`/challenges/[challengeId]/roll`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
