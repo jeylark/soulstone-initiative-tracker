@@ -128,8 +128,6 @@ keeping its task number and wording.
   responsibility.
 - 6.14: Split the join view (`/join`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
-- 6.16: Extract a reusable color-picker component and use it throughout the
-  app wherever color-picking controls are needed.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
 - 6.18: Rework existing custom-input dimension stability to apply only to
@@ -233,3 +231,5 @@ keeping its task number and wording.
   feasible, improving readability and following single responsibility.
 - 6.15: Extract a reusable checkbox input component and use it throughout
   the app wherever checkbox controls are needed.
+- 6.16: Extract a reusable color-picker component and use it throughout the
+  app wherever color-picking controls are needed.

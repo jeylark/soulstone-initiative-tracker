@@ -14,6 +14,7 @@
 	import EntityListItem from '../EntityListItem.svelte';
 	import ActionButton from '../ActionButton.svelte';
 	import Card from '../Card.svelte';
+	import ColorPickerInput from '../forms/ColorPickerInput.svelte';
 	import TextInput from '../forms/TextInput.svelte';
 
 	interface Props {
@@ -110,25 +111,13 @@
 			value={faction.name}
 			oninput={(event) => onRename(faction.id, event.currentTarget.value)}
 		/>
-		<fieldset class="faction-colors">
-			<legend>Faction color for {faction.name}</legend>
-			<div class="faction-color-options">
-				{#each FACTION_COLORS as paletteColor (paletteColor.value)}
-					<label class="faction-color-option">
-						<input
-							type="radio"
-							name={`faction-color-${faction.id}`}
-							value={paletteColor.value}
-							checked={faction.color === paletteColor.value}
-							onchange={() => onColorChange(faction.id, paletteColor.value)}
-						/>
-						<span class="faction-color-swatch" style={`--faction-color: ${paletteColor.hex}`}
-						></span>
-						<span>{paletteColor.label}</span>
-					</label>
-				{/each}
-			</div>
-		</fieldset>
+		<ColorPickerInput
+			label={`Faction color for ${faction.name}`}
+			name={`faction-color-${faction.id}`}
+			options={FACTION_COLORS}
+			value={faction.color}
+			onchange={(color) => onColorChange(faction.id, color)}
+		/>
 
 		<EntityList>
 			{#snippet actions()}
