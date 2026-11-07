@@ -47,8 +47,8 @@ keeping its task number and wording.
 - 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
-- 2.32: Combine the setup, rolling, and run views into a single page with
-  separate tabs for each view.
+- 2.33: Remove the Setup, Roll, and Run navigation buttons from their
+  respective tabs.
 
 ### 3. Challenge library and file workflows
 
@@ -219,6 +219,8 @@ keeping its task number and wording.
 - 2.20: Keep input dimensions stable when warnings or errors appear or
   disappear.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
+- 2.32: Combine the setup, rolling, and run views into a single page with
+  separate tabs for each view.
 
 ### 6. Quality and release readiness
 
