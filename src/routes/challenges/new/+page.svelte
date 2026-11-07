@@ -8,6 +8,7 @@
 		ChallengeLibraryStorageError,
 		ChallengeLibraryValidationError
 	} from '#lib/challenge/storage.js';
+	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 
 	const createdAt = new Date();
@@ -26,29 +27,32 @@
 		fairnessWeight: 3,
 		creatures: []
 	});
-	let errorMessage = $state('');
 	let errorDetails = $state('');
 
 	function describeSaveError(error: unknown): string {
 		if (error instanceof ChallengeLibraryValidationError) {
-			const issues = error.issues.map((issue) => `${issue.path}: ${issue.message}`).join('; ');
-			return `${error.name}: ${error.message} ${issues}`;
+			return [
+				`${error.name}: ${error.message}`,
+				...error.issues.map((issue) => `${issue.path}: ${issue.message}`)
+			].join('\n');
 		}
 		if (error instanceof ChallengeLibraryStorageError) {
-			const cause = error.cause ? ` (${error.cause.name}: ${error.cause.message})` : '';
-			return `${error.name}: ${error.message}${cause}`;
+			return [
+				`${error.name}: ${error.message}`,
+				error.cause ? `${error.cause.name}: ${error.cause.message}` : ''
+			]
+				.filter(Boolean)
+				.join('\n');
 		}
 		if (error instanceof Error) return `${error.name}: ${error.message}`;
 		return 'An unexpected error occurred while saving.';
 	}
 
 	async function createChallenge() {
-		errorMessage = '';
 		errorDetails = '';
 		try {
 			await saveChallengeToLibrary($state.snapshot(challenge));
 		} catch (error) {
-			errorMessage = 'The new challenge could not be saved.';
 			errorDetails = describeSaveError(error);
 			return;
 		}
@@ -64,11 +68,8 @@
 </script>
 
 <ViewPage title="New challenge">
-	{#if errorMessage}
-		<div role="alert">
-			<p>{errorMessage}</p>
-			<p>{errorDetails}</p>
-		</div>
+	{#if errorDetails}
+		<ErrorDisplay message="The new challenge could not be saved." details={errorDetails} />
 		<button type="button" onclick={() => void createChallenge()}>Try again</button>
 	{:else}
 		<p>Preparing a new challenge setup.</p>

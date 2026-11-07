@@ -117,7 +117,18 @@ describe('new challenge entry', () => {
 		render(newChallengeEntryPage);
 
 		const alert = await screen.findByRole('alert');
-		expect(alert.textContent).toContain('IndexedDB is not available.');
+		expect(alert.textContent).toBe('The new challenge could not be saved.');
+		expect(
+			screen
+				.getByText('ChallengeLibraryStorageError: IndexedDB is not available.')
+				.hasAttribute('hidden')
+		).toBe(true);
+		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
+		expect(
+			screen
+				.getByText('ChallengeLibraryStorageError: IndexedDB is not available.')
+				.hasAttribute('hidden')
+		).toBe(false);
 		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
@@ -142,7 +153,18 @@ describe('new challenge entry', () => {
 		render(newChallengeEntryPage);
 
 		const alert = await screen.findByRole('alert');
-		expect(alert.textContent).toContain('$.formatVersion: Unsupported challenge library version.');
+		expect(alert.textContent).toBe('The new challenge could not be saved.');
+		expect(
+			screen
+				.getByText(/\$\.formatVersion: Unsupported challenge library version\./)
+				.hasAttribute('hidden')
+		).toBe(true);
+		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
+		expect(
+			screen
+				.getByText(/\$\.formatVersion: Unsupported challenge library version\./)
+				.hasAttribute('hidden')
+		).toBe(false);
 		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
