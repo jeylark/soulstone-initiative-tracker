@@ -62,8 +62,8 @@
 					</ol>
 					{#if !decision}
 						<ActionButton
-							aria-label={`Confirm order for tie ${groupIndex + 1}`}
-							onclick={() => onDecide(order)}>Confirm order</ActionButton
+							aria-label={`Confirm default order for tie ${groupIndex + 1}`}
+							onclick={() => onDecide(order)}>Confirm default order</ActionButton
 						>
 					{/if}
 				</div>

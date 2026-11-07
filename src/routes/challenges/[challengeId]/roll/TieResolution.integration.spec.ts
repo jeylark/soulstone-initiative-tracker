@@ -34,7 +34,7 @@ describe('TieResolution', () => {
 		});
 
 		expect(screen.getByText('Needs ordering')).toBeTruthy();
-		await fireEvent.click(screen.getByRole('button', { name: 'Confirm order for tie 1' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Confirm default order for tie 1' }));
 
 		expect(onDecide).toHaveBeenCalledWith([first, second]);
 	});
