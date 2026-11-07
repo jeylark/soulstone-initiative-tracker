@@ -28,7 +28,7 @@ describe('NavButton', () => {
 	});
 
 	it('calls onclick when clicked', async () => {
-		const onclick = vi.fn((event: Event) => event.preventDefault());
+		const onclick = vi.fn((event: Readonly<Event>) => event.preventDefault());
 		render(NavButton, { href: '/x', onclick, children: label });
 
 		await fireEvent.click(screen.getByRole('link', { name: 'Go' }));
