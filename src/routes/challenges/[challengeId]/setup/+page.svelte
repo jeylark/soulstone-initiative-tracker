@@ -19,6 +19,8 @@
 	} from '#lib';
 	import { validateChallengeSetup } from '#lib/challenge/setup-validation.js';
 	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
+	import ActionButton from '#lib/components/ActionButton.svelte';
+	import NavButton from '#lib/components/NavButton.svelte';
 	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
 	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
 	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
@@ -571,11 +573,11 @@
 			/>
 		</div>
 		{#if setupIssues.length > 0}
-			<button class="roll-initiatives-disabled" type="button" disabled>Roll Initiatives</button>
+			<ActionButton disabled>Roll Initiatives</ActionButton>
 		{:else}
-			<a
+			<NavButton
 				href={resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id })}
-				onclick={startChallenge}>Roll Initiatives</a
+				onclick={startChallenge}>Roll Initiatives</NavButton
 			>
 		{/if}
 	{:else}
@@ -587,10 +589,3 @@
 		<a href={resolve('/challenges/new')}>Start a new challenge</a>
 	{/if}
 </ViewPage>
-
-<style>
-	.roll-initiatives-disabled {
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
-</style>
