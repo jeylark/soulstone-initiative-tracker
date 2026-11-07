@@ -17,6 +17,7 @@
 	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import NumberInput from '#lib/components/forms/NumberInput.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 
@@ -347,7 +348,7 @@
 			<ActionButton onclick={rollAll}>Roll all</ActionButton>
 		{/if}
 		{#if hasSaveError}
-			<p role="alert">Changes could not be saved.</p>
+			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
 		<a
 			href={resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id })}
@@ -362,11 +363,10 @@
 			Continue to turn order
 		</a>
 	{:else}
-		<p>Challenge unavailable</p>
 		{#if loadStatus === 'not-found'}
-			<p>The challenge was not found.</p>
+			<ErrorDisplay message="The challenge was not found." />
 		{:else}
-			<p>The challenge could not be loaded.</p>
+			<ErrorDisplay message="The challenge could not be loaded." />
 		{/if}
 		<a href={resolve('/')}>Return to home</a>
 	{/if}

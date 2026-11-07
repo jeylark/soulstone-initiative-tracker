@@ -15,6 +15,7 @@
 	import { prepareTurnOrder } from '#lib/challenge/turn-order.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import Card from '#lib/components/Card.svelte';
+	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
@@ -199,14 +200,16 @@
 		{/if}
 
 		{#if generationIssue?.status === 'missing-results'}
-			<p>Turn order cannot be generated until every rolling turn has a result.</p>
+			<ErrorDisplay
+				message="Turn order cannot be generated until every rolling turn has a result."
+			/>
 			<ul aria-label="Turns missing initiative results">
 				{#each generationIssue.turnIds as turnId (turnId)}
 					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
 				{/each}
 			</ul>
 		{:else if generationIssue?.status === 'placement-error'}
-			<p>Turn placement could not be resolved.</p>
+			<ErrorDisplay message="Turn placement could not be resolved." />
 			<ul aria-label="Turns with invalid placement">
 				{#each generationIssue.turnIds as turnId (turnId)}
 					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
@@ -218,14 +221,13 @@
 			{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
 		</ActionButton>
 		{#if hasSaveError}
-			<p role="alert">Changes could not be saved.</p>
+			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
 	{:else}
-		<p>Challenge unavailable</p>
 		{#if loadStatus === 'not-found'}
-			<p>The challenge was not found.</p>
+			<ErrorDisplay message="The challenge was not found." />
 		{:else}
-			<p>The challenge could not be loaded.</p>
+			<ErrorDisplay message="The challenge could not be loaded." />
 		{/if}
 		<a href={resolve('/')}>Return to home</a>
 	{/if}

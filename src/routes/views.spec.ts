@@ -21,6 +21,12 @@ async function renderSetup() {
 	await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 }
 
+function expectPageError(message: string): void {
+	const alert = screen.getByRole('alert');
+	expect(alert.textContent).toBe(message);
+	expect(alert.closest('.error-display')).toBeTruthy();
+}
+
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: {
 		params: {} as Record<string, string>
@@ -360,7 +366,8 @@ describe('challenge setup persistence', () => {
 
 		await fireEvent.click(screen.getByRole('link', { name: 'Roll Initiatives' }));
 
-		expect(await screen.findByRole('alert')).toBeTruthy();
+		await screen.findByRole('alert');
+		expectPageError('Changes could not be saved.');
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -378,6 +385,11 @@ describe('challenge setup persistence', () => {
 			expect(
 				await screen.findByRole('heading', { name: 'Challenge setup unavailable' })
 			).toBeTruthy();
+			expectPageError(
+				kind === 'unknown'
+					? 'No saved challenge matches this setup URL.'
+					: 'The saved challenges could not be loaded.'
+			);
 			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
 				'/challenges/new'
 			);
@@ -530,7 +542,8 @@ describe('running challenge storage', () => {
 		vi.stubGlobal('indexedDB', undefined);
 		await fireEvent.input(input, { target: { value: '12' } });
 
-		expect(await screen.findByRole('alert')).toBeTruthy();
+		await screen.findByRole('alert');
+		expectPageError('Changes could not be saved.');
 		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
@@ -556,7 +569,8 @@ describe('running challenge storage', () => {
 		await fireEvent.input(input, { target: { value: '12' } });
 		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
 
-		expect(await screen.findByRole('alert')).toBeTruthy();
+		await screen.findByRole('alert');
+		expectPageError('Changes could not be saved.');
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -857,10 +871,10 @@ describe('running challenge storage', () => {
 
 			render(rollChallengePage);
 
-			expect(await screen.findByText(message)).toBeTruthy();
+			await screen.findByRole('alert');
+			expectPageError(message);
 			expect(await screen.findByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
 			expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
-			expect(screen.getByText('Challenge unavailable')).toBeTruthy();
 			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 		}
 	);
@@ -1072,6 +1086,7 @@ describe('turn-order run route', () => {
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
 		});
+		expectPageError('Turn order cannot be generated until every rolling turn has a result.');
 		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
@@ -1102,6 +1117,7 @@ describe('turn-order run route', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		const invalidTurns = await screen.findByRole('list', { name: 'Turns with invalid placement' });
+		expectPageError('Turn placement could not be resolved.');
 		expect(within(invalidTurns).getByText('Aria')).toBeTruthy();
 		expect(within(invalidTurns).getByText('Rook')).toBeTruthy();
 	});
@@ -1118,7 +1134,8 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage);
 
-		expect(await screen.findByText(message)).toBeTruthy();
+		await screen.findByRole('alert');
+		expectPageError(message);
 		expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
 	});
 
@@ -1132,7 +1149,8 @@ describe('turn-order run route', () => {
 		vi.stubGlobal('indexedDB', undefined);
 		await fireEvent.click(generateButton);
 
-		expect(await screen.findByRole('alert')).toBeTruthy();
+		await screen.findByRole('alert');
+		expectPageError('Changes could not be saved.');
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 });

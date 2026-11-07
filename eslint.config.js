@@ -70,7 +70,7 @@ export default defineConfig(
 					types: ['boolean'],
 					format: null,
 					custom: {
-						regex: '^(is|has|can)[A-Z]',
+						regex: '^(is|are|has|have|can)[A-Z]',
 						match: true
 					}
 				},

@@ -21,6 +21,7 @@
 	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import NavButton from '#lib/components/NavButton.svelte';
+	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
 	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
 	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
@@ -481,7 +482,7 @@
 		<p>Loading challenge setup.</p>
 	{:else if loadStatus === 'ready'}
 		{#if hasSaveError}
-			<p role="alert">Changes could not be saved.</p>
+			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
 		<div class="challenge-setup">
 			<ChallengeSettings
@@ -539,9 +540,9 @@
 		{/if}
 	{:else}
 		{#if loadStatus === 'error'}
-			<p>The saved challenges could not be loaded.</p>
+			<ErrorDisplay message="The saved challenges could not be loaded." />
 		{:else}
-			<p>No saved challenge matches this setup URL.</p>
+			<ErrorDisplay message="No saved challenge matches this setup URL." />
 		{/if}
 		<a href={resolve('/challenges/new')}>Start a new challenge</a>
 	{/if}
