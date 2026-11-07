@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -15,13 +14,22 @@
 		createTurnDisplayLookup
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
-	import InitiativeFactionSection from './InitiativeFactionSection.svelte';
+	import InitiativeFactionSection from './roll/InitiativeFactionSection.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
+	type WorkflowTab = 'setup' | 'roll' | 'run';
+
+	interface Props {
+		sharedChallenge?: Challenge;
+		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+	}
+
+	let { sharedChallenge, onTabChange }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
-	let challenge = $state<Challenge>();
+	let localChallenge = $state<Challenge>();
+	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
 	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
@@ -133,27 +141,32 @@
 		);
 	}
 
+	function restoreInitiativeInputs(loadedChallenge: DeepReadonly<Challenge>): void {
+		initiativeInputs = Object.fromEntries(
+			loadedChallenge.creatures.flatMap((creature) =>
+				creature.turns.flatMap((turn) => {
+					if (turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'manual') return [];
+					const result = loadedChallenge.runState?.initiativeResults[turn.id];
+					return [[turn.id, result === undefined ? '' : String(result)]];
+				})
+			)
+		) as Partial<Record<StableId, string>>;
+	}
+
 	onMount(() => {
+		if (sharedChallenge) {
+			loadStatus = 'ready';
+			restoreInitiativeInputs(sharedChallenge);
+			return;
+		}
 		void (async () => {
 			try {
 				const library = await loadChallengeLibrary();
 				const loadedChallenge = library.challenges.find(
 					(item) => item.id === page.params.challengeId
 				);
-				challenge = loadedChallenge;
-				if (loadedChallenge) {
-					initiativeInputs = Object.fromEntries(
-						loadedChallenge.creatures.flatMap((creature) =>
-							creature.turns.flatMap((turn) => {
-								if (turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'manual') {
-									return [];
-								}
-								const result = loadedChallenge.runState?.initiativeResults[turn.id];
-								return [[turn.id, result === undefined ? '' : String(result)]];
-							})
-						)
-					) as Partial<Record<StableId, string>>;
-				}
+				localChallenge = loadedChallenge;
+				if (loadedChallenge) restoreInitiativeInputs(loadedChallenge);
 				loadStatus = loadedChallenge ? 'ready' : 'not-found';
 			} catch {
 				loadStatus = 'error';
@@ -162,7 +175,7 @@
 	});
 
 	$effect(() => {
-		if (loadStatus !== 'ready' || !challenge) return;
+		if (sharedChallenge || loadStatus !== 'ready' || !challenge) return;
 
 		const snapshotChallenge = $state.snapshot(challenge);
 		if (isFirstRun) {
@@ -194,9 +207,13 @@
 		return pendingSave;
 	}
 
-	async function returnToSetup(event: Readonly<{ preventDefault: () => void }>): Promise<void> {
-		event.preventDefault();
+	async function returnToSetup(event?: Readonly<{ preventDefault: () => void }>): Promise<void> {
+		event?.preventDefault();
 		if (!challenge) return;
+		if (sharedChallenge && onTabChange) {
+			await onTabChange('setup');
+			return;
+		}
 
 		if (saveTimeout !== undefined) {
 			clearTimeout(saveTimeout);
@@ -205,17 +222,20 @@
 
 		try {
 			await enqueueSave($state.snapshot(challenge));
-			await goto(resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
 		}
 	}
 
 	async function continueToTurnOrder(
-		event: Readonly<{ preventDefault: () => void }>
+		event?: Readonly<{ preventDefault: () => void }>
 	): Promise<void> {
-		event.preventDefault();
+		event?.preventDefault();
 		if (!challenge) return;
+		if (sharedChallenge && onTabChange) {
+			await onTabChange('run');
+			return;
+		}
 
 		if (saveTimeout !== undefined) {
 			clearTimeout(saveTimeout);
@@ -224,7 +244,6 @@
 
 		try {
 			await enqueueSave($state.snapshot(challenge));
-			await goto(resolve('/challenges/[challengeId]/run', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
 		}
@@ -257,25 +276,17 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
-		<a
-			href={resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id })}
-			onclick={returnToSetup}
+		<ActionButton variant="neutral" onclick={() => void returnToSetup()}
+			>Return to setup</ActionButton
 		>
-			Return to setup
-		</a>
-		<a
-			href={resolve('/challenges/[challengeId]/run', { challengeId: challenge.id })}
-			onclick={continueToTurnOrder}
-		>
-			Continue to turn order
-		</a>
+		<ActionButton onclick={() => void continueToTurnOrder()}>Continue to turn order</ActionButton>
 	{:else}
 		{#if loadStatus === 'not-found'}
 			<ErrorDisplay message="The challenge was not found." />
 		{:else}
 			<ErrorDisplay message="The challenge could not be loaded." />
 		{/if}
-		<a href={resolve('/')}>Return to home</a>
+		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>
 

@@ -8,10 +8,15 @@ afterEach(() => {
 });
 
 describe('LandingAction', () => {
-	it('renders its label as the accessible link name and uses its destination', () => {
-		render(LandingAction, { href: resolve('/challenges/new'), label: 'New challenge' });
+	it('renders its title and description as the accessible link name', () => {
+		render(LandingAction, {
+			href: resolve('/challenges'),
+			title: 'Host',
+			description: 'Manage your own challenge'
+		});
 
-		const link = screen.getByRole('link', { name: 'New challenge' });
-		expect(link.getAttribute('href')).toBe('/challenges/new');
+		const link = screen.getByRole('link', { name: 'Host Manage your own challenge' });
+		expect(link.getAttribute('href')).toBe('/challenges');
+		expect(link.textContent).toContain('Manage your own challenge');
 	});
 });

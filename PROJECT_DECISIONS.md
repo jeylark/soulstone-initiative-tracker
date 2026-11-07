@@ -33,13 +33,15 @@ This document records the product and architecture decisions discussed so far. I
 
 The DM can then run the encounter. At the end of each round, the DM handles the Spawn step; if that changes the challenge, initiatives are collected again as needed and the order is regenerated.
 
+Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`. Tab selection is local page state and returns to Setup after a reload.
+
 ## App navigation and views
 
 - The landing page offers:
   - Create a new challenge.
   - Load an existing challenge.
   - Display a running challenge in read-only mode.
-- Landing-page actions are links to their views: `/challenges/new` (create a challenge), `/challenges` (load a saved challenge), and `/join` (join a live session as a viewer). Until their workflows are built, these views are placeholders with a heading and a link back to the landing page.
+- Landing-page create and load actions both open `/challenges`. The hub creates a blank saved challenge and lists saved challenges to load. `/challenges/[challengeId]` hosts Setup, Roll, and Run as tabs. The join action opens `/view`, which currently reuses the join-session placeholder; live session joining and streaming are not implemented yet. The obsolete `/challenges/new`, per-step challenge routes, and `/join` route are removed.
 - The app has no navigation bar. All views share one app shell provided by the root layout: the Soulstone header, the page content area, and the light/dark theme toggle. Pages render only their own content and reuse the shared view layout component rather than repeating the shell.
 - The light/dark theme can be toggled from every view. The preference is app-wide, defaults to light, and is stored in the browser's `localStorage` (key `soulstone-theme`) so it persists across reloads. It is a display preference, not challenge data, so it is not part of the IndexedDB challenge library or its export formats. Server-side rendering uses the light theme, so a returning dark-mode user may briefly see light until the page loads in the browser.
 - The app will use **SvelteKit** and **TypeScript**, organized into components, with strict typing enabled.

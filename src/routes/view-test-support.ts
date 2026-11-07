@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { expect } from 'vitest';
 import type { Challenge, StableId } from '#lib/challenge';
-import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
+import setupChallengePage from './challenges/[challengeId]/SetupPanel.svelte';
 
 export const setupChallengeId = '00000000-0000-4000-8000-000000000001' as StableId;
 

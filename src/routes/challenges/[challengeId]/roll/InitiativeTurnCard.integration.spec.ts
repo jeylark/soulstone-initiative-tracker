@@ -7,7 +7,7 @@ import {
 	type StableId
 } from '#lib/challenge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import rollChallengePage from './+page.svelte';
+import rollChallengePage from '../RollPanel.svelte';
 import { createSetupChallenge } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
