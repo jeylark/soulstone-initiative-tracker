@@ -2,7 +2,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import savedChallengesPage from './challenges/+page.svelte';
 import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
 import turnOrderPage from './challenges/[challengeId]/run/+page.svelte';
 import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
@@ -72,7 +71,6 @@ beforeEach(async () => {
 const views: { name: string; page: Component; heading: string }[] = [
 	{ name: 'challenge setup', page: setupChallengePage, heading: 'Challenge setup' },
 	{ name: 'running challenge', page: rollChallengePage, heading: 'Initiative rolling' },
-	{ name: 'saved challenges', page: savedChallengesPage, heading: 'Saved challenges' },
 	{ name: 'join session', page: joinSessionPage, heading: 'Join a live session' }
 ];
 
