@@ -14,8 +14,10 @@
 
 <div class:theme-dark={theme.isDarkMode} class="app-shell">
 	<header>
-		<img src="/soulstone-logo.png" alt="" width="40" height="40" />
-		<span>Soulstone</span>
+		<a class="home-link" href={resolve('/')}>
+			<img src="/soulstone-logo.png" alt="" width="40" height="40" />
+			<span>Soulstone</span>
+		</a>
 		<ActionButton
 			variant="neutral"
 			class="theme-toggle"
@@ -38,12 +40,6 @@
 			{/if}
 		</ActionButton>
 	</header>
-	<nav aria-label="Page navigation">
-		<a href={resolve('/')}>Back</a>
-		<a href={resolve('/challenges/new')}>New Challenge</a>
-		<a href={resolve('/challenges')}>Saved Challenges</a>
-		<a href={resolve('/join')}>Join</a>
-	</nav>
 
 	<main>
 		{@render children()}
@@ -64,7 +60,6 @@
 	}
 
 	header,
-	nav,
 	main {
 		width: min(calc(100% - 40px), 1120px);
 		margin-inline: auto;
@@ -92,7 +87,15 @@
 		margin-left: auto;
 	}
 
-	nav a:focus-visible {
+	.home-link {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.home-link:focus-visible {
 		outline: var(--focus-ring);
 		outline-offset: var(--focus-ring-offset);
 	}
@@ -105,39 +108,8 @@
 		stroke-width: 1.4;
 	}
 
-	nav {
-		display: flex;
-		min-height: 44px;
-		align-items: center;
-		gap: 24px;
-		border-block: 1px solid var(--color-border);
-	}
-
-	nav a {
-		min-height: 40px;
-		align-content: center;
-		color: var(--color-foreground);
-		font-size: 13px;
-		text-decoration: none;
-	}
-
-	nav a:hover {
-		color: var(--color-accent);
-	}
-
 	main {
 		padding-top: 8px;
-	}
-
-	@media (max-width: 480px) {
-		nav {
-			gap: 16px;
-			overflow-x: auto;
-		}
-
-		nav a {
-			flex: 0 0 auto;
-		}
 	}
 
 	@media (min-width: 760px) {

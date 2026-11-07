@@ -65,24 +65,17 @@ describe('app layout', () => {
 		expect(screen.getByText('content')).toBeTruthy();
 	});
 
-	it('shows page navigation and the theme control in the header', () => {
+	it('links the header icon and app name to the landing page and has no navigation bar', () => {
 		const { container } = renderLayout();
 		const header = container.querySelector('header');
 		expect(header).not.toBeNull();
 		if (!header) return;
 
 		expect(within(header).getByRole('button', { name: 'Dark mode' })).toBeTruthy();
-		const navigation = screen.getByRole('navigation', { name: 'Page navigation' });
-		for (const link of [
-			{ name: 'Back', href: '/' },
-			{ name: 'New Challenge', href: '/challenges/new' },
-			{ name: 'Saved Challenges', href: '/challenges' },
-			{ name: 'Join', href: '/join' }
-		]) {
-			expect(within(navigation).getByRole('link', { name: link.name }).getAttribute('href')).toBe(
-				link.href
-			);
-		}
+		const homeLink = within(header).getByRole('link', { name: 'Soulstone' });
+		expect(homeLink.getAttribute('href')).toBe('/');
+		expect(homeLink.querySelector('img')).not.toBeNull();
+		expect(screen.queryByRole('navigation')).toBeNull();
 	});
 
 	it.each(views)('does not duplicate the shell in the $name page', ({ page }) => {
