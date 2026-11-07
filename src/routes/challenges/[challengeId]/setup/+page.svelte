@@ -415,14 +415,6 @@
 		if (hasChanged) invalidateGeneratedTurnOrder();
 	}
 
-	function updateCreatureFaction(creatureId: StableId, factionId: StableId) {
-		const creature = challenge.creatures.find((item) => item.id === creatureId);
-		if (creature && creature.factionId !== factionId) {
-			creature.factionId = factionId;
-			invalidateGeneratedTurnOrder();
-		}
-	}
-
 	function updateCreatureVisibility(creatureId: StableId, isHidden: boolean) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature) creature.isHidden = isHidden;
@@ -558,7 +550,6 @@
 				onRemoveFaction={removeFaction}
 				onCreateCharacter={addCharacter}
 				onCreateNpc={addNpc}
-				onCreatureFactionChange={updateCreatureFaction}
 				onCreatureVisibilityChange={updateCreatureVisibility}
 				onMoveTurn={moveTurn}
 				onMoveCreature={moveCreature}
