@@ -40,7 +40,6 @@ keeping its task number and wording.
 
 #### Run
 
-- 2.8: Omit hidden turns from the read-only view.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
@@ -98,6 +97,7 @@ keeping its task number and wording.
 - 4.11: Add QR-code joining to the read-only view.
 - 4.12: End inactive sessions after the configured timeout; viewer activity must
   not reset it.
+- 4.13: Omit hidden turns from the read-only view.
 
 ### 5. Hosting and operations
 
