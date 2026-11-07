@@ -11,5 +11,6 @@ describe('saved challenges view', () => {
 		render(savedChallengesPage);
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Saved challenges' })).toBeTruthy();
+		expect(document.title).toBe('Saved challenges | Soulstone Initiative Tracker');
 	});
 });

@@ -13,5 +13,6 @@ describe('join session view', () => {
 		expect(
 			await screen.findByRole('heading', { level: 1, name: 'Join a live session' })
 		).toBeTruthy();
+		expect(document.title).toBe('Join a live session | Soulstone Initiative Tracker');
 	});
 });

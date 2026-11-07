@@ -29,6 +29,7 @@ beforeEach(async () => {
 describe('new challenge entry', () => {
 	it('saves a draft and redirects to its setup route without page state', async () => {
 		render(newChallengeEntryPage);
+		expect(document.title).toBe('New challenge | Soulstone Initiative Tracker');
 
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
 
