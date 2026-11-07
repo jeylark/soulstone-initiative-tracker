@@ -35,4 +35,17 @@ describe('NavButton', () => {
 
 		expect(onclick).toHaveBeenCalledOnce();
 	});
+
+	it('is not navigable or clickable when disabled', async () => {
+		const onclick = vi.fn();
+		render(NavButton, { href: '/x', isDisabled: true, onclick, children: label });
+
+		const link = screen.getByRole('link', { name: 'Go' });
+		expect(link.getAttribute('aria-disabled')).toBe('true');
+		expect(link.hasAttribute('href')).toBe(false);
+		expect(link.getAttribute('tabindex')).toBe('-1');
+
+		await fireEvent.click(link);
+		expect(onclick).not.toHaveBeenCalled();
+	});
 });

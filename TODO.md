@@ -35,7 +35,6 @@ keeping its task number and wording.
 
 #### Run
 
-- 2.34: Add a separate disable option for each input control and button.
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
@@ -227,6 +226,7 @@ keeping its task number and wording.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
+- 2.34: Add a separate disable option for each input control and button.
 - 2.36: Extract a reusable input component that combines a slider with its
   associated input field.
 

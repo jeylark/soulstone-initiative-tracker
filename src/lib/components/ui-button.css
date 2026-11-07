@@ -16,7 +16,8 @@
 	outline-offset: var(--focus-ring-offset);
 }
 
-.ui-button:disabled {
+.ui-button:disabled,
+.ui-button[aria-disabled='true'] {
 	cursor: not-allowed;
 	opacity: 0.55;
 }
@@ -32,7 +33,7 @@
 	background: var(--color-danger-surface);
 }
 
-.ui-button--danger:hover:not(:disabled) {
+.ui-button--danger:hover:not(:disabled, [aria-disabled='true']) {
 	background: var(--color-danger-hover);
 }
 
@@ -44,6 +45,6 @@
 	font-size: 13px;
 }
 
-.ui-button--neutral:hover:not(:disabled) {
+.ui-button--neutral:hover:not(:disabled, [aria-disabled='true']) {
 	border-color: var(--color-accent);
 }

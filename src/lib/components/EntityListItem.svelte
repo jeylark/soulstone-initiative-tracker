@@ -10,13 +10,23 @@
 		removeLabel: string;
 		/** Text of the remove button. */
 		removeText?: string;
+		/** Disables the remove button without disabling the rest of the entity. */
+		isRemoveDisabled?: boolean;
 		/** Called when the remove button is clicked. */
 		onRemove: () => void;
 		/** Entity-specific content, rendered before the remove button. */
 		children: Snippet;
 	}
 
-	let { legend, removeLabel, removeText = 'Remove', onRemove, children, ...rest }: Props = $props();
+	let {
+		legend,
+		removeLabel,
+		removeText = 'Remove',
+		isRemoveDisabled = false,
+		onRemove,
+		children,
+		...rest
+	}: Props = $props();
 </script>
 
 <fieldset {...rest}>
@@ -25,6 +35,7 @@
 		variant="danger"
 		class="entity-remove-button"
 		aria-label={removeLabel}
+		disabled={isRemoveDisabled}
 		onclick={onRemove}
 	>
 		{removeText}

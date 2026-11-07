@@ -30,4 +30,22 @@ describe('ColorPickerInput', () => {
 		await fireEvent.click(red);
 		expect(onchange).toHaveBeenCalledWith('red');
 	});
+
+	it('disables every color option when disabled', () => {
+		render(ColorPickerInput, {
+			label: 'Faction color',
+			name: 'c',
+			options: [
+				{ value: 'blue', label: 'Blue', hex: '#5687c8' },
+				{ value: 'red', label: 'Red', hex: '#c76a6e' }
+			],
+			value: 'blue',
+			isDisabled: true,
+			onchange: vi.fn()
+		});
+
+		for (const radio of screen.getAllByRole('radio')) {
+			expect((radio as HTMLInputElement).matches(':disabled')).toBe(true);
+		}
+	});
 });
