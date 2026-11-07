@@ -23,13 +23,6 @@ keeping its task number and wording.
 
 #### Rolling
 
-- 2.10: Detect same-faction initiative ties and block turn-order generation
-  until the DM has resolved them. Ties across factions stay with the
-  fairness algorithm.
-- 2.11: Add UI for the DM to order tied turns within a faction, and show
-  unresolved ties when generation is blocked.
-- 2.12: Save tie decisions in the run state. Discard them for a tie group when
-  a member is rerolled, and keep the remaining decisions on recalculation.
 - 2.16: Add an animated "rolling" effect for initiative rolls.
 - 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 
@@ -212,8 +205,15 @@ keeping its task number and wording.
   fixed and relative placement hooks.
 - 2.6: Show clear feedback for invalid placement hooks.
 - 2.7: Display the DM turn list using each faction's selected color.
+- 2.10: Detect same-faction initiative ties and block turn-order generation
+  until the DM has resolved them. Ties across factions stay with the
+  fairness algorithm.
 - 2.9: Save collected initiative results as run state so a challenge can
   resume initiative collection.
+- 2.11: Add UI for the DM to order tied turns within a faction, and show
+  unresolved ties when generation is blocked.
+- 2.12: Save tie decisions in the run state. Discard them for a tie group when
+  a member is rerolled, and keep the remaining decisions on recalculation.
 - 2.15: Save generated turn order as run state so a challenge can resume with
   the generated order.
 - 2.17: Remove creature names from inside the cards in the roll view; keep

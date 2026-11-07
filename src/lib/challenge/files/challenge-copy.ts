@@ -76,6 +76,9 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 			: {
 					runState: {
 						initiativeResults: { ...challenge.runState.initiativeResults },
+						...(challenge.runState.tieDecisions === undefined
+							? {}
+							: { tieDecisions: challenge.runState.tieDecisions.map((group) => [...group]) }),
 						...(challenge.runState.generatedTurnOrder === undefined
 							? {}
 							: {
