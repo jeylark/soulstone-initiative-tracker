@@ -4,6 +4,11 @@
 	import { goto } from '$app/navigation';
 	import { createUuid, saveChallengeToLibrary, type Challenge } from '#lib';
 	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
+	import {
+		ChallengeLibraryStorageError,
+		ChallengeLibraryValidationError
+	} from '#lib/challenge/storage.js';
+	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 
 	const createdAt = new Date();
@@ -22,14 +27,33 @@
 		fairnessWeight: 3,
 		creatures: []
 	});
-	let errorMessage = $state('');
+	let errorDetails = $state('');
+
+	function describeSaveError(error: unknown): string {
+		if (error instanceof ChallengeLibraryValidationError) {
+			return [
+				`${error.name}: ${error.message}`,
+				...error.issues.map((issue) => `${issue.path}: ${issue.message}`)
+			].join('\n');
+		}
+		if (error instanceof ChallengeLibraryStorageError) {
+			return [
+				`${error.name}: ${error.message}`,
+				error.cause ? `${error.cause.name}: ${error.cause.message}` : ''
+			]
+				.filter(Boolean)
+				.join('\n');
+		}
+		if (error instanceof Error) return `${error.name}: ${error.message}`;
+		return 'An unexpected error occurred while saving.';
+	}
 
 	async function createChallenge() {
-		errorMessage = '';
+		errorDetails = '';
 		try {
 			await saveChallengeToLibrary($state.snapshot(challenge));
-		} catch {
-			errorMessage = 'The new challenge could not be saved.';
+		} catch (error) {
+			errorDetails = describeSaveError(error);
 			return;
 		}
 		await goto(resolve('/challenges/[challengeId]/setup', { challengeId: challenge.id }), {
@@ -44,8 +68,8 @@
 </script>
 
 <ViewPage title="New challenge">
-	{#if errorMessage}
-		<p role="alert">{errorMessage}</p>
+	{#if errorDetails}
+		<ErrorDisplay message="The new challenge could not be saved." details={errorDetails} />
 		<button type="button" onclick={() => void createChallenge()}>Try again</button>
 	{:else}
 		<p>Preparing a new challenge setup.</p>

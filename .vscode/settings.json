@@ -9,6 +9,7 @@
 		"Out-Null": true,
 		"git add": true,
 		"npm test": true,
-		"git diff": true
+		"git diff": true,
+		"git fetch": true
 	}
 }

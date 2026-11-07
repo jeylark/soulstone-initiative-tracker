@@ -115,6 +115,23 @@ describe('challenge library storage', () => {
 		});
 	});
 
+	it('saves a challenge while skipping invalid existing challenges', async () => {
+		const savedChallenge = createChallenge('Saved');
+		const invalidChallenge = { ...createChallenge('Invalid'), fairnessWeight: -1 };
+		const newChallenge = createChallenge('New');
+		await seedStoredLibrary({
+			...emptyLibrary,
+			challenges: [savedChallenge, invalidChallenge]
+		});
+
+		await saveChallengeToLibrary(newChallenge, indexedDbFactory);
+
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			challenges: [savedChallenge, newChallenge]
+		});
+	});
+
 	it('replaces a saved challenge by ID, keeping others', async () => {
 		const first = createChallenge('First');
 		const second = createChallenge('Second');
