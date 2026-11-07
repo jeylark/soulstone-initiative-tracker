@@ -148,10 +148,14 @@ function recoverValidChallenges(value: unknown): readonly Challenge[] {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
 
 	const storedLibrary = value as Readonly<Record<string, unknown>>;
-	if (
-		storedLibrary.formatVersion !== CHALLENGE_FORMAT_VERSION ||
-		!Array.isArray(storedLibrary.challenges)
-	) {
+	if (storedLibrary.formatVersion !== CHALLENGE_FORMAT_VERSION) {
+		const result = validateChallengeLibrary({
+			formatVersion: storedLibrary.formatVersion,
+			challenges: []
+		});
+		if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
+	}
+	if (!Array.isArray(storedLibrary.challenges)) {
 		return [];
 	}
 
