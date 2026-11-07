@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import ChallengeCard from './ChallengeCard.svelte';
 	import {
 		ChallengeLibraryStorageError,
 		ChallengeLibraryValidationError,
@@ -111,15 +112,13 @@
 		<p>No saved challenges yet.</p>
 	{:else}
 		<h2>Saved challenges</h2>
-		<ul aria-label="Saved challenges">
+		<div class="challenge-cards" role="list" aria-label="Saved challenges">
 			{#each challenges as challenge (challenge.id)}
-				<li>
-					<a href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}>
-						{challenge.name || 'Untitled challenge'}
-					</a>
-				</li>
+				<div role="listitem">
+					<ChallengeCard {challenge} />
+				</div>
 			{/each}
-		</ul>
+		</div>
 	{/if}
 	{#if createErrorDetails && loadStatus !== 'error'}
 		<ErrorDisplay message="The new challenge could not be saved." details={createErrorDetails} />
@@ -137,12 +136,9 @@
 		font-weight: 600;
 	}
 
-	ul {
+	.challenge-cards {
+		display: grid;
+		gap: 12px;
 		margin: 0 0 24px;
-		padding-inline-start: 24px;
-	}
-
-	li + li {
-		margin-top: 8px;
 	}
 </style>

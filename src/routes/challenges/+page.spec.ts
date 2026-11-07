@@ -46,7 +46,8 @@ describe('challenge hub', () => {
 
 		render(savedChallengesPage);
 
-		const challengeLink = await screen.findByRole('link', { name: 'Ashen Company' });
+		expect(await screen.findByRole('heading', { level: 3, name: 'Ashen Company' })).toBeTruthy();
+		const challengeLink = screen.getByRole('link', { name: 'Load Ashen Company' });
 		expect(challengeLink.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
 	});
 
