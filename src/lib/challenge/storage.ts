@@ -84,6 +84,88 @@ function openDatabase(indexedDbFactory: Readonly<IDBFactory>): Promise<IDBDataba
 	});
 }
 
+async function readStoredLibraryValue(
+	indexedDbFactory: Readonly<IDBFactory>
+): Promise<Readonly<{ hasValue: boolean; value: unknown }>> {
+	const database = await openDatabase(indexedDbFactory);
+	try {
+		return await new Promise((resolve, reject) => {
+			const transaction = database.transaction(OBJECT_STORE_NAME, 'readonly');
+			const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
+			let hasValue = false;
+			let value: unknown;
+
+			const keyRequest = objectStore.getKey(LIBRARY_KEY);
+			keyRequest.onsuccess = () => {
+				if (keyRequest.result === undefined) return;
+
+				const valueRequest = objectStore.get(LIBRARY_KEY);
+				valueRequest.onsuccess = () => {
+					hasValue = true;
+					value = valueRequest.result;
+				};
+				valueRequest.onerror = () => {
+					reject(
+						new ChallengeLibraryStorageError(
+							'Unable to read the challenge library.',
+							valueRequest.error
+						)
+					);
+				};
+			};
+			keyRequest.onerror = () => {
+				reject(
+					new ChallengeLibraryStorageError(
+						'Unable to read the challenge library.',
+						keyRequest.error
+					)
+				);
+			};
+			transaction.oncomplete = () => resolve({ hasValue, value });
+			transaction.onerror = () => {
+				reject(
+					new ChallengeLibraryStorageError(
+						'Unable to read the challenge library.',
+						transaction.error
+					)
+				);
+			};
+			transaction.onabort = () => {
+				reject(
+					new ChallengeLibraryStorageError(
+						'Reading the challenge library was aborted.',
+						transaction.error
+					)
+				);
+			};
+		});
+	} finally {
+		database.close();
+	}
+}
+
+function recoverValidChallenges(value: unknown): readonly Challenge[] {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
+
+	const storedLibrary = value as Readonly<Record<string, unknown>>;
+	if (
+		storedLibrary.formatVersion !== CHALLENGE_FORMAT_VERSION ||
+		!Array.isArray(storedLibrary.challenges)
+	) {
+		return [];
+	}
+
+	let challenges: readonly Challenge[] = [];
+	for (const challenge of storedLibrary.challenges) {
+		const result = validateChallengeLibrary({
+			formatVersion: CHALLENGE_FORMAT_VERSION,
+			challenges: [...challenges, challenge]
+		});
+		if (result.isValid) challenges = result.value.challenges;
+	}
+	return challenges;
+}
+
 /**
  * Loads and validates the saved challenge library, or returns an empty one.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
@@ -94,68 +176,12 @@ function openDatabase(indexedDbFactory: Readonly<IDBFactory>): Promise<IDBDataba
 export async function loadChallengeLibrary(
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<ChallengeLibrary> {
-	const database = await openDatabase(indexedDbFactory);
-	try {
-		const storedLibrary = await new Promise<Readonly<{ hasValue: boolean; value: unknown }>>(
-			(resolve, reject) => {
-				const transaction = database.transaction(OBJECT_STORE_NAME, 'readonly');
-				const objectStore = transaction.objectStore(OBJECT_STORE_NAME);
-				let hasValue = false;
-				let value: unknown;
+	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
+	if (!storedLibrary.hasValue) return createEmptyChallengeLibrary();
 
-				const keyRequest = objectStore.getKey(LIBRARY_KEY);
-				keyRequest.onsuccess = () => {
-					if (keyRequest.result === undefined) return;
-
-					const valueRequest = objectStore.get(LIBRARY_KEY);
-					valueRequest.onsuccess = () => {
-						hasValue = true;
-						value = valueRequest.result;
-					};
-					valueRequest.onerror = () => {
-						reject(
-							new ChallengeLibraryStorageError(
-								'Unable to read the challenge library.',
-								valueRequest.error
-							)
-						);
-					};
-				};
-				keyRequest.onerror = () => {
-					reject(
-						new ChallengeLibraryStorageError(
-							'Unable to read the challenge library.',
-							keyRequest.error
-						)
-					);
-				};
-				transaction.oncomplete = () => resolve({ hasValue, value });
-				transaction.onerror = () => {
-					reject(
-						new ChallengeLibraryStorageError(
-							'Unable to read the challenge library.',
-							transaction.error
-						)
-					);
-				};
-				transaction.onabort = () => {
-					reject(
-						new ChallengeLibraryStorageError(
-							'Reading the challenge library was aborted.',
-							transaction.error
-						)
-					);
-				};
-			}
-		);
-		if (!storedLibrary.hasValue) return createEmptyChallengeLibrary();
-
-		const result = validateChallengeLibrary(storedLibrary.value);
-		if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
-		return result.value;
-	} finally {
-		database.close();
-	}
+	const result = validateChallengeLibrary(storedLibrary.value);
+	if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
+	return result.value;
 }
 
 /**
@@ -208,17 +234,24 @@ export async function saveChallengeLibrary(
 
 /**
  * Saves a challenge into the stored library, replacing any challenge with the same ID.
+ * Invalid existing challenges are skipped while individually valid challenges are preserved.
  * @param challenge Challenge to add or replace.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
  * @returns A promise that resolves when the updated library has been saved.
- * @throws {ChallengeLibraryValidationError} If stored or resulting library data is invalid.
+ * @throws {ChallengeLibraryValidationError} If the challenge or resulting library is invalid.
  * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened, read, or written.
  */
 export async function saveChallengeToLibrary(
 	challenge: DeepReadonly<Challenge>,
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<void> {
-	const library = await loadChallengeLibrary(indexedDbFactory);
+	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
+	const library = storedLibrary.hasValue
+		? {
+				formatVersion: CHALLENGE_FORMAT_VERSION,
+				challenges: recoverValidChallenges(storedLibrary.value)
+			}
+		: createEmptyChallengeLibrary();
 	const hasChallenge = library.challenges.some((saved) => saved.id === challenge.id);
 	await saveChallengeLibrary(
 		{
