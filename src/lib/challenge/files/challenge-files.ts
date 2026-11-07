@@ -210,6 +210,13 @@ function importChallengeEntities(
 							value
 						])
 					),
+					...(challenge.runState.tieDecisions === undefined
+						? {}
+						: {
+								tieDecisions: challenge.runState.tieDecisions.map((group) =>
+									group.map((turnId) => mapTurnId(turnId))
+								)
+							}),
 					...(challenge.runState.generatedTurnOrder === undefined
 						? {}
 						: {

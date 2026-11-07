@@ -52,6 +52,7 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 		],
 		runState: {
 			initiativeResults: { [secondTurnId]: 13 },
+			tieDecisions: [[secondTurnId, turnId]],
 			generatedTurnOrder: [
 				{ kind: 'turn', turnId },
 				{ kind: 'turn', turnId: secondTurnId },
@@ -258,6 +259,9 @@ describe('challenge file workflows', () => {
 			kind: 'relative-position',
 			targetTurnId: copiedChallenge.creatures[0]?.turns[1]?.id
 		});
+		expect(copiedChallenge.runState?.tieDecisions).toEqual([
+			[copiedChallenge.creatures[0]?.turns[1]?.id, copiedChallenge.creatures[0]?.turns[0]?.id]
+		]);
 		expect(copiedChallenge.runState?.generatedTurnOrder).toEqual([
 			{ kind: 'turn', turnId: copiedChallenge.creatures[0]?.turns[0]?.id },
 			{ kind: 'turn', turnId: copiedChallenge.creatures[0]?.turns[1]?.id },

@@ -63,4 +63,19 @@ describe('EntityListItem', () => {
 		await fireEvent.click(button);
 		expect(onRemove).toHaveBeenCalledOnce();
 	});
+
+	it('disables only the remove button with isRemoveDisabled', () => {
+		const onRemove = vi.fn();
+		render(EntityListItem, {
+			legend: 'A',
+			removeLabel: 'Remove A',
+			isRemoveDisabled: true,
+			onRemove,
+			children: content
+		});
+
+		const button = screen.getByRole('button', { name: 'Remove A' }) as HTMLButtonElement;
+		expect(button.disabled).toBe(true);
+		expect((screen.getByRole('group', { name: 'A' }) as HTMLFieldSetElement).disabled).toBe(false);
+	});
 });

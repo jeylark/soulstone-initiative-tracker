@@ -38,6 +38,8 @@ export interface ChallengeRunState {
 	initiativeResults: InitiativeResults;
 	/** Generated order of turns, when one has been created. */
 	generatedTurnOrder?: GeneratedTurnOrder;
+	/** Orders chosen by the DM for groups of tied same-faction turns; each entry lists a group's turn IDs in play order. */
+	tieDecisions?: StableId[][];
 }
 
 /** Persistent library containing saved challenges. */

@@ -11,10 +11,13 @@
 		type ChallengeCreature,
 		type StableId,
 		type TurnDisplay,
-		createTurnDisplayLookup
+		createTurnDisplayLookup,
+		discardTieDecisionsForTurn,
+		findInitiativeTies
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import InitiativeFactionSection from './roll/InitiativeFactionSection.svelte';
+	import TieResolution from './roll/TieResolution.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 	type WorkflowTab = 'setup' | 'roll' | 'run';
@@ -34,6 +37,9 @@
 	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
+	let tieGroups = $derived(
+		challenge ? findInitiativeTies(challenge, challenge.runState?.initiativeResults ?? {}) : []
+	);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -43,6 +49,20 @@
 
 		const initiative = Number(value);
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
+	}
+
+	function decideTie(order: readonly StableId[]): void {
+		if (!challenge) return;
+		const decisions = (challenge.runState?.tieDecisions ?? []).filter(
+			(decision) =>
+				decision.length !== order.length || !decision.every((turnId) => order.includes(turnId))
+		);
+		const runState = {
+			...(challenge.runState ?? { initiativeResults: {} }),
+			tieDecisions: [...decisions, [...order]]
+		};
+		delete runState.generatedTurnOrder;
+		challenge.runState = runState;
 	}
 
 	function updateInitiative(turnId: StableId, value: string): void {
@@ -59,6 +79,9 @@
 		}
 		const runState = { ...(challenge.runState ?? {}), initiativeResults };
 		if (previousInitiative !== initiative) delete runState.generatedTurnOrder;
+		if (challenge.runState?.tieDecisions) {
+			runState.tieDecisions = discardTieDecisionsForTurn(challenge.runState.tieDecisions, turnId);
+		}
 		challenge.runState = runState;
 	}
 
@@ -96,6 +119,9 @@
 		};
 		if (previousInitiative !== initiative) {
 			delete runState.generatedTurnOrder;
+		}
+		if (challenge.runState?.tieDecisions) {
+			runState.tieDecisions = discardTieDecisionsForTurn(challenge.runState.tieDecisions, turnId);
 		}
 		challenge.runState = runState;
 	}
@@ -270,6 +296,12 @@
 				/>
 			{/each}
 		</div>
+		<TieResolution
+			groups={tieGroups}
+			decisions={challenge.runState?.tieDecisions ?? []}
+			{turnDisplayLookup}
+			onDecide={decideTie}
+		/>
 		{#if hasRollableAppTurns()}
 			<ActionButton onclick={rollAll}>Roll all</ActionButton>
 		{/if}

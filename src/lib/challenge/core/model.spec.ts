@@ -64,6 +64,7 @@ const library = {
 			fairnessWeight: 3,
 			runState: {
 				initiativeResults: { [ids.turn]: 12, [ids.secondTurnId]: 8 },
+				tieDecisions: [[ids.secondTurnId, ids.turn]],
 				generatedTurnOrder: [
 					{ kind: 'turn', turnId: ids.turn },
 					{ kind: 'turn', turnId: ids.secondTurn },
@@ -511,6 +512,27 @@ const invalidFieldCases = [
 		message: 'Expected a non-negative whole-number initiative value.'
 	},
 	{
+		field: 'tie decisions array',
+		path: ['challenges', 0, 'runState', 'tieDecisions'],
+		value: null,
+		issuePath: '$.challenges[0].runState.tieDecisions',
+		message: 'Expected an array of turn UUID arrays.'
+	},
+	{
+		field: 'short tie decision',
+		path: ['challenges', 0, 'runState', 'tieDecisions', 0],
+		value: [ids.turn],
+		issuePath: '$.challenges[0].runState.tieDecisions[0]',
+		message: 'Expected an array of at least two turn UUIDs.'
+	},
+	{
+		field: 'tie decision id',
+		path: ['challenges', 0, 'runState', 'tieDecisions', 0, 0],
+		value: 'invalid',
+		issuePath: '$.challenges[0].runState.tieDecisions[0][0]',
+		message: 'Expected a valid turn UUID.'
+	},
+	{
 		field: 'generated turn order array',
 		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
 		value: null,
@@ -601,6 +623,20 @@ const invalidReferenceCases = [
 		value: { [ids.secondTurn]: 12 },
 		issuePath: `$.challenges[0].runState.initiativeResults.${ids.secondTurn}`,
 		message: 'Initiative results can only be stored for turns configured to roll.'
+	},
+	{
+		field: 'tie decision turn reference',
+		path: ['challenges', 0, 'runState', 'tieDecisions'],
+		value: [[ids.turn, missingTurnId]],
+		issuePath: '$.challenges[0].runState.tieDecisions[0][1]',
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'duplicate tie decision turn',
+		path: ['challenges', 0, 'runState', 'tieDecisions'],
+		value: [[ids.turn, ids.turn]],
+		issuePath: '$.challenges[0].runState.tieDecisions[0][1]',
+		message: 'Turn appears more than once in the decision.'
 	},
 	{
 		field: 'generated turn order turn reference',

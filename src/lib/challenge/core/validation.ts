@@ -343,7 +343,31 @@ function validateRunState(
 			validateGeneratedTurnOrderEntry
 		);
 	}
-	return isValidResults && isValidOrder;
+
+	let isValidTieDecisions = true;
+	if ('tieDecisions' in value && value.tieDecisions !== undefined) {
+		const tieDecisions = value.tieDecisions;
+		if (!Array.isArray(tieDecisions)) {
+			addIssue(`${path}.tieDecisions`, 'Expected an array of turn UUID arrays.');
+			isValidTieDecisions = false;
+		} else {
+			tieDecisions.forEach((decision: unknown, index) => {
+				const decisionPath = `${path}.tieDecisions[${index}]`;
+				if (!Array.isArray(decision) || decision.length < 2) {
+					addIssue(decisionPath, 'Expected an array of at least two turn UUIDs.');
+					isValidTieDecisions = false;
+					return;
+				}
+				decision.forEach((id: unknown, idIndex) => {
+					if (typeof id !== 'string' || parseUuid(id) === null) {
+						addIssue(`${decisionPath}[${idIndex}]`, 'Expected a valid turn UUID.');
+						isValidTieDecisions = false;
+					}
+				});
+			});
+		}
+	}
+	return isValidResults && isValidOrder && isValidTieDecisions;
 }
 
 function validateChallenge(
@@ -572,6 +596,23 @@ function validateRunStateReferences(
 			addIssue(resultPath, 'Initiative results can only be stored for turns configured to roll.');
 		}
 	});
+
+	if (Array.isArray(runState.tieDecisions)) {
+		runState.tieDecisions.forEach((decision: unknown, index) => {
+			if (!Array.isArray(decision)) return;
+			const seen = new Set<string>();
+			decision.forEach((turnId: unknown, idIndex) => {
+				const id = typeof turnId === 'string' ? parseUuid(turnId)?.toLowerCase() : undefined;
+				if (!id) return;
+				const decisionPath = `${path}.runState.tieDecisions[${index}][${idIndex}]`;
+				if (!turnIds.has(id)) {
+					addIssue(decisionPath, 'References a turn that does not exist in this challenge.');
+				}
+				if (seen.has(id)) addIssue(decisionPath, 'Turn appears more than once in the decision.');
+				seen.add(id);
+			});
+		});
+	}
 
 	const generatedTurnOrder = runState.generatedTurnOrder;
 	if (!Array.isArray(generatedTurnOrder)) return;

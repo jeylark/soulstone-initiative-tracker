@@ -19,14 +19,16 @@
 		readonly options: readonly ColorPickerOption<T>[];
 		/** Currently selected color value. */
 		readonly value: T;
+		/** Disables every color option. */
+		readonly isDisabled?: boolean;
 		/** Called with the selected option's value. */
 		readonly onchange: (value: T) => void;
 	}
 
-	let { label, name, options, value, onchange }: Props<T> = $props();
+	let { label, name, options, value, isDisabled = false, onchange }: Props<T> = $props();
 </script>
 
-<fieldset class="form-color-picker">
+<fieldset class="form-color-picker" disabled={isDisabled}>
 	<legend class="form-color-picker__legend">{label}</legend>
 	<div class="form-color-picker__options">
 		{#each options as option (option.value)}

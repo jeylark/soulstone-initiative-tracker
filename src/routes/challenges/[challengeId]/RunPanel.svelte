@@ -8,6 +8,8 @@
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
 		prepareTurnOrder,
+		pruneTieDecisions,
+		type TurnOrderPreparation,
 		saveChallengeToLibrary,
 		type Challenge,
 		type StableId
@@ -23,10 +25,7 @@
 	}
 
 	let { sharedChallenge, onSave }: Props = $props();
-	type GenerationIssue = {
-		readonly status: 'missing-results' | 'placement-error';
-		readonly turnIds: readonly StableId[];
-	};
+	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -92,7 +91,11 @@
 
 		generationIssue = undefined;
 		const runState = challenge.runState ?? { initiativeResults: {} };
-		const preparation = prepareTurnOrder(challenge, runState.initiativeResults);
+		const preparation = prepareTurnOrder(
+			challenge,
+			runState.initiativeResults,
+			runState.tieDecisions
+		);
 		if (preparation.status !== 'generated') {
 			generationIssue = preparation;
 			return;
@@ -103,6 +106,13 @@
 			...(snapshotChallenge.runState ?? { initiativeResults: {} }),
 			generatedTurnOrder: [...preparation.order]
 		};
+		if (runState.tieDecisions !== undefined) {
+			nextRunState.tieDecisions = pruneTieDecisions(
+				challenge,
+				runState.initiativeResults,
+				runState.tieDecisions
+			);
+		}
 		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
 		const previousRunState = challenge.runState;
 		isSaving = true;
@@ -167,6 +177,19 @@
 			<ul aria-label="Turns missing initiative results">
 				{#each generationIssue.turnIds as turnId (turnId)}
 					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+				{/each}
+			</ul>
+		{:else if generationIssue?.status === 'unresolved-ties'}
+			<ErrorDisplay
+				message="Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab."
+			/>
+			<ul aria-label="Unresolved initiative ties">
+				{#each generationIssue.groups as group (group.join())}
+					<li>
+						{group
+							.map((turnId) => turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn')
+							.join(', ')}
+					</li>
 				{/each}
 			</ul>
 		{:else if generationIssue?.status === 'placement-error'}
