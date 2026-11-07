@@ -116,7 +116,33 @@ describe('new challenge entry', () => {
 
 		render(newChallengeEntryPage);
 
-		expect(await screen.findByRole('alert')).toBeTruthy();
+		const alert = await screen.findByRole('alert');
+		expect(alert.textContent).toContain('IndexedDB is not available.');
+		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('shows validation details when the stored library is invalid', async () => {
+		const database = await new Promise<IDBDatabase>((resolve, reject) => {
+			const request = indexedDB.open('soulstone-challenge-library', 1);
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+		await new Promise<void>((resolve, reject) => {
+			const transaction = database.transaction('challengeLibrary', 'readwrite');
+			transaction
+				.objectStore('challengeLibrary')
+				.put({ formatVersion: 2, challenges: [] }, 'current');
+			transaction.oncomplete = () => resolve();
+			transaction.onerror = () => reject(transaction.error);
+			transaction.onabort = () => reject(transaction.error);
+		});
+		database.close();
+
+		render(newChallengeEntryPage);
+
+		const alert = await screen.findByRole('alert');
+		expect(alert.textContent).toContain('$.formatVersion: Unsupported challenge library version.');
 		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
