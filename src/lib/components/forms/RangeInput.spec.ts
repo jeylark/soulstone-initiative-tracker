@@ -7,30 +7,113 @@ afterEach(() => {
 });
 
 describe('RangeInput', () => {
-	it('preserves slider bounds and forwards input events', async () => {
-		const oninput = vi.fn();
+	it('renders a shared label and forwards both control input events', async () => {
+		const onSliderInput = vi.fn();
+		const onNumberInput = vi.fn();
 		render(RangeInput, {
-			label: 'Fairness weight slider',
+			label: 'Fairness weight',
 			isLabelVisuallyHidden: true,
-			value: 3,
+			id: 'fairness-weight',
+			value: 12.75,
 			min: 0,
 			max: 10,
 			step: 0.01,
-			oninput
+			numberMin: 0,
+			numberStep: 'any',
+			onSliderInput,
+			onNumberInput
 		});
 
-		const input = screen.getByRole('slider', {
+		const group = screen.getByRole('group', { name: 'Fairness weight' });
+		const slider = screen.getByRole('slider', {
 			name: 'Fairness weight slider'
 		}) as HTMLInputElement;
-		expect(input.type).toBe('range');
-		expect(input.min).toBe('0');
-		expect(input.max).toBe('10');
-		expect(input.step).toBe('0.01');
-		expect(input.closest('label')?.querySelector('.visually-hidden')?.textContent).toBe(
-			'Fairness weight slider'
-		);
+		const number = screen.getByRole('spinbutton', {
+			name: 'Fairness weight value'
+		}) as HTMLInputElement;
 
-		await fireEvent.input(input, { target: { value: '4.25' } });
-		expect(oninput).toHaveBeenCalledOnce();
+		expect(slider.type).toBe('range');
+		expect(slider.id).toBe('fairness-weight');
+		expect(slider.min).toBe('0');
+		expect(slider.max).toBe('10');
+		expect(slider.step).toBe('0.01');
+		expect(slider.value).toBe('10');
+		expect(number.type).toBe('number');
+		expect(number.value).toBe('12.75');
+		expect(number.min).toBe('0');
+		expect(number.max).toBe('');
+		expect(number.step).toBe('any');
+		expect(slider.closest('fieldset')).toBe(group);
+		expect(number.closest('fieldset')).toBe(group);
+
+		await fireEvent.input(slider, { target: { value: '4.25' } });
+		await fireEvent.input(number, { target: { value: '14.5' } });
+		expect(onSliderInput).toHaveBeenCalledOnce();
+		expect(onNumberInput).toHaveBeenCalledOnce();
+	});
+
+	it('shares warning and error associations across both controls', () => {
+		const { rerender } = render(RangeInput, {
+			label: 'Initiative',
+			value: 19,
+			min: 0,
+			max: 10,
+			step: 0.01,
+			['aria-describedby']: 'initiative-help',
+			hasWarning: true,
+			warningMessage: 'Values above 18 are valid.'
+		});
+
+		const slider = screen.getByRole('slider', { name: 'Initiative slider' }) as HTMLInputElement;
+		const number = screen.getByRole('spinbutton', { name: 'Initiative value' }) as HTMLInputElement;
+		const warning = screen.getByRole('status');
+
+		expect(warning.textContent).toBe('Values above 18 are valid.');
+		expect(slider.classList.contains('form-control--warning')).toBe(true);
+		expect(number.classList.contains('form-control--warning')).toBe(true);
+		expect(slider.getAttribute('aria-invalid')).toBeNull();
+		expect(number.getAttribute('aria-invalid')).toBeNull();
+		expect(slider.getAttribute('aria-describedby')).toBe(`initiative-help ${warning.id}`);
+		expect(number.getAttribute('aria-describedby')).toBe(`initiative-help ${warning.id}`);
+
+		rerender({
+			label: 'Initiative',
+			value: 19,
+			min: 0,
+			max: 10,
+			step: 0.01,
+			['aria-describedby']: 'initiative-help',
+			hasWarning: false,
+			warningMessage: undefined,
+			isInvalid: true,
+			invalidMessage: 'Enter a non-negative whole number.'
+		});
+
+		const invalidMessage = screen.getByRole('alert');
+		expect(invalidMessage.textContent).toBe('Enter a non-negative whole number.');
+		expect(slider.classList.contains('form-control--invalid')).toBe(true);
+		expect(number.classList.contains('form-control--invalid')).toBe(true);
+		expect(slider.getAttribute('aria-invalid')).toBe('true');
+		expect(number.getAttribute('aria-invalid')).toBe('true');
+		expect(slider.getAttribute('aria-describedby')).toBe(`initiative-help ${invalidMessage.id}`);
+		expect(number.getAttribute('aria-describedby')).toBe(`initiative-help ${invalidMessage.id}`);
+
+		rerender({
+			label: 'Initiative',
+			value: 19,
+			min: 0,
+			max: 10,
+			step: 0.01,
+			['aria-describedby']: 'initiative-help',
+			hasWarning: false,
+			warningMessage: undefined,
+			isInvalid: false,
+			invalidMessage: undefined
+		});
+
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(screen.queryByRole('status')).toBeNull();
+		expect(slider.getAttribute('aria-describedby')).toBe('initiative-help');
+		expect(number.getAttribute('aria-describedby')).toBe('initiative-help');
 	});
 });

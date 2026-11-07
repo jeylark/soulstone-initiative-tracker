@@ -24,13 +24,6 @@
 	gap: 16px 24px;
 }
 
-.challenge-setup .fairness-control {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(8ch, 12ch);
-	align-items: center;
-	gap: 12px;
-}
-
 .challenge-setup .fairness-setting {
 	display: grid;
 	flex: 1 1 180px;
@@ -45,7 +38,7 @@
 	font: inherit;
 }
 
-.challenge-setup .fairness-control .fairness-weight-input {
+.challenge-setup .fairness-weight-input {
 	width: 100%;
 	font-variant-numeric: tabular-nums;
 	text-align: right;
