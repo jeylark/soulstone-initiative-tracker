@@ -124,14 +124,14 @@ keeping its task number and wording.
   failure cases.
 - 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
   and `npm run build`; ensure CI passes.
-- 6.9: Split the challenge-list view (`/challenges`) into smaller
+  6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
+  smaller sub-components where feasible, improving readability and following
+  single responsibility.
+  6.10: Split the challenge creation workflow on `/challenges` into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
-- 6.10: Split the new-challenge view (`/challenges/new`) into smaller
-  sub-components where feasible, improving readability and following single
-  responsibility.
-- 6.14: Split the join view (`/join`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
+  6.14: Split the viewer entry page (`/view`) into smaller sub-components where
+  feasible as live-session joining is implemented.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
 - 6.19: Rework existing custom-input dimension stability to apply only to
@@ -226,12 +226,15 @@ keeping its task number and wording.
   subdirectories to reduce the number of files at the folder root.
 - 6.8: Split the landing-page view (`/`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
-- 6.11: Split the challenge-setup view
-  (`/challenges/[challengeId]/setup`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
-- 6.12: Split the initiative-roll view
-  (`/challenges/[challengeId]/roll`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
+  6.11: Further split the Setup tab on `/challenges/[challengeId]` into smaller
+  sub-components where feasible, improving readability and following single
+  responsibility.
+  6.12: Further split the Roll tab on `/challenges/[challengeId]` into smaller
+  sub-components where feasible, improving readability and following single
+  responsibility.
+  6.13: Further split the Run tab on `/challenges/[challengeId]` into smaller
+  sub-components where feasible, improving readability and following single
+  responsibility.
 - 6.13: Split the running-challenge view
   (`/challenges/[challengeId]/run`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
