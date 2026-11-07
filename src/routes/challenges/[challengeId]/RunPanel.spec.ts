@@ -119,8 +119,10 @@ describe('turn-order run route', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		expectPageError(
-			'Turn order cannot be generated until tied turns in the same faction are ordered.'
+			'Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab.'
 		);
+		const ties = screen.getByRole('list', { name: 'Unresolved initiative ties' });
+		expect(within(ties).getByText('Aria, Rook')).toBeTruthy();
 		expect(
 			(await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder
 		).toBeUndefined();

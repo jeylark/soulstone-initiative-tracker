@@ -168,8 +168,17 @@
 			</ul>
 		{:else if generationIssue?.status === 'unresolved-ties'}
 			<ErrorDisplay
-				message="Turn order cannot be generated until tied turns in the same faction are ordered."
+				message="Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab."
 			/>
+			<ul aria-label="Unresolved initiative ties">
+				{#each generationIssue.groups as group (group.join())}
+					<li>
+						{group
+							.map((turnId) => turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn')
+							.join(', ')}
+					</li>
+				{/each}
+			</ul>
 		{:else if generationIssue?.status === 'placement-error'}
 			<ErrorDisplay message="Turn placement could not be resolved." />
 			<ul aria-label="Turns with invalid placement">

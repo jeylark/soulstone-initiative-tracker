@@ -697,6 +697,46 @@ describe('running challenge storage', () => {
 		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
 	});
 
+	it('lets the DM order a tie and saves the decision', async () => {
+		const challenge = createSetupChallenge();
+		const faction = '00000000-0000-4000-8000-000000000002' as StableId;
+		const a = '00000000-0000-4000-8000-000000000036' as StableId;
+		const b = '00000000-0000-4000-8000-000000000037' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: faction,
+				isHidden: false,
+				turns: [a, b].map((id) => ({
+					id,
+					initiative: { kind: 'roll' as const, mode: 'manual' as const }
+				}))
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [a]: 5, [b]: 5 },
+			generatedTurnOrder: [
+				{ kind: 'turn', turnId: a },
+				{ kind: 'turn', turnId: b },
+				{ kind: 'spawn' }
+			]
+		};
+		await saveChallengeToLibrary(challenge);
+
+		render(rollChallengePage);
+		expect(await screen.findByText('Needs ordering')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Move Aria - Turn 2 earlier' }));
+
+		expect(screen.getByText('Ordered')).toBeTruthy();
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.tieDecisions).toEqual([[b, a]]);
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
+		});
+	});
+
 	it('discards tie decisions for a rerolled turn and keeps the others', async () => {
 		const challenge = createSetupChallenge();
 		const faction = '00000000-0000-4000-8000-000000000002' as StableId;
