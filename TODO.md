@@ -31,7 +31,6 @@ keeping its task number and wording.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
 - 2.16: Add an animated "rolling" effect for initiative rolls.
-- 2.17: Remove creature names from the cards in the roll view.
 - 2.21: Label turn-order generation **Start challenge** and remove the
   recalculation action while a challenge is running. This does not rename
   the separate per-turn **Calculate roll** action.
@@ -45,6 +44,11 @@ keeping its task number and wording.
 - 2.27: Make faction colors stand out more clearly from the background.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
+- 2.31: Add **Next** and **Previous** buttons to the run view.
+- 2.32: Combine the setup, rolling, and run views into a single page with
+  separate tabs for each view.
 
 ### 3. Challenge library and file workflows
 
@@ -130,20 +134,20 @@ keeping its task number and wording.
   feasible, improving readability and following single responsibility.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
-- 6.18: Rework existing custom-input dimension stability to apply only to
+- 6.19: Rework existing custom-input dimension stability to apply only to
   width. Remove empty slots and reserved height for potential validation
   messages; render message space only when warnings or errors are displayed,
   allowing field height to grow and shrink without changing control width.
   Update focused component tests. This supersedes the height-reservation
   behavior from task 2.20.
-- 6.19: Add consistent optional warning and error display to all custom input
+- 6.20: Add consistent optional warning and error display to all custom input
   components (text, number, select, range, and checkbox), using NumberInput's
-  existing validation props and depending on 6.18. Preserve native attributes,
+  existing validation props and depending on 6.19. Preserve native attributes,
   accessible message associations, and stable control widths without reserving
   empty message height; add focused component tests and public API
   documentation.
-- 6.20: Wire existing validation warnings and errors to the relevant custom
-  input components across forms, depending on 6.19. Reuse existing validation
+- 6.21: Wire existing validation warnings and errors to the relevant custom
+  input components across forms, depending on 6.20. Reuse existing validation
   rules, show field-level feedback, preserve non-blocking warnings and existing
   invalid-input behavior, and add focused integration tests. Keep new
   setup-validation rules in task 1.18.
@@ -206,6 +210,8 @@ keeping its task number and wording.
   resume initiative collection.
 - 2.15: Save generated turn order as run state so a challenge can resume with
   the generated order.
+- 2.17: Remove creature names from inside the cards in the roll view; keep
+  them in card titles and accessible control names.
 - 2.18: Add controls to hide or show a creature's turns in the DM turn list;
   hidden turns stay visible but greyed out.
 - 2.19: Remove "this result is still valid" explanations from warnings; the
@@ -233,3 +239,4 @@ keeping its task number and wording.
   the app wherever checkbox controls are needed.
 - 6.16: Extract a reusable color-picker component and use it throughout the
   app wherever color-picking controls are needed.
+- 6.18: Speed up reading and applying the saved dark/light mode on page load.

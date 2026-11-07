@@ -159,15 +159,8 @@ describe('initiative turn card', () => {
 		})) as HTMLButtonElement;
 		expect(rerollButton.disabled).toBe(true);
 		expect(
-			screen.getByText(
-				'Aria - Turn 1 cannot be rolled because its initiative stat is missing or invalid.'
-			)
-		).toBeTruthy();
-		expect(
-			screen.getByText(
-				'Aria - Turn 2 cannot be rolled because its initiative stat is missing or invalid.'
-			)
-		).toBeTruthy();
+			screen.getAllByText('Cannot roll because the initiative stat is missing or invalid.')
+		).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 10')).toBeTruthy();
 	});
 });

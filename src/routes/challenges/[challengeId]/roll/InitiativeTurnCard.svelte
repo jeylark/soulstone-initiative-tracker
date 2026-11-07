@@ -34,11 +34,12 @@
 		<div class="initiative-field">
 			{#if mode === 'manual'}
 				<NumberInput
-					{label}
+					label="Initiative"
+					aria-label={label}
 					min={0}
 					step={1}
 					{hasWarning}
-					warningMessage={hasWarning ? `${label} is above 18.` : undefined}
+					warningMessage={hasWarning ? 'Initiative is above 18.' : undefined}
 					{isInvalid}
 					invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
 					value={inputValue}
@@ -65,9 +66,7 @@
 						</ActionButton>
 					{/if}
 					{#if !canRoll}
-						<p role="status">
-							{title} cannot be rolled because its initiative stat is missing or invalid.
-						</p>
+						<p role="status">Cannot roll because the initiative stat is missing or invalid.</p>
 					{/if}
 				</div>
 			{/if}

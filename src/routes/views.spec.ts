@@ -661,6 +661,13 @@ describe('running challenge storage', () => {
 		const singleTurnInput = screen.getByRole('spinbutton', {
 			name: 'Initiative for Rook'
 		}) as HTMLInputElement;
+		const characterField = within(characterInput.closest('.initiative-field') as HTMLElement);
+		const emptyField = within(emptyInput.closest('.initiative-field') as HTMLElement);
+		const npcField = within(npcInput.closest('.initiative-field') as HTMLElement);
+		for (const field of document.querySelectorAll<HTMLElement>('.initiative-field')) {
+			expect(field.textContent).not.toMatch(/Aria|Rook|Sentinel B/);
+		}
+		expect(screen.getAllByText('Initiative', { selector: 'label > span' })).toHaveLength(4);
 		expect(
 			screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())
 		).toEqual(['Players', 'Enemies']);
@@ -698,7 +705,7 @@ describe('running challenge storage', () => {
 		expect(characterInput.value).toBe('0');
 		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 		await fireEvent.input(characterInput, { target: { value: '19' } });
-		expect(screen.getByText('Initiative for Aria - Turn 1 is above 18.')).toBeTruthy();
+		expect(characterField.getByText('Initiative is above 18.')).toBeTruthy();
 		expect(characterInput.classList.contains('form-control--warning')).toBe(true);
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
@@ -707,22 +714,22 @@ describe('running challenge storage', () => {
 		await fireEvent.input(emptyInput, { target: { value: '21' } });
 		expect(emptyInput.value).toBe('21');
 		expect(emptyInput.classList.contains('form-control--warning')).toBe(true);
-		expect(screen.getByText('Initiative for Aria - Turn 3 is above 18.')).toBeTruthy();
+		expect(emptyField.getByText('Initiative is above 18.')).toBeTruthy();
 		await fireEvent.input(npcInput, { target: { value: '20' } });
-		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
+		expect(npcField.getByText('Initiative is above 18.')).toBeTruthy();
 		await fireEvent.input(emptyInput, { target: { value: 'not-a-number' } });
 		expect(emptyInput.value).toBe('');
 		expect(emptyInput.classList.contains('form-control--warning')).toBe(false);
-		expect(screen.queryByText('Initiative for Aria - Turn 3 is above 18.')).toBeNull();
-		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
+		expect(emptyField.queryByText('Initiative is above 18.')).toBeNull();
+		expect(npcField.getByText('Initiative is above 18.')).toBeTruthy();
 		await fireEvent.input(emptyInput, { target: { value: '1.5' } });
 		expect(emptyInput.value).toBe('1.5');
 		expect(emptyInput.classList.contains('form-control--invalid')).toBe(true);
-		expect(screen.queryByText('Initiative for Aria - Turn 3 is above 18.')).toBeNull();
-		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
+		expect(emptyField.queryByText('Initiative is above 18.')).toBeNull();
+		expect(npcField.getByText('Initiative is above 18.')).toBeTruthy();
 		await fireEvent.input(npcInput, { target: { value: '-1' } });
 		expect(npcInput.classList.contains('form-control--invalid')).toBe(true);
-		expect(screen.queryByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeNull();
+		expect(npcField.queryByText('Initiative is above 18.')).toBeNull();
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
 		expect(characterInput.classList.contains('form-control--invalid')).toBe(false);
@@ -861,15 +868,11 @@ describe('running challenge storage', () => {
 		})) as HTMLButtonElement;
 		expect(rerollButton.disabled).toBe(true);
 		expect(
-			screen.getByText(
-				'Aria - Turn 1 cannot be rolled because its initiative stat is missing or invalid.'
-			)
-		).toBeTruthy();
-		expect(
-			screen.getByText(
-				'Aria - Turn 2 cannot be rolled because its initiative stat is missing or invalid.'
-			)
-		).toBeTruthy();
+			screen.getAllByText('Cannot roll because the initiative stat is missing or invalid.')
+		).toHaveLength(2);
+		for (const field of document.querySelectorAll<HTMLElement>('.initiative-field')) {
+			expect(field.textContent).not.toContain('Aria');
+		}
 		expect(screen.getByText('Initiative result: 10')).toBeTruthy();
 	});
 
