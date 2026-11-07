@@ -120,8 +120,6 @@ keeping its task number and wording.
   failure cases.
 - 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
   and `npm run build`; ensure CI passes.
-- 6.8: Split the landing-page view (`/`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
 - 6.9: Split the challenge-list view (`/challenges`) into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
@@ -216,3 +214,5 @@ keeping its task number and wording.
 
 - 6.7: Organize files in `src/lib/challenge` into one or more logical
   subdirectories to reduce the number of files at the folder root.
+- 6.8: Split the landing-page view (`/`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
