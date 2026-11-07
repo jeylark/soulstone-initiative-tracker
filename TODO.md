@@ -42,6 +42,11 @@ foundations.
 - 2.27: Make faction colors stand out more clearly from the background.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
+- 2.31: Add **Next** and **Previous** buttons to the run view.
+- 2.32: Combine the setup, rolling, and run views into a single page with
+  separate tabs for each view.
 
 ### 3. Challenge library and file workflows
 
@@ -144,6 +149,7 @@ foundations.
   app wherever color-picking controls are needed.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
+- 6.18: Speed up reading and applying the saved dark/light mode on page load.
 
 ## Done
 
