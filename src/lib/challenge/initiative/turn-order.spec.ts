@@ -8,7 +8,12 @@ import type {
 	TurnInitiative
 } from '../core/model';
 import { createUuid } from '../core/uuid';
-import { generateTurnOrder, prepareTurnOrder } from './turn-order';
+import {
+	findInitiativeTies,
+	findUnresolvedTies,
+	generateTurnOrder,
+	prepareTurnOrder
+} from './turn-order';
 import type { DeepReadonly } from '../../DeepReadonly';
 
 function createTurn(initiative: Readonly<TurnInitiative>): Turn {
@@ -504,5 +509,68 @@ describe('prepareTurnOrder', () => {
 			status: 'placement-error',
 			turnIds: [unresolved.id]
 		});
+	});
+});
+
+describe('initiative ties', () => {
+	it('detects equal rolled and static initiatives within a faction', () => {
+		const factionId = createUuid();
+		const rolled = rolledTurn();
+		const fixed = staticTurn(8);
+		const other = staticTurn(3);
+		const challenge = createChallenge([createCreature(factionId, [rolled, fixed, other])]);
+
+		expect(findInitiativeTies(challenge, { [rolled.id]: 8 })).toEqual([[rolled.id, fixed.id]]);
+	});
+
+	it('ignores equal initiatives across factions, hooked turns and missing results', () => {
+		const first = staticTurn(5);
+		const second = staticTurn(5);
+		const hooked = createTurn({ kind: 'fixed-position', from: 'top', position: 1 });
+		const missing = rolledTurn();
+		const challenge = createChallenge([
+			createCreature(createUuid(), [first]),
+			createCreature(createUuid(), [second, hooked, missing])
+		]);
+
+		expect(findInitiativeTies(challenge, {})).toEqual([]);
+	});
+
+	it('treats a decision with exactly the group members as resolving it', () => {
+		const factionId = createUuid();
+		const a = staticTurn(5);
+		const b = staticTurn(5);
+		const c = staticTurn(5);
+		const challenge = createChallenge([createCreature(factionId, [a, b, c])]);
+
+		expect(findUnresolvedTies(challenge, {}, [[a.id, b.id]])).toEqual([[a.id, b.id, c.id]]);
+		expect(findUnresolvedTies(challenge, {}, [[c.id, a.id, b.id]])).toEqual([]);
+	});
+
+	it('blocks preparation until same-faction ties are decided, then follows the decision', () => {
+		const factionId = createUuid();
+		const a = staticTurn(5);
+		const b = staticTurn(5);
+		const challenge = createChallenge([createCreature(factionId, [a, b])]);
+
+		expect(prepareTurnOrder(challenge, {})).toEqual({
+			status: 'unresolved-ties',
+			groups: [[a.id, b.id]]
+		});
+		expect(prepareTurnOrder(challenge, {}, [[b.id, a.id]])).toEqual({
+			status: 'generated',
+			order: [{ kind: 'turn', turnId: b.id }, { kind: 'turn', turnId: a.id }, { kind: 'spawn' }]
+		});
+	});
+
+	it('leaves ties across factions to the fairness algorithm', () => {
+		const a = staticTurn(5);
+		const b = staticTurn(5);
+		const challenge = createChallenge([
+			createCreature(createUuid(), [a]),
+			createCreature(createUuid(), [b])
+		]);
+
+		expect(prepareTurnOrder(challenge, {}).status).toBe('generated');
 	});
 });

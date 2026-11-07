@@ -8,6 +8,7 @@
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
 		prepareTurnOrder,
+		type TurnOrderPreparation,
 		saveChallengeToLibrary,
 		type Challenge,
 		type StableId
@@ -23,10 +24,7 @@
 	}
 
 	let { sharedChallenge, onSave }: Props = $props();
-	type GenerationIssue = {
-		readonly status: 'missing-results' | 'placement-error';
-		readonly turnIds: readonly StableId[];
-	};
+	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -156,6 +154,10 @@
 					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
 				{/each}
 			</ul>
+		{:else if generationIssue?.status === 'unresolved-ties'}
+			<ErrorDisplay
+				message="Turn order cannot be generated until tied turns in the same faction are ordered."
+			/>
 		{:else if generationIssue?.status === 'placement-error'}
 			<ErrorDisplay message="Turn placement could not be resolved." />
 			<ul aria-label="Turns with invalid placement">
