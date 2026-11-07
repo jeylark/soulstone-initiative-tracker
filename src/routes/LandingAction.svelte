@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 
-	let { href, label }: { href: ReturnType<typeof resolve>, label: string } = $props();
+	let { href, label }: { href: ReturnType<typeof resolve>; label: string } = $props();
 </script>
 
-<a class="action-button" href={href}>
+<a class="action-button" {href}>
 	<span>{label}</span>
 	<span aria-hidden="true">→</span>
 </a>

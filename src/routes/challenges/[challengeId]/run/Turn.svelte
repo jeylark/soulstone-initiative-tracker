@@ -64,7 +64,6 @@
 {/if}
 
 <style>
-	li,
 	.turn-order-card-tone {
 		min-width: 0;
 	}
