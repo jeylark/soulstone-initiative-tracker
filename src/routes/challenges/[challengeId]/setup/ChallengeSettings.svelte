@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, RangeNumberInput, TextInput } from '#lib/components';
+	import { Card, RangeInput, TextInput } from '#lib/components';
 
 	interface Props {
 		name: string;
@@ -30,11 +30,10 @@
 		/>
 		<fieldset class="fairness-setting">
 			<legend>Fairness weight</legend>
-			<RangeNumberInput
-				sliderLabel="Fairness weight slider"
-				numberLabel="Fairness weight value"
+			<RangeInput
+				label="Fairness weight"
 				isLabelVisuallyHidden
-				sliderId="fairness-weight"
+				id="fairness-weight"
 				numberClass="fairness-weight-input"
 				value={fairnessWeight}
 				min={0}

@@ -105,6 +105,25 @@
 	accent-color: var(--color-accent);
 }
 
+.form-range-field {
+	min-inline-size: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.form-range-field > legend {
+	padding: 0 0 6px;
+	font-size: 14px;
+}
+
+.form-range-input {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(8ch, 12ch);
+	align-items: center;
+	gap: 12px;
+}
+
 .form-color-picker {
 	min-inline-size: 0;
 	margin: 0;
