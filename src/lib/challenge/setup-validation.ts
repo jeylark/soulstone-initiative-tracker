@@ -28,7 +28,7 @@ export function validateChallengeSetup(
 		const hasAppRollTurn = creature.turns.some(
 			(turn) => turn.initiative.kind === 'roll' && turn.initiative.mode === 'app'
 		);
-		if (creature.initiativeStat === undefined && !hasAppRollTurn) return;
+		if (!hasAppRollTurn) return;
 
 		if (!validInitiativeStat(creature.initiativeStat)) {
 			issues.push({

@@ -148,6 +148,50 @@ describe('challenge setup persistence', () => {
 		});
 	});
 
+	it('hides the character initiative stat unless a turn is app-rolled, keeping the value', async () => {
+		const challenge = createSetupChallenge();
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 4,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [
+					{
+						id: '00000000-0000-4000-8000-000000000006' as StableId,
+						initiative: { kind: 'roll', mode: 'manual' }
+					}
+				]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+
+		const view = render(setupChallengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		const statName = 'Initiative stat (d6) for Aria';
+		expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull();
+
+		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
+			target: { value: 'roll-app' }
+		});
+		const input = await screen.findByRole('spinbutton', { name: statName });
+		expect((input as HTMLInputElement).value).toBe('4');
+
+		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
+			target: { value: 'roll-manual' }
+		});
+		await waitFor(() => expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull());
+		await waitFor(async () => {
+			expect((await loadChallengeLibrary()).challenges[0]?.creatures[0]).toHaveProperty(
+				'initiativeStat',
+				4
+			);
+		});
+		view.unmount();
+	});
+
 	it('autosaves, restores, and clears a character initiative stat', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [
@@ -160,7 +204,7 @@ describe('challenge setup persistence', () => {
 				turns: [
 					{
 						id: '00000000-0000-4000-8000-000000000006' as StableId,
-						initiative: { kind: 'roll', mode: 'manual' }
+						initiative: { kind: 'roll', mode: 'app' }
 					}
 				]
 			}
