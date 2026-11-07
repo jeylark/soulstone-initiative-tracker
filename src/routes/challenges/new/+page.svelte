@@ -2,14 +2,15 @@
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { createUuid, saveChallengeToLibrary, type Challenge } from '#lib';
-	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
 	import {
 		ChallengeLibraryStorageError,
-		ChallengeLibraryValidationError
-	} from '#lib/challenge/storage.js';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
+		ChallengeLibraryValidationError,
+		createUuid,
+		getNextFactionColor,
+		saveChallengeToLibrary,
+		type Challenge
+	} from '#lib/challenge';
+	import { ErrorDisplay, ViewPage } from '#lib/components';
 
 	const createdAt = new Date();
 	const playersColor = getNextFactionColor([]);

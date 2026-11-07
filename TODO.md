@@ -6,6 +6,9 @@ challenge file processing, and turn-order generation; the remaining work is to
 connect and complete the user-facing and server workflows around those
 foundations.
 
+When a task is complete, move it from `Open` to `Done` under the same category,
+keeping its task number and wording.
+
 ## Open
 
 ### 1. Challenge navigation and setup
@@ -121,33 +124,33 @@ foundations.
   failure cases.
 - 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
   and `npm run build`; ensure CI passes.
-- 6.7: Organize files in `src/lib/challenge` into one or more logical
-  subdirectories to reduce the number of files at the folder root.
-- 6.8: Split the landing-page view (`/`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
 - 6.9: Split the challenge-list view (`/challenges`) into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
 - 6.10: Split the new-challenge view (`/challenges/new`) into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
-- 6.11: Split the challenge-setup view
-  (`/challenges/[challengeId]/setup`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
-- 6.12: Split the initiative-roll view
-  (`/challenges/[challengeId]/roll`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
-- 6.13: Split the running-challenge view
-  (`/challenges/[challengeId]/run`) into smaller sub-components where
-  feasible, improving readability and following single responsibility.
 - 6.14: Split the join view (`/join`) into smaller sub-components where
   feasible, improving readability and following single responsibility.
-- 6.15: Extract a reusable checkbox input component and use it throughout
-  the app wherever checkbox controls are needed.
-- 6.16: Extract a reusable color-picker component and use it throughout the
-  app wherever color-picking controls are needed.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
+- 6.19: Rework existing custom-input dimension stability to apply only to
+  width. Remove empty slots and reserved height for potential validation
+  messages; render message space only when warnings or errors are displayed,
+  allowing field height to grow and shrink without changing control width.
+  Update focused component tests. This supersedes the height-reservation
+  behavior from task 2.20.
+- 6.20: Add consistent optional warning and error display to all custom input
+  components (text, number, select, range, and checkbox), using NumberInput's
+  existing validation props and depending on 6.19. Preserve native attributes,
+  accessible message associations, and stable control widths without reserving
+  empty message height; add focused component tests and public API
+  documentation.
+- 6.21: Wire existing validation warnings and errors to the relevant custom
+  input components across forms, depending on 6.20. Reuse existing validation
+  rules, show field-level feedback, preserve non-blocking warnings and existing
+  invalid-input behavior, and add focused integration tests. Keep new
+  setup-validation rules in task 1.18.
 
 ## Done
 
@@ -219,4 +222,21 @@ foundations.
 
 ### 6. Quality and release readiness
 
+- 6.7: Organize files in `src/lib/challenge` into one or more logical
+  subdirectories to reduce the number of files at the folder root.
+- 6.8: Split the landing-page view (`/`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
+- 6.11: Split the challenge-setup view
+  (`/challenges/[challengeId]/setup`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
+- 6.12: Split the initiative-roll view
+  (`/challenges/[challengeId]/roll`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
+- 6.13: Split the running-challenge view
+  (`/challenges/[challengeId]/run`) into smaller sub-components where
+  feasible, improving readability and following single responsibility.
+- 6.15: Extract a reusable checkbox input component and use it throughout
+  the app wherever checkbox controls are needed.
+- 6.16: Extract a reusable color-picker component and use it throughout the
+  app wherever color-picking controls are needed.
 - 6.18: Speed up reading and applying the saved dark/light mode on page load.

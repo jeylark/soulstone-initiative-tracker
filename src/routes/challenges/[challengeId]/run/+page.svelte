@@ -2,21 +2,18 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import type { DeepReadonly } from '#lib';
 	import {
 		createTurnOrderDisplay,
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
+		prepareTurnOrder,
 		saveChallengeToLibrary,
 		type Challenge,
 		type StableId
-	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
-	import { prepareTurnOrder } from '#lib/challenge/turn-order.js';
-	import ActionButton from '#lib/components/ActionButton.svelte';
-	import Card from '#lib/components/Card.svelte';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
+	} from '#lib/challenge';
+	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import TurnList from './TurnList.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 	type GenerationIssue = {
@@ -129,66 +126,7 @@
 			{/if}
 		{/if}
 		{#if generatedOrderDisplay}
-			<ol aria-label="Generated turn order" class="turn-order-list">
-				{#each generatedOrderDisplay.items as item (item.kind === 'turn' ? item.turnId : 'spawn')}
-					{#if item.kind === 'spawn'}
-						<li>
-							<Card
-								title="Spawn"
-								headingLevel="h2"
-								headerSize="small"
-								spacing="compact"
-								class="turn-order-card"
-							>
-								<div class="turn-order-card-details">
-									<span class="turn-order-position">{item.position}</span>
-								</div>
-							</Card>
-						</li>
-					{:else}
-						{@const factionColor = item.display.faction
-							? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
-							: undefined}
-						<li>
-							<div
-								class="turn-order-card-tone"
-								class:is-hidden={item.display.isHidden}
-								style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-							>
-								<Card
-									title={item.display.label}
-									headingLevel="h2"
-									headerSize="small"
-									spacing="compact"
-									class="turn-order-card"
-								>
-									<div class="turn-order-card-details">
-										<span class="turn-order-position">{item.position}</span>
-										{#if item.display.faction}
-											<span>{item.display.faction.name}</span>
-										{/if}
-									</div>
-									<label class="turn-order-visibility">
-										<input
-											type="checkbox"
-											checked={item.display.isHidden}
-											onchange={(event) =>
-												updateCreatureVisibility(
-													item.display.creature.id,
-													event.currentTarget.checked
-												)}
-										/>
-										Hidden from viewers: {item.display.creatureName}
-									</label>
-									{#if item.display.isHidden}
-										<p class="turn-order-hidden">Hidden</p>
-									{/if}
-								</Card>
-							</div>
-						</li>
-					{/if}
-				{/each}
-			</ol>
+			<TurnList items={generatedOrderDisplay.items} onVisibilityChange={updateCreatureVisibility} />
 		{/if}
 
 		{#if generationIssue?.status === 'missing-results'}
@@ -224,53 +162,3 @@
 		<a href={resolve('/')}>Return to home</a>
 	{/if}
 </ViewPage>
-
-<style>
-	.turn-order-list {
-		display: grid;
-		gap: 12px;
-		margin-block: 24px;
-		padding: 0;
-		list-style: none;
-	}
-
-	.turn-order-list li,
-	.turn-order-card-tone {
-		min-width: 0;
-	}
-
-	.turn-order-visibility {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		margin-top: 12px;
-	}
-
-	.turn-order-card-tone :global(.turn-order-card) {
-		background: color-mix(
-			in srgb,
-			var(--faction-color, var(--color-surface)) 12%,
-			var(--color-surface)
-		);
-	}
-
-	.turn-order-card-tone.is-hidden :global(.turn-order-card) {
-		background: color-mix(in srgb, #808080 18%, var(--color-surface));
-	}
-
-	.turn-order-card-details {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.turn-order-position {
-		font-variant-numeric: tabular-nums;
-		font-weight: 700;
-	}
-
-	.turn-order-hidden {
-		margin-block: 8px 0;
-		font-weight: 600;
-	}
-</style>

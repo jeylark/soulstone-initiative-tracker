@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import type { DeepReadonly } from '#lib';
 	import {
 		loadChallengeLibrary,
 		rollInitiative,
@@ -13,13 +13,9 @@
 		type StableId,
 		type TurnDisplay,
 		createTurnDisplayLookup
-	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
-	import ActionButton from '#lib/components/ActionButton.svelte';
-	import Card from '#lib/components/Card.svelte';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import NumberInput from '#lib/components/forms/NumberInput.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
+	} from '#lib/challenge';
+	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import InitiativeFactionSection from './InitiativeFactionSection.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -233,14 +229,6 @@
 			hasSaveError = true;
 		}
 	}
-
-	function rollingTurns(creature: DeepReadonly<ChallengeCreature>) {
-		return creature.turns.flatMap((turn) => {
-			if (turn.initiative.kind !== 'roll') return [];
-			const display = turnDisplayLookup.get(turn.id);
-			return display ? [{ turn, display, mode: turn.initiative.mode }] : [];
-		});
-	}
 </script>
 
 <ViewPage title="Initiative rolling">
@@ -250,98 +238,17 @@
 		<p>{challenge.name}</p>
 		<div class="faction-board">
 			{#each challenge.factions as faction (faction.id)}
-				{@const factionColor = FACTION_COLORS.find((color) => color.value === faction.color)}
-				{@const factionCreatures = challenge.creatures.filter(
-					(creature) =>
-						creature.factionId === faction.id &&
-						creature.turns.some((turn) => turn.initiative.kind === 'roll')
-				)}
-				{#if factionCreatures.length > 0}
-					<section aria-label={faction.name} class="faction-section">
-						<Card
-							title={faction.name}
-							headingLevel="h2"
-							headerSize="medium"
-							variant="inset"
-							spacing="compact"
-						>
-							<div class="initiative-cards">
-								{#each factionCreatures as creature (creature.id)}
-									{@const turnsToRoll = rollingTurns(creature)}
-									{#each turnsToRoll as { turn, display, mode } (turn.id)}
-										{@const title = display.label}
-										{@const label = `Initiative for ${title}`}
-										{@const result = challenge.runState?.initiativeResults[turn.id]}
-										<div
-											class="initiative-card-tone"
-											style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-										>
-											<Card
-												{title}
-												headingLevel="h3"
-												headerSize="small"
-												spacing="compact"
-												class="initiative-card"
-											>
-												<div class="initiative-field">
-													{#if mode === 'manual'}
-														{@const inputValue = initiativeInputs[turn.id] ?? ''}
-														{@const hasWarning = result !== undefined && result > 18}
-														{@const isInvalid =
-															inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
-														<NumberInput
-															label="Initiative"
-															aria-label={label}
-															min={0}
-															step={1}
-															{hasWarning}
-															warningMessage={hasWarning ? 'Initiative is above 18.' : undefined}
-															{isInvalid}
-															invalidMessage={isInvalid
-																? 'Enter a non-negative whole number.'
-																: undefined}
-															value={inputValue}
-															oninput={(event) =>
-																updateInitiative(turn.id, event.currentTarget.value)}
-														/>
-													{:else}
-														{@const turnLabel = title}
-														{@const diceCount = initiativeStat(creature)}
-														<div class="app-initiative-turn">
-															{#if result !== undefined}
-																<output>Initiative result: {result}</output>
-																<ActionButton
-																	aria-label={`Reroll initiative for ${turnLabel}`}
-																	disabled={diceCount === undefined}
-																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
-																>
-																	Reroll
-																</ActionButton>
-															{:else}
-																<ActionButton
-																	aria-label={`Roll initiative for ${turnLabel}`}
-																	disabled={diceCount === undefined}
-																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
-																>
-																	Roll
-																</ActionButton>
-															{/if}
-															{#if diceCount === undefined}
-																<p role="status">
-																	Cannot roll because the initiative stat is missing or invalid.
-																</p>
-															{/if}
-														</div>
-													{/if}
-												</div>
-											</Card>
-										</div>
-									{/each}
-								{/each}
-							</div>
-						</Card>
-					</section>
-				{/if}
+				<InitiativeFactionSection
+					{faction}
+					creatures={challenge.creatures}
+					{turnDisplayLookup}
+					initiativeResults={challenge.runState?.initiativeResults ?? {}}
+					{initiativeInputs}
+					isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}
+					canRoll={(creature) => initiativeStat(creature) !== undefined}
+					onInput={updateInitiative}
+					onRoll={rollInitiativeForTurn}
+				/>
 			{/each}
 		</div>
 		{#if hasRollableAppTurns()}
@@ -379,48 +286,5 @@
 		align-items: start;
 		gap: 24px 16px;
 		margin-block: 24px 16px;
-	}
-
-	.faction-section {
-		min-width: 0;
-	}
-
-	.initiative-cards {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: start;
-		gap: 12px;
-	}
-
-	.initiative-card-tone {
-		flex: 0 1 max-content;
-		min-width: 0;
-		max-width: 100%;
-	}
-
-	.initiative-card-tone :global(.initiative-card) {
-		width: auto;
-		max-width: 100%;
-		background: color-mix(
-			in srgb,
-			var(--faction-color, var(--color-surface)) 12%,
-			var(--color-surface)
-		);
-	}
-
-	.initiative-field {
-		min-width: 0;
-	}
-
-	.app-initiative-turn {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.app-initiative-turn p {
-		grid-column: 1 / -1;
-		margin: 0;
 	}
 </style>

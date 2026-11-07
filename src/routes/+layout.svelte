@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '../app.css';
-	import { theme } from '#lib/theme.svelte.ts';
+	import { theme } from '#lib';
 	import { resolve } from '$app/paths';
-	import ActionButton from '#lib/components/ActionButton.svelte';
+	import { ActionButton } from '#lib/components';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();

@@ -41,7 +41,9 @@
 		"minimatch": "^11.0.4"
 	},
 	"imports": {
-		"#lib": "./src/lib/index.js",
-		"#lib/*": "./src/lib/*"
+		"#lib": "./src/lib/index.ts",
+		"#lib/challenge": "./src/lib/challenge/index.ts",
+		"#lib/components": "./src/lib/components/index.ts",
+		"#lib/*": null
 	}
 }
