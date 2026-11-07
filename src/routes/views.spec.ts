@@ -1225,6 +1225,7 @@ describe('new challenge setup', () => {
 		expect(screen.getByRole('group', { name: 'Factions' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'Players' })).toBeTruthy();
 		expect(screen.getByRole('group', { name: 'Enemies' })).toBeTruthy();
+		expect(screen.queryByRole('combobox', { name: 'Faction' })).toBeNull();
 	});
 
 	it('updates the visible fairness value as the slider moves', async () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChallengeCreature, Faction, NpcType, StableId } from '#lib';
+	import type { ChallengeCreature, NpcType, StableId } from '#lib';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
 	import ActionButton from '../ActionButton.svelte';
@@ -19,10 +19,8 @@
 		characterName: string;
 		characterInitiativeStat?: number;
 		characterInitiativeStatError?: string;
-		factions: readonly Faction[];
 		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
-		onFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onMove: (direction: 'up' | 'down') => void;
@@ -52,10 +50,8 @@
 		characterName,
 		characterInitiativeStat,
 		characterInitiativeStatError,
-		factions,
 		npcTypes,
 		targetTurns,
-		onFactionChange,
 		onVisibilityChange,
 		onMoveTurn,
 		onMove,
@@ -79,15 +75,6 @@
 		removeText="Remove creature"
 		onRemove={() => onRemove(creature.id)}
 	>
-		<SelectInput
-			label="Faction"
-			value={creature.factionId}
-			onchange={(event) => onFactionChange(creature.id, event.currentTarget.value as StableId)}
-		>
-			{#each factions as faction (faction.id)}
-				<option value={faction.id}>{faction.name}</option>
-			{/each}
-		</SelectInput>
 		<div class="creature-order-controls">
 			<ActionButton
 				variant="neutral"

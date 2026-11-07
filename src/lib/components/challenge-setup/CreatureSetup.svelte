@@ -24,7 +24,6 @@
 		onRemoveFaction: (factionId: StableId) => void;
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
-		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
@@ -57,7 +56,6 @@
 		onRemoveFaction,
 		onCreateCharacter,
 		onCreateNpc,
-		onCreatureFactionChange,
 		onCreatureVisibilityChange,
 		onMoveTurn,
 		onMoveCreature,
@@ -79,7 +77,6 @@
 			{#each factions as faction (faction.id)}
 				<FactionEditor
 					{faction}
-					{factions}
 					{creatures}
 					{npcTypes}
 					{setupIssues}
@@ -89,7 +86,6 @@
 					onRemove={onRemoveFaction}
 					{onCreateCharacter}
 					{onCreateNpc}
-					{onCreatureFactionChange}
 					{onCreatureVisibilityChange}
 					{onMoveTurn}
 					{onMoveCreature}

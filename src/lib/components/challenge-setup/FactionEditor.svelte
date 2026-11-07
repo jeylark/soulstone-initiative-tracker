@@ -18,7 +18,6 @@
 
 	interface Props {
 		faction: Readonly<Faction>;
-		factions: readonly Faction[];
 		creatures: readonly ChallengeCreature[];
 		npcTypes: readonly NpcType[];
 		setupIssues: readonly ValidationIssue[];
@@ -28,7 +27,6 @@
 		onRemove: (factionId: StableId) => void;
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
-		onCreatureFactionChange: (creatureId: StableId, factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onMoveCreature: (creatureId: StableId, direction: 'up' | 'down') => void;
@@ -51,7 +49,6 @@
 
 	let {
 		faction,
-		factions,
 		creatures,
 		npcTypes,
 		setupIssues,
@@ -61,7 +58,6 @@
 		onRemove,
 		onCreateCharacter,
 		onCreateNpc,
-		onCreatureFactionChange,
 		onCreatureVisibilityChange,
 		onMoveTurn,
 		onMoveCreature,
@@ -162,10 +158,8 @@
 					characterInitiativeStatError={creature.kind === 'character'
 						? characterInitiativeStatError(creature.id)
 						: undefined}
-					{factions}
 					{npcTypes}
 					targetTurns={targetTurns()}
-					onFactionChange={onCreatureFactionChange}
 					onVisibilityChange={onCreatureVisibilityChange}
 					{onMoveTurn}
 					onMove={(direction) => onMoveCreature(creature.id, direction)}
