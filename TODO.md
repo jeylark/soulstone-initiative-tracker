@@ -42,8 +42,8 @@ foundations.
 - [x] 1.19: Remove faction selection from a faction's creatures in setup.
 - [x] 1.20: Hide the initiative-stat input for faction creatures when it isn't
       needed for rolling, while preserving any entered value in storage.
-- [ ] 1.21: Remove the navigation bar altogether.
-- [ ] 1.22: Link the header page icon (and app name) to the landing page.
+- [x] 1.21: Remove the navigation bar altogether.
+- [x] 1.22: Link the header page icon (and app name) to the landing page.
 
 ## 2. Initiative and encounter play
 
