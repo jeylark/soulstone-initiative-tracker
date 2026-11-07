@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { DeepReadonly } from '#lib';
@@ -19,18 +18,27 @@
 		type StableId,
 		type Turn
 	} from '#lib/challenge';
-	import { ActionButton, ErrorDisplay, NavButton, ViewPage } from '#lib/components';
-	import ChallengeSettings from './ChallengeSettings.svelte';
-	import CreatureSetup from './CreatureSetup.svelte';
-	import NpcTypeEditor from './NpcTypeEditor.svelte';
-	import type { InitiativeChoice, TurnEditorChange } from './challenge-setup-types';
-	import './challenge-setup.css';
+	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import ChallengeSettings from './setup/ChallengeSettings.svelte';
+	import CreatureSetup from './setup/CreatureSetup.svelte';
+	import NpcTypeEditor from './setup/NpcTypeEditor.svelte';
+	import type { InitiativeChoice, TurnEditorChange } from './setup/challenge-setup-types';
+	import './setup/challenge-setup.css';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
+	type WorkflowTab = 'setup' | 'roll' | 'run';
+
+	interface Props {
+		sharedChallenge?: Challenge;
+		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+	}
+
+	let { sharedChallenge, onTabChange }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
-	let challenge = $state<Challenge>({} as Challenge);
+	let localChallenge = $state<Challenge>({} as Challenge);
+	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let newNpcTypeId = $state<StableId | ''>('');
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -38,6 +46,10 @@
 	let setupIssues = $derived(loadStatus === 'ready' ? validateChallengeSetup(challenge) : []);
 
 	onMount(() => {
+		if (sharedChallenge) {
+			loadStatus = 'ready';
+			return;
+		}
 		void (async () => {
 			try {
 				const library = await loadChallengeLibrary();
@@ -46,7 +58,7 @@
 					loadStatus = 'not-found';
 					return;
 				}
-				challenge = saved;
+				localChallenge = saved;
 				loadStatus = 'ready';
 			} catch {
 				loadStatus = 'error';
@@ -55,7 +67,7 @@
 	});
 
 	$effect(() => {
-		if (loadStatus !== 'ready') return;
+		if (sharedChallenge || loadStatus !== 'ready') return;
 
 		const snapshotChallenge = $state.snapshot(challenge);
 		// The first run only reflects the just-loaded data.
@@ -92,9 +104,17 @@
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
 	}
 
-	async function startChallenge(event: Readonly<{ preventDefault: () => void }>) {
-		event.preventDefault();
+	async function startChallenge(event?: Readonly<{ preventDefault: () => void }>) {
+		event?.preventDefault();
 		if (setupIssues.length > 0) return;
+		if (sharedChallenge && onTabChange) {
+			try {
+				await onTabChange('roll');
+			} catch {
+				hasSaveError = true;
+			}
+			return;
+		}
 		if (saveTimeout !== undefined) {
 			clearTimeout(saveTimeout);
 			saveTimeout = undefined;
@@ -102,7 +122,6 @@
 
 		try {
 			await enqueueSave($state.snapshot(challenge));
-			await goto(resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id }));
 		} catch {
 			hasSaveError = true;
 		}
@@ -526,11 +545,10 @@
 		</div>
 		{#if setupIssues.length > 0}
 			<ActionButton disabled>Roll Initiatives</ActionButton>
+		{:else if sharedChallenge}
+			<ActionButton onclick={() => void startChallenge()}>Roll Initiatives</ActionButton>
 		{:else}
-			<NavButton
-				href={resolve('/challenges/[challengeId]/roll', { challengeId: challenge.id })}
-				onclick={startChallenge}>Roll Initiatives</NavButton
-			>
+			<ActionButton onclick={startChallenge}>Roll Initiatives</ActionButton>
 		{/if}
 	{:else}
 		{#if loadStatus === 'error'}
@@ -538,6 +556,6 @@
 		{:else}
 			<ErrorDisplay message="No saved challenge matches this setup URL." />
 		{/if}
-		<a href={resolve('/challenges/new')}>Start a new challenge</a>
+		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>

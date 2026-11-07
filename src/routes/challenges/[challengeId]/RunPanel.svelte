@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -13,9 +13,16 @@
 		type StableId
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
-	import TurnList from './TurnList.svelte';
+	import TurnList from './run/TurnList.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
+
+	interface Props {
+		sharedChallenge?: Challenge;
+		onSave?: () => Promise<void>;
+	}
+
+	let { sharedChallenge, onSave }: Props = $props();
 	type GenerationIssue = {
 		readonly status: 'missing-results' | 'placement-error';
 		readonly turnIds: readonly StableId[];
@@ -24,7 +31,8 @@
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
 	let isSaving = $state(false);
-	let challenge = $state<Challenge>();
+	let localChallenge = $state<Challenge>();
+	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
 	let saveQueue: Promise<void> = Promise.resolve();
 	let turnDisplayLookup = $derived.by(() =>
@@ -38,6 +46,10 @@
 	});
 
 	onMount(() => {
+		if (sharedChallenge) {
+			loadStatus = 'ready';
+			return;
+		}
 		void (async () => {
 			try {
 				const library = await loadChallengeLibrary();
@@ -48,7 +60,7 @@
 					loadStatus = 'not-found';
 					return;
 				}
-				challenge = loadedChallenge;
+				localChallenge = loadedChallenge;
 				loadStatus = 'ready';
 			} catch {
 				loadStatus = 'error';
@@ -87,12 +99,15 @@
 			generatedTurnOrder: [...preparation.order]
 		};
 		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
+		const previousRunState = challenge.runState;
 		isSaving = true;
 		try {
-			await enqueueSave(challengeToSave);
 			challenge.runState = nextRunState;
+			if (sharedChallenge && onSave) await onSave();
+			else await enqueueSave(challengeToSave);
 			hasSaveError = false;
 		} catch {
+			if (sharedChallenge) challenge.runState = previousRunState;
 			hasSaveError = true;
 		} finally {
 			isSaving = false;
@@ -104,10 +119,13 @@
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature || creature.isHidden === isHidden) return;
 
+		const isCreatureHiddenBeforeUpdate = creature.isHidden;
 		creature.isHidden = isHidden;
 		try {
-			await enqueueSave($state.snapshot(challenge));
+			if (sharedChallenge && onSave) await onSave();
+			else await enqueueSave($state.snapshot(challenge));
 		} catch {
+			creature.isHidden = isCreatureHiddenBeforeUpdate;
 			hasSaveError = true;
 		}
 	}
@@ -159,6 +177,6 @@
 		{:else}
 			<ErrorDisplay message="The challenge could not be loaded." />
 		{/if}
-		<a href={resolve('/')}>Return to home</a>
+		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>

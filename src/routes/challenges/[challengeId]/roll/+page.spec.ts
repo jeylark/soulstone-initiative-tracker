@@ -1,13 +1,9 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import rollChallengePage from './+page.svelte';
+import rollChallengePage from '../RollPanel.svelte';
 import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
-import {
-	createSetupChallenge,
-	setupChallengeId,
-	expectPageError
-} from '../../../view-test-support';
+import { createSetupChallenge, expectPageError } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -127,11 +123,14 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
 
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/setup`)
-		);
+		await waitFor(async () => {
+			expect(
+				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
+			).toBe(12);
+		});
+		expect(mockedGoto).not.toHaveBeenCalled();
 		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
 			12
 		);
@@ -155,11 +154,14 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
 
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/run`)
-		);
+		await waitFor(async () => {
+			expect(
+				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
+			).toBe(12);
+		});
+		expect(mockedGoto).not.toHaveBeenCalled();
 		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
 			12
 		);
@@ -187,7 +189,7 @@ describe('running challenge storage', () => {
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -210,18 +212,17 @@ describe('running challenge storage', () => {
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		vi.stubGlobal('indexedDB', undefined);
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
-	it('links back to setup for the loaded challenge', async () => {
+	it('offers a return-to-setup action for the loaded challenge', async () => {
 		render(rollChallengePage);
 
-		const setupLink = await screen.findByRole('link', { name: 'Return to setup' });
-		expect(setupLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/setup`);
+		expect(await screen.findByRole('button', { name: 'Return to setup' })).toBeTruthy();
 	});
 
 	it.each([
@@ -242,7 +243,9 @@ describe('running challenge storage', () => {
 			expectPageError(message);
 			expect(await screen.findByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
 			expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
-			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+			expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+				'/challenges'
+			);
 		}
 	);
 });

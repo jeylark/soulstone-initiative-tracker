@@ -1,14 +1,9 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import setupChallengePage from './+page.svelte';
+import setupChallengePage from '../SetupPanel.svelte';
 import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
-import {
-	createSetupChallenge,
-	setupChallengeId,
-	renderSetup,
-	expectPageError
-} from '../../../view-test-support';
+import { createSetupChallenge, renderSetup, expectPageError } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -195,13 +190,10 @@ describe('challenge setup persistence', () => {
 				target: { value: '2' }
 			}
 		);
-		const startLink = await screen.findByRole('link', { name: 'Roll Initiatives' });
-		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
-		expect(startLink.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startLink);
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`)
-		);
+		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
+		expect(startButton.classList.contains('ui-button')).toBe(true);
+		await fireEvent.click(startButton);
+		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
 	it('saves the latest edits before starting the challenge', async () => {
@@ -210,15 +202,15 @@ describe('challenge setup persistence', () => {
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Ready to roll' }
 		});
-		const startLink = screen.getByRole('link', { name: 'Roll Initiatives' });
-		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
-		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startLink);
-		await fireEvent.click(startLink);
+		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
+		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startButton);
+		await fireEvent.click(startButton);
 
-		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
-		expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`);
-		const saved = (await loadChallengeLibrary()).challenges[0];
-		expect(saved?.name).toBe('Ready to roll');
+		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Ready to roll');
+		});
 	});
 
 	it('stays in setup and shows an error when starting cannot save', async () => {
@@ -228,7 +220,7 @@ describe('challenge setup persistence', () => {
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('link', { name: 'Roll Initiatives' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
@@ -254,8 +246,8 @@ describe('challenge setup persistence', () => {
 					? 'No saved challenge matches this setup URL.'
 					: 'The saved challenges could not be loaded.'
 			);
-			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
-				'/challenges/new'
+			expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+				'/challenges'
 			);
 		}
 	);

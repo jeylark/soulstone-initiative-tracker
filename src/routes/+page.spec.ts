@@ -12,7 +12,7 @@ describe('landing page', () => {
 
 		expect(screen.getByRole('heading', { level: 1, name: 'Initiative Tracker' })).toBeTruthy();
 		const actions = screen.getByRole('list', { name: 'Available actions' });
-		expect(within(actions).getAllByRole('listitem')).toHaveLength(3);
+		expect(within(actions).getAllByRole('listitem')).toHaveLength(2);
 	});
 
 	it('sets the page title and description', () => {
@@ -20,7 +20,7 @@ describe('landing page', () => {
 
 		expect(document.title).toBe('Soulstone Initiative Tracker');
 		expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
-			'Create a challenge, open a saved challenge, or join a live session.'
+			'Manage your own challenge or watch a running challenge.'
 		);
 	});
 
@@ -28,9 +28,8 @@ describe('landing page', () => {
 		render(LandingPage);
 
 		const links = [
-			{ name: 'New challenge', href: '/challenges/new' },
-			{ name: 'Open saved challenge', href: '/challenges' },
-			{ name: 'Join a live session', href: '/join' }
+			{ name: 'Host Manage your own challenge', href: '/challenges' },
+			{ name: 'Join Watch a running challenge', href: '/view' }
 		];
 		for (const { name, href } of links) {
 			expect(screen.getByRole('link', { name }).getAttribute('href')).toBe(href);

@@ -5,10 +5,7 @@
 
 <svelte:head>
 	<title>Soulstone Initiative Tracker</title>
-	<meta
-		name="description"
-		content="Create a challenge, open a saved challenge, or join a live session."
-	/>
+	<meta name="description" content="Manage your own challenge or watch a running challenge." />
 </svelte:head>
 
 <section aria-labelledby="page-title">
@@ -16,13 +13,14 @@
 
 	<ul aria-label="Available actions">
 		<li>
-			<LandingAction href={resolve('/challenges/new')} label="New challenge" />
+			<LandingAction
+				href={resolve('/challenges')}
+				title="Host"
+				description="Manage your own challenge"
+			/>
 		</li>
 		<li>
-			<LandingAction href={resolve('/challenges')} label="Open saved challenge" />
-		</li>
-		<li>
-			<LandingAction href={resolve('/join')} label="Join a live session" />
+			<LandingAction href={resolve('/view')} title="Join" description="Watch a running challenge" />
 		</li>
 	</ul>
 </section>

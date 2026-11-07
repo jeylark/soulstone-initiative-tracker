@@ -2,11 +2,10 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import rollChallengePage from './challenges/[challengeId]/roll/+page.svelte';
-import turnOrderPage from './challenges/[challengeId]/run/+page.svelte';
-import setupChallengePage from './challenges/[challengeId]/setup/+page.svelte';
-import newChallengeEntryPage from './challenges/new/+page.svelte';
-import joinSessionPage from './join/+page.svelte';
+import rollChallengePage from './challenges/[challengeId]/RollPanel.svelte';
+import turnOrderPage from './challenges/[challengeId]/RunPanel.svelte';
+import setupChallengePage from './challenges/[challengeId]/SetupPanel.svelte';
+import joinSessionPage from './view/+page.svelte';
 import {
 	loadChallengeLibrary,
 	saveChallengeToLibrary,
@@ -96,81 +95,6 @@ describe.each(views)('$name view', ({ page, heading }) => {
 		render(page);
 
 		expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
-	});
-});
-
-describe('new challenge entry', () => {
-	it('saves a draft and redirects to its setup route without page state', async () => {
-		render(newChallengeEntryPage);
-
-		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
-
-		const [href, options] = mockedGoto.mock.calls[0] as [string, Record<string, unknown>];
-		expect(href).toMatch(/^\/challenges\/[0-9a-f-]+\/setup$/i);
-		expect(options['replace']).toBe(true);
-		expect(options['state']).toBeUndefined();
-		const saved = (await loadChallengeLibrary()).challenges.find(
-			(challenge) => challenge.id === href.split('/')[2]
-		);
-		expect(saved?.creatures).toEqual([]);
-	});
-
-	it('stays on the page with a retry when saving fails', async () => {
-		vi.stubGlobal('indexedDB', undefined);
-
-		render(newChallengeEntryPage);
-
-		const alert = await screen.findByRole('alert');
-		expect(alert.textContent).toBe('The new challenge could not be saved.');
-		expect(
-			screen
-				.getByText('ChallengeLibraryStorageError: IndexedDB is not available.')
-				.hasAttribute('hidden')
-		).toBe(true);
-		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
-		expect(
-			screen
-				.getByText('ChallengeLibraryStorageError: IndexedDB is not available.')
-				.hasAttribute('hidden')
-		).toBe(false);
-		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
-		expect(mockedGoto).not.toHaveBeenCalled();
-	});
-
-	it('shows validation details when the stored library is invalid', async () => {
-		const database = await new Promise<IDBDatabase>((resolve, reject) => {
-			const request = indexedDB.open('soulstone-challenge-library', 1);
-			request.onsuccess = () => resolve(request.result);
-			request.onerror = () => reject(request.error);
-		});
-		await new Promise<void>((resolve, reject) => {
-			const transaction = database.transaction('challengeLibrary', 'readwrite');
-			transaction
-				.objectStore('challengeLibrary')
-				.put({ formatVersion: 2, challenges: [] }, 'current');
-			transaction.oncomplete = () => resolve();
-			transaction.onerror = () => reject(transaction.error);
-			transaction.onabort = () => reject(transaction.error);
-		});
-		database.close();
-
-		render(newChallengeEntryPage);
-
-		const alert = await screen.findByRole('alert');
-		expect(alert.textContent).toBe('The new challenge could not be saved.');
-		expect(
-			screen
-				.getByText(/\$\.formatVersion: Unsupported challenge library version\./)
-				.hasAttribute('hidden')
-		).toBe(true);
-		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
-		expect(
-			screen
-				.getByText(/\$\.formatVersion: Unsupported challenge library version\./)
-				.hasAttribute('hidden')
-		).toBe(false);
-		expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
-		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 });
 
@@ -329,13 +253,10 @@ describe('challenge setup persistence', () => {
 				target: { value: '2' }
 			}
 		);
-		const startLink = await screen.findByRole('link', { name: 'Roll Initiatives' });
-		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
-		expect(startLink.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startLink);
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`)
-		);
+		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
+		expect(startButton.classList.contains('ui-button')).toBe(true);
+		await fireEvent.click(startButton);
+		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
 	it('saves the latest edits before starting the challenge', async () => {
@@ -344,15 +265,15 @@ describe('challenge setup persistence', () => {
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Ready to roll' }
 		});
-		const startLink = screen.getByRole('link', { name: 'Roll Initiatives' });
-		expect(startLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/roll`);
-		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startLink);
-		await fireEvent.click(startLink);
+		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
+		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startButton);
+		await fireEvent.click(startButton);
 
-		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
-		expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/roll`);
-		const saved = (await loadChallengeLibrary()).challenges[0];
-		expect(saved?.name).toBe('Ready to roll');
+		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Ready to roll');
+		});
 	});
 
 	it('stays in setup and shows an error when starting cannot save', async () => {
@@ -362,7 +283,7 @@ describe('challenge setup persistence', () => {
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('link', { name: 'Roll Initiatives' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
@@ -388,8 +309,8 @@ describe('challenge setup persistence', () => {
 					? 'No saved challenge matches this setup URL.'
 					: 'The saved challenges could not be loaded.'
 			);
-			expect(screen.getByRole('link', { name: 'Start a new challenge' }).getAttribute('href')).toBe(
-				'/challenges/new'
+			expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+				'/challenges'
 			);
 		}
 	);
@@ -482,14 +403,14 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
 
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/setup`)
-		);
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
-			12
-		);
+		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(async () => {
+			expect(
+				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
+			).toBe(12);
+		});
 	});
 
 	it('saves the latest initiative before continuing to turn order', async () => {
@@ -510,14 +431,14 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
 
-		await waitFor(() =>
-			expect(mockedGoto).toHaveBeenCalledWith(`/challenges/${setupChallengeId}/run`)
-		);
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
-			12
-		);
+		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(async () => {
+			expect(
+				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
+			).toBe(12);
+		});
 	});
 
 	it('shows a save error and stays on the roll page when persistence fails', async () => {
@@ -542,7 +463,7 @@ describe('running challenge storage', () => {
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		await fireEvent.click(screen.getByRole('link', { name: 'Return to setup' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -565,7 +486,7 @@ describe('running challenge storage', () => {
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		vi.stubGlobal('indexedDB', undefined);
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('link', { name: 'Continue to turn order' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
@@ -876,11 +797,10 @@ describe('running challenge storage', () => {
 		expect(screen.getByText('Initiative result: 10')).toBeTruthy();
 	});
 
-	it('links back to setup for the loaded challenge', async () => {
+	it('offers a return-to-setup action for the loaded challenge', async () => {
 		render(rollChallengePage);
 
-		const setupLink = await screen.findByRole('link', { name: 'Return to setup' });
-		expect(setupLink.getAttribute('href')).toBe(`/challenges/${setupChallengeId}/setup`);
+		expect(await screen.findByRole('button', { name: 'Return to setup' })).toBeTruthy();
 	});
 
 	it.each([
@@ -901,7 +821,9 @@ describe('running challenge storage', () => {
 			expectPageError(message);
 			expect(await screen.findByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
 			expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
-			expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+			expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+				'/challenges'
+			);
 		}
 	);
 });
@@ -1191,7 +1113,9 @@ describe('turn-order run route', () => {
 
 		await screen.findByRole('alert');
 		expectPageError(message);
-		expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+		expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+			'/challenges'
+		);
 	});
 
 	it('shows a save error when generating cannot be persisted', async () => {

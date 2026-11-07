@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import turnOrderPage from './+page.svelte';
+import turnOrderPage from '../RunPanel.svelte';
 import { saveChallengeToLibrary, loadChallengeLibrary } from '#lib/challenge';
 import { createSetupChallenge, expectPageError } from '../../../view-test-support';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run-test-support';
@@ -145,7 +145,9 @@ describe('turn-order run route', () => {
 
 		await screen.findByRole('alert');
 		expectPageError(message);
-		expect(screen.getByRole('link', { name: 'Return to home' }).getAttribute('href')).toBe('/');
+		expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
+			'/challenges'
+		);
 	});
 
 	it('shows a save error when generating cannot be persisted', async () => {

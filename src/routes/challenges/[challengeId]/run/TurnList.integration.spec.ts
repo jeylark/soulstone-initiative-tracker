@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/svelte';
 import { saveChallengeToLibrary, type StableId } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run-test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import turnOrderPage from './+page.svelte';
+import turnOrderPage from '../RunPanel.svelte';
 import { createSetupChallenge } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({

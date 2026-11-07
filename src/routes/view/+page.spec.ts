@@ -6,13 +6,12 @@ afterEach(() => {
 	cleanup();
 });
 
-describe('join session view', () => {
-	it('has a heading and a link back to the landing page', async () => {
+describe('viewer entry page', () => {
+	it('uses the existing join-session placeholder at the new route', () => {
 		render(joinSessionPage);
 
-		expect(
-			await screen.findByRole('heading', { level: 1, name: 'Join a live session' })
-		).toBeTruthy();
+		expect(screen.getByRole('heading', { level: 1, name: 'Join a live session' })).toBeTruthy();
 		expect(document.title).toBe('Join a live session | Soulstone Initiative Tracker');
+		expect(screen.getByText('Joining live sessions is not available yet.')).toBeTruthy();
 	});
 });
