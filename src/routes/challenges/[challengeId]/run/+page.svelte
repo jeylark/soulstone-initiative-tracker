@@ -127,26 +127,6 @@
 				</p>
 			{/if}
 		{/if}
-		{#if challenge.creatures.some((creature) => creature.turns.length > 0)}
-			<fieldset class="turn-order-visibility">
-				<legend>Creature visibility</legend>
-				{#each challenge.creatures as creature (creature.id)}
-					{@const firstTurn = creature.turns[0]}
-					{@const display = firstTurn ? turnDisplayLookup.get(firstTurn.id) : undefined}
-					{#if display}
-						<label>
-							<input
-								type="checkbox"
-								checked={creature.isHidden}
-								onchange={(event) =>
-									updateCreatureVisibility(creature.id, event.currentTarget.checked)}
-							/>
-							Hidden from viewers: {display.creatureName}
-						</label>
-					{/if}
-				{/each}
-			</fieldset>
-		{/if}
 		{#if generatedOrderDisplay}
 			<ol aria-label="Generated turn order" class="turn-order-list">
 				{#each generatedOrderDisplay.items as item (item.kind === 'turn' ? item.turnId : 'spawn')}
@@ -187,6 +167,18 @@
 											<span>{item.display.faction.name}</span>
 										{/if}
 									</div>
+									<label class="turn-order-visibility">
+										<input
+											type="checkbox"
+											checked={item.display.isHidden}
+											onchange={(event) =>
+												updateCreatureVisibility(
+													item.display.creature.id,
+													event.currentTarget.checked
+												)}
+										/>
+										Hidden from viewers: {item.display.creatureName}
+									</label>
 									{#if item.display.isHidden}
 										<p class="turn-order-hidden">Hidden</p>
 									{/if}
@@ -246,23 +238,10 @@
 	}
 
 	.turn-order-visibility {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px 16px;
-		margin: 0 0 16px;
-		padding: 0;
-		border: 0;
-	}
-
-	.turn-order-visibility legend {
-		margin-bottom: 8px;
-		font-weight: 600;
-	}
-
-	.turn-order-visibility label {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
+		margin-top: 12px;
 	}
 
 	.turn-order-card-tone :global(.turn-order-card) {
