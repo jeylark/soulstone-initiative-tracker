@@ -8,6 +8,7 @@
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
 		prepareTurnOrder,
+		pruneTieDecisions,
 		type TurnOrderPreparation,
 		saveChallengeToLibrary,
 		type Challenge,
@@ -85,7 +86,11 @@
 
 		generationIssue = undefined;
 		const runState = challenge.runState ?? { initiativeResults: {} };
-		const preparation = prepareTurnOrder(challenge, runState.initiativeResults);
+		const preparation = prepareTurnOrder(
+			challenge,
+			runState.initiativeResults,
+			runState.tieDecisions
+		);
 		if (preparation.status !== 'generated') {
 			generationIssue = preparation;
 			return;
@@ -96,6 +101,13 @@
 			...(snapshotChallenge.runState ?? { initiativeResults: {} }),
 			generatedTurnOrder: [...preparation.order]
 		};
+		if (runState.tieDecisions !== undefined) {
+			nextRunState.tieDecisions = pruneTieDecisions(
+				challenge,
+				runState.initiativeResults,
+				runState.tieDecisions
+			);
+		}
 		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
 		const previousRunState = challenge.runState;
 		isSaving = true;

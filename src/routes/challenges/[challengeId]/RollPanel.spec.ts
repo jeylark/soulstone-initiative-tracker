@@ -697,6 +697,47 @@ describe('running challenge storage', () => {
 		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
 	});
 
+	it('discards tie decisions for a rerolled turn and keeps the others', async () => {
+		const challenge = createSetupChallenge();
+		const faction = '00000000-0000-4000-8000-000000000002' as StableId;
+		const [a, b, c, d] = [6, 7, 8, 9].map(
+			(n) => `00000000-0000-4000-8000-00000000003${n}` as StableId
+		);
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 2,
+				factionId: faction,
+				isHidden: false,
+				turns: [a, b, c, d].map((id) => ({
+					id,
+					initiative: { kind: 'roll' as const, mode: 'app' as const }
+				}))
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [a]: 5, [b]: 5, [c]: 8, [d]: 8 },
+			tieDecisions: [
+				[b, a],
+				[d, c]
+			]
+		};
+		await saveChallengeToLibrary(challenge);
+		vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+		render(rollChallengePage);
+		await fireEvent.click(
+			await screen.findByRole('button', { name: 'Reroll initiative for Aria - Turn 1' })
+		);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.tieDecisions).toEqual([[d, c]]);
+		});
+	});
+
 	it('blocks an app roll when its character has no valid initiative stat', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;

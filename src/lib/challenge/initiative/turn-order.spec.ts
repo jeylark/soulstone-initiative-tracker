@@ -10,9 +10,11 @@ import type {
 import { createUuid } from '../core/uuid';
 import {
 	findInitiativeTies,
+	discardTieDecisionsForTurn,
 	findUnresolvedTies,
 	generateTurnOrder,
-	prepareTurnOrder
+	prepareTurnOrder,
+	pruneTieDecisions
 } from './turn-order';
 import type { DeepReadonly } from '../../DeepReadonly';
 
@@ -572,5 +574,53 @@ describe('initiative ties', () => {
 		]);
 
 		expect(prepareTurnOrder(challenge, {}).status).toBe('generated');
+	});
+});
+
+describe('tie decision maintenance', () => {
+	it('discards only the decisions containing the rerolled turn', () => {
+		const [a, b, c, d] = [createUuid(), createUuid(), createUuid(), createUuid()];
+
+		expect(
+			discardTieDecisionsForTurn(
+				[
+					[a, b],
+					[c, d]
+				],
+				a
+			)
+		).toEqual([[c, d]]);
+	});
+
+	it('prunes decisions that no longer match a current tie group', () => {
+		const factionId = createUuid();
+		const a = staticTurn(5);
+		const b = staticTurn(5);
+		const c = staticTurn(7);
+		const challenge = createChallenge([createCreature(factionId, [a, b, c])]);
+
+		expect(
+			pruneTieDecisions(challenge, {}, [
+				[b.id, a.id],
+				[a.id, c.id]
+			])
+		).toEqual([[b.id, a.id]]);
+	});
+});
+
+describe('generateTurnOrder with stale decisions', () => {
+	it('ignores decisions that no longer match a tie group', () => {
+		const factionId = createUuid();
+		const a = staticTurn(5);
+		const b = staticTurn(5);
+		const c = staticTurn(1);
+		const challenge = createChallenge([createCreature(factionId, [a, b, c])]);
+
+		expect(
+			generateTurnOrder(challenge, {}, [
+				[b.id, a.id],
+				[a.id, c.id]
+			]).flatMap((entry) => (entry.kind === 'turn' ? [entry.turnId] : []))
+		).toEqual([b.id, a.id, c.id]);
 	});
 });

@@ -91,6 +91,37 @@ export function findUnresolvedTies(
 	);
 }
 
+/**
+ * Drops decisions that no longer match a current tie group.
+ * @param challenge Challenge whose creature turns define factions and static initiatives.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @param tieDecisions Orders the DM chose for tied groups.
+ * @returns The decisions whose members exactly match a current tie group.
+ */
+export function pruneTieDecisions(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[]
+): StableId[][] {
+	const ties = findInitiativeTies(challenge, initiativeResults);
+	return tieDecisions
+		.filter((decision) => ties.some((group) => sameMembers(decision, group)))
+		.map((decision) => [...decision]);
+}
+
+/**
+ * Drops the decisions for every tie group containing a turn, as when the turn is rerolled.
+ * @param tieDecisions Orders the DM chose for tied groups.
+ * @param turnId ID of the turn whose groups lose their decisions.
+ * @returns The remaining decisions.
+ */
+export function discardTieDecisionsForTurn(
+	tieDecisions: readonly TieDecision[],
+	turnId: StableId
+): StableId[][] {
+	return tieDecisions.filter((decision) => !decision.includes(turnId)).map((d) => [...d]);
+}
+
 function filterFactionTurns(
 	challenge: DeepReadonly<Challenge>,
 	initiativeResults: Readonly<InitiativeResults>
@@ -153,7 +184,7 @@ export function generateTurnOrder(
 ): GeneratedTurnOrder {
 	const { fairnessWeight } = challenge;
 	const tieRank = new Map<StableId, number>();
-	for (const decision of tieDecisions) {
+	for (const decision of pruneTieDecisions(challenge, initiativeResults, tieDecisions)) {
 		decision.forEach((id, index) => tieRank.set(id, index));
 	}
 	const [turnsByFaction, hookedTurns] = filterFactionTurns(challenge, initiativeResults);

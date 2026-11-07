@@ -110,6 +110,53 @@ describe('turn-order run route', () => {
 		]);
 	});
 
+	it('blocks generation while same-faction turns are tied', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 } };
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		expectPageError(
+			'Turn order cannot be generated until tied turns in the same faction are ordered.'
+		);
+		expect(
+			(await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder
+		).toBeUndefined();
+	});
+
+	it('generates from saved tie decisions and keeps only decisions for current ties', async () => {
+		const challenge = createRunChallenge();
+		const staleId = '00000000-0000-4000-8000-000000000099' as StableId;
+		challenge.creatures[1]!.turns.push({
+			id: staleId,
+			initiative: { kind: 'static', value: 1 }
+		});
+		challenge.runState = {
+			initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 },
+			tieDecisions: [
+				[rookTurnId, ariaTurnId],
+				[ariaTurnId, staleId]
+			]
+		};
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'turn', turnId: staleId },
+				{ kind: 'spawn' }
+			]);
+			expect(saved?.runState?.tieDecisions).toEqual([[rookTurnId, ariaTurnId]]);
+		});
+	});
+
 	it('lists turns with unresolved placement rules', async () => {
 		const challenge = createRunChallenge();
 		challenge.runState = { initiativeResults: {} };

@@ -9,9 +9,11 @@
 		saveChallengeToLibrary,
 		type Challenge,
 		type ChallengeCreature,
+		type ChallengeRunState,
 		type StableId,
 		type TurnDisplay,
-		createTurnDisplayLookup
+		createTurnDisplayLookup,
+		discardTieDecisionsForTurn
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import InitiativeFactionSection from './roll/InitiativeFactionSection.svelte';
@@ -45,6 +47,11 @@
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
 	}
 
+	function discardTies(runState: ChallengeRunState, turnId: StableId): void {
+		if (runState.tieDecisions === undefined) return;
+		runState.tieDecisions = discardTieDecisionsForTurn(runState.tieDecisions, turnId);
+	}
+
 	function updateInitiative(turnId: StableId, value: string): void {
 		initiativeInputs[turnId] = value;
 		if (!challenge) return;
@@ -59,6 +66,7 @@
 		}
 		const runState = { ...(challenge.runState ?? {}), initiativeResults };
 		if (previousInitiative !== initiative) delete runState.generatedTurnOrder;
+		discardTies(runState, turnId);
 		challenge.runState = runState;
 	}
 
@@ -97,6 +105,7 @@
 		if (previousInitiative !== initiative) {
 			delete runState.generatedTurnOrder;
 		}
+		discardTies(runState, turnId);
 		challenge.runState = runState;
 	}
 
