@@ -11,15 +11,20 @@ keeping its task number and wording.
 
 ## Open
 
-### 1. Challenge navigation and setup
-
-- 1.10: Support copying a challenge with fresh stable IDs and updated
-  references, including turn IDs in saved tie decisions.
-- 1.18: Validate setup values.
-
 ### 2. Initiative and encounter play
 
-- 2.8: Omit hidden turns from the read-only view.
+#### Setup
+
+- 2.36: Extract a reusable input component that combines a slider with its
+  associated input field.
+- 2.35: Validate setup values.
+- 2.28: When an initiative stat changes, discard affected app-rolled results
+  and invalidate the generated order; preserve manual/static values.
+- 2.33: Remove the Setup, Roll, and Run navigation buttons from their
+  respective tabs.
+
+#### Rolling
+
 - 2.10: Detect same-faction initiative ties and block turn-order generation
   until the DM has resolved them. Ties across factions stay with the
   fairness algorithm.
@@ -27,10 +32,16 @@ keeping its task number and wording.
   unresolved ties when generation is blocked.
 - 2.12: Save tie decisions in the run state. Discard them for a tie group when
   a member is rerolled, and keep the remaining decisions on recalculation.
+- 2.16: Add an animated "rolling" effect for initiative rolls.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
+
+#### Run
+
+- 2.34: Add a separate disable option for each input control and button.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
-- 2.16: Add an animated "rolling" effect for initiative rolls.
 - 2.21: Label turn-order generation **Start challenge** and remove the
   recalculation action while a challenge is running. This does not rename
   the separate per-turn **Calculate roll** action.
@@ -42,32 +53,28 @@ keeping its task number and wording.
 - 2.25: Remove turn numbers from card titles and order indices from run-view
   cards.
 - 2.27: Make faction colors stand out more clearly from the background.
-- 2.28: When an initiative stat changes, discard affected app-rolled results
-  and invalidate the generated order; preserve manual/static values.
-- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
-- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
-- 2.32: Combine the setup, rolling, and run views into a single page with
-  separate tabs for each view.
 
 ### 3. Challenge library and file workflows
 
 - 3.1: Add UI for backing up the whole library.
-- 3.2: Add UI for restoring the whole library only after the complete backup
-  has validated; leave existing data unchanged on failure.
 - 3.3: Add UI for saving one challenge with run state (including tie
   decisions).
-- 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
-  choices.
-- 3.5: Protect challenges used by active sessions from replacement; offer to
-  import a copy or abort instead.
-- 3.6: Present partial-import issues and require confirmation before importing
-  valid sections; import the challenge only when its structure and references
-  are complete and valid.
 - 3.7: Reject malformed JSON and unsupported versions without partially
   importing data.
 - 3.8: Ask before migrating older supported formats.
 - 3.9: Explain when an unsupported format needs a compatible app version.
+- 3.2: Add UI for restoring the whole library only after the complete backup
+  has validated; leave existing data unchanged on failure.
+- 3.6: Present partial-import issues and require confirmation before importing
+  valid sections; import the challenge only when its structure and references
+  are complete and valid.
+- 3.10: Support copying a challenge with fresh stable IDs and updated
+  references, including turn IDs in saved tie decisions.
+- 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
+  choices.
+- 3.5: Protect challenges used by active sessions from replacement; offer to
+  import a copy or abort instead.
 
 ### 4. Live sessions and read-only viewers
 
@@ -76,18 +83,19 @@ keeping its task number and wording.
   sessions.
 - 4.3: Add a configurable active-session limit and refuse new sessions with a
   clear message without evicting existing sessions.
-- 4.4: Add a configurable per-session viewer limit and refuse new connections
-  with a clear message without disconnecting existing viewers.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.
 - 4.7: Allow viewer-code regeneration to invalidate the previous code.
-- 4.8: Stream live turn-order updates to read-only viewers with SSE.
-- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
 - 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
+- 4.8: Stream live turn-order updates to read-only viewers with SSE.
+- 4.4: Add a configurable per-session viewer limit and refuse new connections
+  with a clear message without disconnecting existing viewers.
+- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
+- 4.13: Omit hidden turns from the read-only view.
 - 4.12: End inactive sessions after the configured timeout; viewer activity must
   not reset it.
 
@@ -111,26 +119,16 @@ keeping its task number and wording.
 
 ### 6. Quality and release readiness
 
-- 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
-  for challenge setup and DM workflows.
-- 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
-  for import/export and viewer workflows.
-- 6.3: Verify mobile layouts and efficient use of larger screens for challenge
-  setup.
-- 6.4: Verify mobile layouts and efficient use of larger screens for the
-  turn-order views.
 - 6.5: Add focused tests alongside each workflow, including session limits,
   authorization, inactivity expiry, SSE updates, and persistence or import
   failure cases.
-- 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
-  and `npm run build`; ensure CI passes.
-  6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
+- 6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
   smaller sub-components where feasible, improving readability and following
   single responsibility.
-  6.10: Split the challenge creation workflow on `/challenges` into smaller
+- 6.10: Split the challenge creation workflow on `/challenges` into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
-  6.14: Split the viewer entry page (`/view`) into smaller sub-components where
+- 6.14: Split the viewer entry page (`/view`) into smaller sub-components where
   feasible as live-session joining is implemented.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
@@ -151,6 +149,16 @@ keeping its task number and wording.
   rules, show field-level feedback, preserve non-blocking warnings and existing
   invalid-input behavior, and add focused integration tests. Keep new
   setup-validation rules in task 1.18.
+- 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
+  for challenge setup and DM workflows.
+- 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
+  for import/export and viewer workflows.
+- 6.3: Verify mobile layouts and efficient use of larger screens for challenge
+  setup.
+- 6.4: Verify mobile layouts and efficient use of larger screens for the
+  turn-order views.
+- 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
+  and `npm run build`; ensure CI passes.
 
 ## Done
 
@@ -219,6 +227,8 @@ keeping its task number and wording.
 - 2.20: Keep input dimensions stable when warnings or errors appear or
   disappear.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
+- 2.32: Combine the setup, rolling, and run views into a single page with
+  separate tabs for each view.
 
 ### 6. Quality and release readiness
 
