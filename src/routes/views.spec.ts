@@ -584,6 +584,10 @@ describe('running challenge storage', () => {
 		const appNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
 		const singleTurnId = '00000000-0000-4000-8000-000000000014' as StableId;
 		challenge.name = 'Manual collection';
+		challenge.factions.push(
+			{ id: '00000000-0000-4000-8000-000000000016' as StableId, name: 'Static', color: 'green' },
+			{ id: '00000000-0000-4000-8000-000000000017' as StableId, name: 'Empty', color: 'amber' }
+		);
 		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 2 }];
 		challenge.creatures = [
 			{
@@ -595,7 +599,11 @@ describe('running challenge storage', () => {
 				turns: [
 					{ id: manualCharacterTurnId, initiative: { kind: 'roll', mode: 'manual' } },
 					{ id: appCharacterTurnId, initiative: { kind: 'roll', mode: 'app' } },
-					{ id: emptyCharacterTurnId, initiative: { kind: 'roll', mode: 'manual' } }
+					{ id: emptyCharacterTurnId, initiative: { kind: 'roll', mode: 'manual' } },
+					{
+						id: '00000000-0000-4000-8000-000000000020' as StableId,
+						initiative: { kind: 'static', value: 10 }
+					}
 				]
 			},
 			{
@@ -617,6 +625,19 @@ describe('running challenge storage', () => {
 				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
 				isHidden: false,
 				turns: [{ id: singleTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000018' as StableId,
+				kind: 'character',
+				name: 'Sage',
+				factionId: '00000000-0000-4000-8000-000000000016' as StableId,
+				isHidden: false,
+				turns: [
+					{
+						id: '00000000-0000-4000-8000-000000000019' as StableId,
+						initiative: { kind: 'static', value: 10 }
+					}
+				]
 			}
 		];
 		challenge.runState = {
@@ -645,6 +666,8 @@ describe('running challenge storage', () => {
 		expect(
 			screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())
 		).toEqual(['Players', 'Enemies']);
+		expect(screen.queryByRole('region', { name: 'Static' })).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Empty' })).toBeNull();
 		expect(
 			screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent?.trim())
 		).toEqual([
@@ -655,6 +678,8 @@ describe('running challenge storage', () => {
 			'Sentinel B - Turn 1',
 			'Sentinel B - Turn 2'
 		]);
+		expect(screen.queryByRole('heading', { name: 'Aria - Turn 4' })).toBeNull();
+		expect(screen.queryByRole('heading', { name: 'Sage' })).toBeNull();
 		const enemies = screen.getByRole('region', { name: 'Enemies' });
 		expect(
 			within(enemies).getByRole('spinbutton', { name: 'Initiative for Sentinel B - Turn 1' })

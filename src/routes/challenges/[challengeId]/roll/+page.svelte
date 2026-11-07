@@ -15,7 +15,8 @@
 		type TurnDisplay,
 		createTurnDisplayLookup
 	} from '#lib/challenge';
-	import { ActionButton, Card, ErrorDisplay, NumberInput, ViewPage } from '#lib/components';
+	import { ActionButton, Card, ErrorDisplay, ViewPage } from '#lib/components';
+	import InitiativeTurnCard from './InitiativeTurnCard.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -265,73 +266,20 @@
 								{#each factionCreatures as creature (creature.id)}
 									{@const turnsToRoll = rollingTurns(creature)}
 									{#each turnsToRoll as { turn, display, mode } (turn.id)}
-										{@const title = display.label}
-										{@const label = `Initiative for ${title}`}
 										{@const result = challenge.runState?.initiativeResults[turn.id]}
-										<div
-											class="initiative-card-tone"
-											style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-										>
-											<Card
-												{title}
-												headingLevel="h3"
-												headerSize="small"
-												spacing="compact"
-												class="initiative-card"
-											>
-												<div class="initiative-field">
-													{#if mode === 'manual'}
-														{@const inputValue = initiativeInputs[turn.id] ?? ''}
-														{@const hasWarning = result !== undefined && result > 18}
-														{@const isInvalid =
-															inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
-														<NumberInput
-															{label}
-															min={0}
-															step={1}
-															{hasWarning}
-															warningMessage={hasWarning ? `${label} is above 18.` : undefined}
-															{isInvalid}
-															invalidMessage={isInvalid
-																? 'Enter a non-negative whole number.'
-																: undefined}
-															value={inputValue}
-															oninput={(event) =>
-																updateInitiative(turn.id, event.currentTarget.value)}
-														/>
-													{:else}
-														{@const turnLabel = title}
-														{@const diceCount = initiativeStat(creature)}
-														<div class="app-initiative-turn">
-															{#if result !== undefined}
-																<output>Initiative result: {result}</output>
-																<ActionButton
-																	aria-label={`Reroll initiative for ${turnLabel}`}
-																	disabled={diceCount === undefined}
-																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
-																>
-																	Reroll
-																</ActionButton>
-															{:else}
-																<ActionButton
-																	aria-label={`Roll initiative for ${turnLabel}`}
-																	disabled={diceCount === undefined}
-																	onclick={() => rollInitiativeForTurn(creature, turn.id)}
-																>
-																	Roll
-																</ActionButton>
-															{/if}
-															{#if diceCount === undefined}
-																<p role="status">
-																	{turnLabel} cannot be rolled because its initiative stat is missing
-																	or invalid.
-																</p>
-															{/if}
-														</div>
-													{/if}
-												</div>
-											</Card>
-										</div>
+										{@const inputValue = initiativeInputs[turn.id] ?? ''}
+										<InitiativeTurnCard
+											title={display.label}
+											{mode}
+											factionColor={factionColor?.hex}
+											{result}
+											{inputValue}
+											isInvalid={inputValue !== '' &&
+												parseInitiativeInput(inputValue) === undefined}
+											canRoll={initiativeStat(creature) !== undefined}
+											onInput={(value) => updateInitiative(turn.id, value)}
+											onRoll={() => rollInitiativeForTurn(creature, turn.id)}
+										/>
 									{/each}
 								{/each}
 							</div>
@@ -386,37 +334,5 @@
 		flex-wrap: wrap;
 		align-items: start;
 		gap: 12px;
-	}
-
-	.initiative-card-tone {
-		flex: 0 1 max-content;
-		min-width: 0;
-		max-width: 100%;
-	}
-
-	.initiative-card-tone :global(.initiative-card) {
-		width: auto;
-		max-width: 100%;
-		background: color-mix(
-			in srgb,
-			var(--faction-color, var(--color-surface)) 12%,
-			var(--color-surface)
-		);
-	}
-
-	.initiative-field {
-		min-width: 0;
-	}
-
-	.app-initiative-turn {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.app-initiative-turn p {
-		grid-column: 1 / -1;
-		margin: 0;
 	}
 </style>
