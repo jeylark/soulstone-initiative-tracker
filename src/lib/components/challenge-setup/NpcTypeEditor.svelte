@@ -33,6 +33,7 @@
 						class="npc-type-card"
 						legend={npcType.name}
 						removeLabel={`Remove NPC type ${npcType.name}`}
+						removeText="Remove NPC type"
 						onRemove={() => onRemove(npcType.id)}
 					>
 						<TextInput
