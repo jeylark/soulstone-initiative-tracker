@@ -1,62 +1,53 @@
-# Branch Plan: Turn Order View
+# Branch Plan: Stable Input Dimensions
 
-App-wide backlog: [TODO.md](./TODO.md). Completing this branch ticks 2.3, 2.5,
-2.6, 2.7, 2.15 and 2.18 there.
+App-wide backlog: [TODO.md](./TODO.md). This branch covers 2.20.
 
-## Working rules (apply to every session)
+## Working rules
 
-- Stay on the current branch (`turn-order-view`) for all work; do not create or
-  switch branches, and never merge into or push to `main`. Check the worktree for
-  uncommitted changes before editing.
-- Write tests before implementation, and run Prettier on edited files when done.
-- Tick the matching box in this file as each step finishes.
-- Tick an item in [TODO.md](./TODO.md) only once every branch step listed for it
-  in the Scope table is done and verified. Do not tick partially finished items.
+- Work only on `todo-2-20-stable-input-dimensions`; do not merge into or push
+  to `main`.
+- Check the worktree before editing and preserve unrelated changes.
+- Add or update tests before changing app code.
+- Run Prettier on edited files before lint checks.
+- Tick branch steps as they are completed. Tick 2.20 in `TODO.md` only after
+  every branch step is complete and verified.
 
 ## Scope
 
 | TODO | Covered by branch steps |
 | ---- | ----------------------- |
-| 2.3  | 3                       |
-| 2.5  | 2, 3                    |
-| 2.6  | 2, 3                    |
-| 2.7  | 4                       |
-| 2.15 | 3                       |
-| 2.18 | 5                       |
+| 2.20 | 1–4                     |
 
-Out of scope: ties (2.10–2.12), read-only view (2.8), Spawn (2.13–2.14),
-animation (2.16), roll-card names (2.17), turn-order layout checks (6.4).
+Keep the rendered footprint of a `NumberInput` stable as warning and invalid
+messages appear or disappear. Preserve the current input value, validation
+states, and accessible message announcements. The shared `NumberInput` is used
+in both initiative rolling and challenge setup, so verify both contexts.
+
+Out of scope: changing validation rules or message wording; unrelated card,
+form, or page layout changes.
 
 ## Steps
 
-- [x] 1. Extract `creatureName` and turn-label logic from the roll page into a
-      shared module under `src/lib/challenge`, with a turn-ID lookup for creature,
-      faction, label and hidden state. Roll page behavior and tests unchanged.
-      Document all exports.
-- [x] 2. (2.5, 2.6) Add a generation helper wrapping `generateTurnOrder`: returns
-      the order, the turns with missing roll results (blocking generation), or the
-      `TurnOrderError.turnIds`. Unit tests for all three outcomes.
-- [x] 3. (2.3, 2.5, 2.6, 2.15) Add the route
-      `/challenges/[challengeId]/run` with title "Turn order": load from
-      IndexedDB with loading, not-found and error states, "Return to home"
-      recovery and the saved `generatedTurnOrder`
-      if present. Add "Generate turn order" / "Recalculate": save
-      `runState.generatedTurnOrder` with the queued-save pattern and `hasSaveError`
-      alert, keep `initiativeResults`, and list turns with invalid placement or
-      missing results.
-- [x] 4. (2.7) Render the order as numbered cards in faction colors with creature
-      and turn labels; drop unknown turn IDs and prompt to recalculate.
-- [x] 5. (2.18) Add per-creature hide/show saving `isHidden`; hidden turns stay
-      visible, greyed out and labeled "Hidden" in text. Reuse the setup hide/show
-      logic.
-- [x] 6. Add "Continue to turn order" on the roll page that saves pending edits
-      first; make sure any result or setup change that invalidates the order
-      clears `generatedTurnOrder`.
-- [x] 7. Run `npm test`, `npm run check`, `npm run lint` and `npm run build`;
-      inspect the diff; tick the finished items in `TODO.md`.
+- [x] 1. Add focused `NumberInput` tests for no message, warning, invalid, both
+      messages, and transitions between those states. Confirm the input retains
+      its dimensions and that active messages remain correctly associated and
+      announced.
+- [x] 2. Adjust the shared form-field message layout and styles to reserve a
+      consistent message area without changing the existing input width or
+      minimum height. Keep inactive messages out of the accessibility tree and
+      preserve support for external `aria-describedby` values.
+- [x] 3. Verify the roll-page warning/invalid states and the setup-page invalid
+      state retain a stable field footprint, including narrow layouts where
+      messages can wrap. Keep the existing warning and error styling.
+- [x] 4. Run focused form-control and affected page tests, then
+      `npm run check`, `npm run lint`, and `npm run build`; inspect the diff and
+      tick 2.20 in `TODO.md` only if all checks pass.
 
 ## Verification
 
-- Route tests: load states, generate, recalculate, restore after reload, error
-  listing, hide/show, results preserved.
-- Manual: new challenge, setup, roll, turn order, reload, direct URL.
+- Component tests cover each message combination and changes between states;
+  the full suite covers the roll and setup routes.
+- Confirm message visibility, `role`, and `aria-describedby` behavior are
+  unchanged.
+- Browser inspection at desktop and mobile widths confirms the shared
+  `NumberInput` retains its existing 40px input height and width behavior.

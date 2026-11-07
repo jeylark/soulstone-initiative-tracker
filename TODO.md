@@ -82,7 +82,7 @@ foundations.
       hidden turns stay visible but greyed out.
 - [x] 2.19: Remove "this result is still valid" explanations from warnings; the
       warning itself is sufficient.
-- [ ] 2.20: Keep input dimensions stable when warnings or errors appear or
+- [x] 2.20: Keep input dimensions stable when warnings or errors appear or
       disappear.
 - [ ] 2.21: Label turn-order generation **Start challenge** and remove the
       recalculation action while a challenge is running. This does not rename
