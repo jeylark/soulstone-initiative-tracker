@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChallengeCreature, NpcType, StableId } from '#lib';
+	import type { ChallengeCreature, NpcType, StableId } from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
 	import Card from '../Card.svelte';

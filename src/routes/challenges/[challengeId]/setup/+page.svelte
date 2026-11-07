@@ -4,11 +4,13 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import type { DeepReadonly } from '#lib';
 	import {
 		createUuid,
+		getNextFactionColor,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
+		validateChallengeSetup,
 		type Challenge,
 		type Faction,
 		type FactionColor,
@@ -16,21 +18,18 @@
 		type NpcType,
 		type StableId,
 		type Turn
-	} from '#lib';
-	import { validateChallengeSetup } from '#lib/challenge/core/setup-validation.js';
-	import { getNextFactionColor } from '#lib/challenge/core/faction-colors.js';
-	import ActionButton from '#lib/components/ActionButton.svelte';
-	import NavButton from '#lib/components/NavButton.svelte';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import ChallengeSettings from '#lib/components/challenge-setup/ChallengeSettings.svelte';
-	import CreatureSetup from '#lib/components/challenge-setup/CreatureSetup.svelte';
-	import NpcTypeEditor from '#lib/components/challenge-setup/NpcTypeEditor.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
-	import type {
-		InitiativeChoice,
-		TurnEditorChange
-	} from '#lib/components/challenge-setup/challenge-setup-types.js';
-	import '#lib/components/challenge-setup/challenge-setup.css';
+	} from '#lib/challenge';
+	import {
+		ActionButton,
+		ChallengeSettings,
+		CreatureSetup,
+		ErrorDisplay,
+		NpcTypeEditor,
+		NavButton,
+		ViewPage,
+		type InitiativeChoice,
+		type TurnEditorChange
+	} from '#lib/components';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 

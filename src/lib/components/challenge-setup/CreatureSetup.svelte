@@ -6,7 +6,7 @@
 		NpcType,
 		StableId,
 		ValidationIssue
-	} from '#lib';
+	} from '#lib/challenge';
 	import type { TurnEditorChange } from './challenge-setup-types';
 	import EntityList from '../EntityList.svelte';
 	import FactionEditor from './FactionEditor.svelte';

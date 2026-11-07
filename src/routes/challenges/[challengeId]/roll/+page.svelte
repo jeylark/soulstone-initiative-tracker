@@ -3,8 +3,9 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import type { DeepReadonly } from '#lib';
 	import {
+		FACTION_COLORS,
 		loadChallengeLibrary,
 		rollInitiative,
 		saveChallengeToLibrary,
@@ -13,13 +14,8 @@
 		type StableId,
 		type TurnDisplay,
 		createTurnDisplayLookup
-	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/core/faction-colors.js';
-	import ActionButton from '#lib/components/ActionButton.svelte';
-	import Card from '#lib/components/Card.svelte';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import NumberInput from '#lib/components/forms/NumberInput.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
+	} from '#lib/challenge';
+	import { ActionButton, Card, ErrorDisplay, NumberInput, ViewPage } from '#lib/components';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 

@@ -2,21 +2,18 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import type { DeepReadonly } from '#lib/DeepReadonly.js';
+	import type { DeepReadonly } from '#lib';
 	import {
+		FACTION_COLORS,
 		createTurnOrderDisplay,
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
+		prepareTurnOrder,
 		saveChallengeToLibrary,
 		type Challenge,
 		type StableId
-	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/core/faction-colors.js';
-	import { prepareTurnOrder } from '#lib/challenge/initiative/turn-order.js';
-	import ActionButton from '#lib/components/ActionButton.svelte';
-	import Card from '#lib/components/Card.svelte';
-	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
-	import ViewPage from '#lib/components/ViewPage.svelte';
+	} from '#lib/challenge';
+	import { ActionButton, Card, ErrorDisplay, ViewPage } from '#lib/components';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 	type GenerationIssue = {

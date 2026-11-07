@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type {
-		ChallengeCreature,
-		Faction,
-		FactionColor,
-		NpcType,
-		StableId,
-		ValidationIssue
-	} from '#lib';
-	import { FACTION_COLORS } from '../../challenge/core/faction-colors.js';
+	import {
+		FACTION_COLORS,
+		type ChallengeCreature,
+		type Faction,
+		type FactionColor,
+		type NpcType,
+		type StableId,
+		type ValidationIssue
+	} from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
 	import EntityList from '../EntityList.svelte';

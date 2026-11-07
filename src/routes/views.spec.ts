@@ -14,7 +14,7 @@ import {
 	type Challenge,
 	type GeneratedTurnOrder,
 	type StableId
-} from '#lib';
+} from '#lib/challenge';
 
 async function renderSetup() {
 	render(setupChallengePage);

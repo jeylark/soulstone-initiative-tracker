@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { NpcType, StableId } from '#lib';
+	import type { NpcType, StableId } from '#lib/challenge';
 	import Card from '../Card.svelte';
 	import EntityList from '../EntityList.svelte';
 	import EntityListItem from '../EntityListItem.svelte';

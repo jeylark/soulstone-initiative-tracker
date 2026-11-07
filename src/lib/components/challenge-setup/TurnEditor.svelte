@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Turn, TurnInitiative } from '#lib';
+	import type { Turn, TurnInitiative } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import Card from '../Card.svelte';
 	import EntityListItem from '../EntityListItem.svelte';

@@ -7,7 +7,7 @@ import {
 	type StableId,
 	type TurnInitiative,
 	validateChallengeLibrary
-} from '#lib';
+} from '#lib/challenge';
 import { createUuid, parseUuid } from './uuid';
 
 const ids = {

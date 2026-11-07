@@ -1,4 +1,4 @@
-import type { StableId } from '#lib';
+import type { StableId } from '#lib/challenge';
 
 /** Initiative placement choices exposed by the turn editor. */
 export type InitiativeChoice =

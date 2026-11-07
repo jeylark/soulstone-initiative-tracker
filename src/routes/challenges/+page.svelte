@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ViewPage from '#lib/components/ViewPage.svelte';
+	import { ViewPage } from '#lib/components';
 </script>
 
 <ViewPage title="Saved challenges">
