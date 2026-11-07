@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { StableId, TurnOrderDisplayItem } from '#lib/challenge';
 	import { FACTION_COLORS } from '#lib/challenge';
-	import { Card } from '#lib/components';
+	import { Card, CheckboxInput } from '#lib/components';
 
 	interface Props {
 		item: TurnOrderDisplayItem;
@@ -47,15 +47,14 @@
 					<span>{item.display.faction.name}</span>
 				{/if}
 			</div>
-			<label class="turn-order-visibility">
-				<input
-					type="checkbox"
+			<div class="turn-order-visibility">
+				<CheckboxInput
+					label={`Hidden from viewers: ${item.display.creatureName}`}
 					checked={item.display.isHidden}
 					onchange={(event) =>
 						onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
 				/>
-				Hidden from viewers: {item.display.creatureName}
-			</label>
+			</div>
 			{#if item.display.isHidden}
 				<p class="turn-order-hidden">Hidden</p>
 			{/if}

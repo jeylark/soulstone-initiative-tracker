@@ -5,6 +5,7 @@
 	import Card from '../Card.svelte';
 	import EntityList from '../EntityList.svelte';
 	import EntityListItem from '../EntityListItem.svelte';
+	import CheckboxInput from '../forms/CheckboxInput.svelte';
 	import NumberInput from '../forms/NumberInput.svelte';
 	import SelectInput from '../forms/SelectInput.svelte';
 	import TextInput from '../forms/TextInput.svelte';
@@ -110,14 +111,13 @@
 				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
 			/>
 		{/if}
-		<label class="creature-visibility">
-			<input
-				type="checkbox"
+		<div class="creature-visibility">
+			<CheckboxInput
+				label={`Hidden from viewers: ${name}`}
 				checked={creature.isHidden}
 				onchange={(event) => onVisibilityChange(creature.id, event.currentTarget.checked)}
 			/>
-			Hidden from viewers: {name}
-		</label>
+		</div>
 		<EntityList
 			addLabel="Add turn"
 			addAriaLabel={`Add turn for ${name}`}
