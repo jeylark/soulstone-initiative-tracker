@@ -149,7 +149,6 @@ foundations.
   app wherever color-picking controls are needed.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
-- 6.18: Speed up reading and applying the saved dark/light mode on page load.
 
 ## Done
 
@@ -216,3 +215,7 @@ foundations.
 - 2.20: Keep input dimensions stable when warnings or errors appear or
   disappear.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
+
+### 6. Quality and release readiness
+
+- 6.18: Speed up reading and applying the saved dark/light mode on page load.

@@ -16,11 +16,15 @@ interface ThemeState {
 /**
  * Creates theme state initialized from the persisted preference.
  * @param storage Storage adapter used to read and persist the theme; omit it when storage is unavailable.
+ * @param isInitiallyDarkMode Theme applied before app startup; when omitted, it is read from storage.
  * @returns Theme state with a read-only current mode and a toggle operation.
  * @throws {DOMException} If reading the stored theme preference fails.
  */
-export function createThemeState(storage: ThemeStorage | undefined): ThemeState {
-	let isDarkMode = $state(storage?.getItem(THEME_STORAGE_KEY) === 'dark');
+export function createThemeState(
+	storage: ThemeStorage | undefined,
+	isInitiallyDarkMode = storage?.getItem(THEME_STORAGE_KEY) === 'dark'
+): ThemeState {
+	let isDarkMode = $state(isInitiallyDarkMode);
 
 	return {
 		get isDarkMode() {
@@ -28,12 +32,16 @@ export function createThemeState(storage: ThemeStorage | undefined): ThemeState 
 		},
 		toggle() {
 			isDarkMode = !isDarkMode;
+			if (typeof document !== 'undefined') {
+				document.documentElement.classList.toggle('theme-dark', isDarkMode);
+			}
 			storage?.setItem(THEME_STORAGE_KEY, isDarkMode ? 'dark' : 'light');
 		}
 	};
 }
 
-/** Shared app-wide theme state; server rendering uses the default light theme. */
+/** Shared app-wide theme state, initialized from the early document theme on the client. */
 export const theme: ThemeState = createThemeState(
-	typeof localStorage === 'undefined' ? undefined : localStorage
+	typeof localStorage === 'undefined' ? undefined : localStorage,
+	typeof document !== 'undefined' && document.documentElement.classList.contains('theme-dark')
 );

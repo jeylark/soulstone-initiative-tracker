@@ -49,6 +49,7 @@ describe('app layout', () => {
 		const lightModeButton = screen.getByRole('button', { name: 'Light mode' });
 		expect(lightModeButton.getAttribute('aria-pressed')).toBe('true');
 		expect(container.querySelector('.app-shell')?.classList.contains('theme-dark')).toBe(true);
+		expect(document.documentElement.classList.contains('theme-dark')).toBe(true);
 
 		await fireEvent.click(lightModeButton);
 
@@ -56,6 +57,7 @@ describe('app layout', () => {
 			'false'
 		);
 		expect(container.querySelector('.app-shell')?.classList.contains('theme-dark')).toBe(false);
+		expect(document.documentElement.classList.contains('theme-dark')).toBe(false);
 	});
 
 	it('shows the app header and renders page content', () => {
