@@ -40,24 +40,12 @@ export interface ChallengeRunState {
 	generatedTurnOrder?: GeneratedTurnOrder;
 }
 
-/** Persistent library containing reusable characters and saved challenges. */
+/** Persistent library containing saved challenges. */
 export interface ChallengeLibrary {
 	/** Schema version used to interpret this library's data. */
 	formatVersion: typeof CHALLENGE_FORMAT_VERSION;
-	/** Characters available for reuse across challenges. */
-	characters: PlayerCharacter[];
 	/** Challenges saved in this library. */
 	challenges: Challenge[];
-}
-
-/** Reusable player character referenced by character creatures. */
-export interface PlayerCharacter {
-	/** Unique character identifier. */
-	id: StableId;
-	/** Character's display name. */
-	name: string;
-	/** Optional number of d6 used when the app calculates this character's initiative. */
-	initiativeStat?: number;
 }
 
 /** Stable semantic color identifiers available to distinguish challenge factions. */
@@ -125,14 +113,16 @@ export type TurnInitiative =
 			targetTurnId: StableId;
 	  };
 
-/** A challenge creature backed by a reusable player character. */
+/** A challenge creature representing a player character. */
 export interface CharacterCreature {
 	/** Unique creature-instance identifier. */
 	id: StableId;
 	/** Discriminator identifying this as a character creature. */
 	kind: 'character';
-	/** ID of the reusable character represented by this creature. */
-	characterId: StableId;
+	/** Character's display name. */
+	name: string;
+	/** Optional number of d6 used when the app calculates this character's initiative. */
+	initiativeStat?: number;
 	/** ID of the faction this creature belongs to. */
 	factionId: StableId;
 	/** Whether this creature and all its turns are hidden from read-only viewers. */

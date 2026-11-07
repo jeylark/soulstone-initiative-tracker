@@ -1,9 +1,4 @@
-import {
-	CHALLENGE_FORMAT_VERSION,
-	type Challenge,
-	type ChallengeLibrary,
-	type PlayerCharacter
-} from './model';
+import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from './model';
 import type { DeepReadonly } from '../DeepReadonly';
 import { validateChallengeLibrary, type ValidationIssue } from './validation';
 
@@ -46,7 +41,6 @@ export class ChallengeLibraryStorageError extends Error {
 function createEmptyChallengeLibrary(): ChallengeLibrary {
 	return {
 		formatVersion: CHALLENGE_FORMAT_VERSION,
-		characters: [],
 		challenges: []
 	};
 }
@@ -215,7 +209,6 @@ export async function saveChallengeLibrary(
 /**
  * Saves a challenge into the stored library, replacing any challenge with the same ID.
  * @param challenge Challenge to add or replace.
- * @param characters Reusable characters to add or replace by ID; other stored characters are kept.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
  * @returns A promise that resolves when the updated library has been saved.
  * @throws {ChallengeLibraryValidationError} If stored or resulting library data is invalid.
@@ -223,21 +216,13 @@ export async function saveChallengeLibrary(
  */
 export async function saveChallengeToLibrary(
 	challenge: DeepReadonly<Challenge>,
-	characters: DeepReadonly<PlayerCharacter[]>,
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<void> {
 	const library = await loadChallengeLibrary(indexedDbFactory);
-	const savedCharacters = library.characters.map(
-		(saved) => characters.find((character) => character.id === saved.id) ?? saved
-	);
-	const newCharacters = characters.filter(
-		(character) => !library.characters.some((saved) => saved.id === character.id)
-	);
 	const hasChallenge = library.challenges.some((saved) => saved.id === challenge.id);
 	await saveChallengeLibrary(
 		{
 			...library,
-			characters: [...savedCharacters, ...newCharacters],
 			challenges: hasChallenge
 				? library.challenges.map((saved) => (saved.id === challenge.id ? challenge : saved))
 				: [...library.challenges, challenge]

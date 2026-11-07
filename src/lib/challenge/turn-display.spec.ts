@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Challenge, ChallengeCreature, PlayerCharacter, Turn } from './model';
+import type { Challenge, ChallengeCreature, Turn } from './model';
 import { createUuid } from './uuid';
 import { createTurnDisplayLookup, createTurnOrderDisplay } from './turn-display';
 
@@ -23,7 +23,6 @@ function createChallenge(creatures: readonly ChallengeCreature[] = []): Challeng
 
 describe('createTurnDisplayLookup', () => {
 	it('resolves every turn with its creature, faction, full-list label, and hidden state', () => {
-		const characterId = createUuid();
 		const faction = { id: createUuid(), name: 'Players', color: 'blue' } as const;
 		const npcFaction = { id: createUuid(), name: 'Enemies', color: 'red' } as const;
 		const characterFirstTurn = createTurn({ kind: 'static', value: 8 });
@@ -32,7 +31,7 @@ describe('createTurnDisplayLookup', () => {
 		const character: ChallengeCreature = {
 			id: createUuid(),
 			kind: 'character',
-			characterId,
+			name: 'Aria',
 			factionId: faction.id,
 			isHidden: true,
 			turns: [characterFirstTurn, characterSecondTurn]
@@ -50,9 +49,8 @@ describe('createTurnDisplayLookup', () => {
 		const challenge = createChallenge([character, npc]);
 		challenge.factions = [faction, npcFaction];
 		challenge.npcTypes[0].id = npcTypeId;
-		const characters: PlayerCharacter[] = [{ id: characterId, name: 'Aria' }];
 
-		const lookup = createTurnDisplayLookup(challenge, characters);
+		const lookup = createTurnDisplayLookup(challenge);
 
 		expect(lookup.size).toBe(3);
 		expect(lookup.get(characterFirstTurn.id)).toEqual({
@@ -73,13 +71,13 @@ describe('createTurnDisplayLookup', () => {
 		});
 	});
 
-	it('uses the existing fallback names for missing character and NPC definitions', () => {
+	it('uses the creature name for characters and fallback names for missing NPC definitions', () => {
 		const characterTurn = createTurn({ kind: 'roll', mode: 'manual' });
 		const npcTurn = createTurn({ kind: 'static', value: 4 });
 		const character: ChallengeCreature = {
 			id: createUuid(),
 			kind: 'character',
-			characterId: createUuid(),
+			name: 'Rook',
 			factionId: createUuid(),
 			isHidden: false,
 			turns: [characterTurn]
@@ -93,9 +91,9 @@ describe('createTurnDisplayLookup', () => {
 			isHidden: true,
 			turns: [npcTurn]
 		};
-		const lookup = createTurnDisplayLookup(createChallenge([character, npc]), []);
+		const lookup = createTurnDisplayLookup(createChallenge([character, npc]));
 
-		expect(lookup.get(characterTurn.id)?.label).toBe('Character');
+		expect(lookup.get(characterTurn.id)?.label).toBe('Rook');
 		expect(lookup.get(npcTurn.id)?.label).toBe('NPC C');
 		expect(lookup.get(characterTurn.id)?.faction).toBeUndefined();
 		expect(lookup.get(npcTurn.id)?.isHidden).toBe(true);
@@ -104,19 +102,17 @@ describe('createTurnDisplayLookup', () => {
 
 describe('createTurnOrderDisplay', () => {
 	it('filters unknown turn IDs while retaining their positions and keeps Spawn', () => {
-		const characterId = createUuid();
 		const turn = createTurn({ kind: 'static', value: 8 });
 		const creature: ChallengeCreature = {
 			id: createUuid(),
 			kind: 'character',
-			characterId,
+			name: 'Aria',
 			factionId: createUuid(),
 			isHidden: false,
 			turns: [turn]
 		};
 		const challenge = createChallenge([creature]);
-		const characters: PlayerCharacter[] = [{ id: characterId, name: 'Aria' }];
-		const lookup = createTurnDisplayLookup(challenge, characters);
+		const lookup = createTurnDisplayLookup(challenge);
 		const unknownTurnId = createUuid();
 
 		const orderDisplay = createTurnOrderDisplay(

@@ -92,11 +92,6 @@ function getValidatedLibrary(value: unknown): ChallengeLibrary {
 function sanitizeLibrary(library: DeepReadonly<ChallengeLibrary>): ChallengeLibrary {
 	return {
 		formatVersion: library.formatVersion,
-		characters: library.characters.map(({ id, name, initiativeStat }) => ({
-			id,
-			name,
-			...(initiativeStat === undefined ? {} : { initiativeStat })
-		})),
 		challenges: library.challenges.map(sanitizeChallenge)
 	};
 }
@@ -122,17 +117,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function rebaseValidationIssues(
-	issues: readonly ValidationIssue[],
-	from: string,
-	to: string
-): readonly ValidationIssue[] {
-	return issues.map(({ path, message }) => ({
-		path: path.replace(from, to),
-		message
-	}));
-}
-
 function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 	if (!isRecord(value)) {
 		throw new ChallengeJsonFileError('invalid-library', 'The challenge file is not an object.', [
@@ -148,39 +132,6 @@ function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 	}
 
 	const issues: ValidationIssue[] = [];
-	const characters: ChallengeLibrary['characters'] = [];
-	const seenCharacterIds = new Set<string>();
-	if (!Array.isArray(value.characters)) {
-		issues.push({ path: '$.characters', message: 'Expected an array.' });
-	} else {
-		value.characters.forEach((character, index) => {
-			const result = validateChallengeLibrary({
-				formatVersion: 1,
-				characters: [character],
-				challenges: []
-			});
-			if (!result.isValid) {
-				issues.push(
-					...rebaseValidationIssues(result.issues, '$.characters[0]', `$.characters[${index}]`)
-				);
-				return;
-			}
-
-			const validCharacter = result.value.characters[0];
-			if (!validCharacter) return;
-			const normalizedId = validCharacter.id.toLowerCase();
-			if (seenCharacterIds.has(normalizedId)) {
-				issues.push({
-					path: `$.characters[${index}].id`,
-					message: 'Duplicate character UUID; this character was skipped.'
-				});
-				return;
-			}
-			seenCharacterIds.add(normalizedId);
-			characters.push(validCharacter);
-		});
-	}
-
 	let challenge: ChallengeLibrary['challenges'][number] | undefined;
 	if (!Array.isArray(value.challenges)) {
 		issues.push({ path: '$.challenges', message: 'Expected an array.' });
@@ -192,7 +143,6 @@ function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 	} else {
 		const result = validateChallengeLibrary({
 			formatVersion: 1,
-			characters,
 			challenges: value.challenges
 		});
 		if (!result.isValid) {
@@ -204,7 +154,6 @@ function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 
 	const content = sanitizeLibrary({
 		formatVersion: 1,
-		characters,
 		challenges: challenge ? [challenge] : []
 	});
 	return {
@@ -257,14 +206,8 @@ function createChallengeFileLibrary(
 		);
 	}
 
-	const characterIds = new Set(
-		challenge.creatures.flatMap((creature) =>
-			creature.kind === 'character' ? [creature.characterId] : []
-		)
-	);
 	return {
 		formatVersion: library.formatVersion,
-		characters: library.characters.filter(({ id }) => characterIds.has(id)),
 		challenges: [challenge]
 	};
 }
@@ -323,8 +266,8 @@ export function downloadChallengeLibraryJson(value: unknown): void {
 }
 
 /**
- * Creates a readable JSON file containing one challenge and its referenced characters.
- * @param value Candidate library containing the challenge and reusable characters.
+ * Creates a readable JSON file containing one challenge.
+ * @param value Candidate library containing the challenge.
  * @param challengeId Stable ID of the challenge to include.
  * @returns Pretty-printed JSON in the versioned library format.
  * @throws {ChallengeJsonFileError} If the library is invalid or the challenge does not exist.
@@ -335,7 +278,7 @@ export function createChallengeJson(value: unknown, challengeId: StableId): stri
 }
 
 /**
- * Parses a JSON document containing exactly one challenge and its referenced characters.
+ * Parses a JSON document containing exactly one challenge.
  * @param json JSON text to parse.
  * @returns The validated single-challenge library.
  * @throws {ChallengeJsonFileError} If the JSON or library is invalid, the version is unsupported,
@@ -353,8 +296,8 @@ export function parseChallengeJson(json: string): ChallengeLibrary {
 }
 
 /**
- * Downloads one challenge and the reusable characters it references as JSON.
- * @param value Candidate library containing the challenge and reusable characters.
+ * Downloads one challenge as JSON.
+ * @param value Candidate library containing the challenge.
  * @param challengeId Stable ID of the challenge to download.
  * @returns No value; starts the browser download.
  * @throws {ChallengeJsonFileError} If the library is invalid, the challenge is missing, or download fails.
@@ -385,8 +328,7 @@ export async function readChallengeLibraryJsonFile(
 
 /**
  * Reads a single-challenge file and reports any content that could not be recovered.
- * Malformed JSON and unsupported versions are rejected; invalid independent characters are skipped,
- * and challenge data is retained only when its complete structure and references validate.
+ * Malformed JSON and unsupported versions are rejected; challenge data is retained only when its complete structure and references validate.
  * @param file User-selected single-challenge JSON file.
  * @returns Recovered content, unreadable-field details, and whether the read was partial.
  * @throws {ChallengeJsonFileError} If the file cannot be read, is malformed JSON, or uses an unsupported version.

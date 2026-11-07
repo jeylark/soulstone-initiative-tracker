@@ -11,7 +11,6 @@ import {
 import { createUuid, parseUuid } from './uuid';
 
 const ids = {
-	character: createUuid(),
 	challenge: createUuid(),
 	faction: createUuid(),
 	npcType: createUuid(),
@@ -54,12 +53,6 @@ const initiativeExamples = [
 
 const library = {
 	formatVersion: CHALLENGE_FORMAT_VERSION,
-	characters: [
-		{
-			id: ids.character,
-			name: 'Aria'
-		}
-	],
 	challenges: [
 		{
 			id: ids.challenge,
@@ -82,7 +75,7 @@ const library = {
 				{
 					id: ids.creature,
 					kind: 'character',
-					characterId: ids.character,
+					name: 'Aria',
 					factionId: ids.faction,
 					isHidden: true,
 					turns: [
@@ -158,34 +151,6 @@ const invalidFieldCases = [
 		value: 2,
 		issuePath: '$.formatVersion',
 		message: 'Unsupported challenge library version.'
-	},
-	{
-		field: 'characters collection',
-		path: ['characters'],
-		value: null,
-		issuePath: '$.characters',
-		message: 'Expected an array.'
-	},
-	{
-		field: 'character object',
-		path: ['characters', 0],
-		value: null,
-		issuePath: '$.characters[0]',
-		message: 'Expected a character object.'
-	},
-	{
-		field: 'character id',
-		path: ['characters', 0, 'id'],
-		value: 'invalid',
-		issuePath: '$.characters[0].id',
-		message: 'Expected a valid UUID.'
-	},
-	{
-		field: 'character name',
-		path: ['characters', 0, 'name'],
-		value: 4,
-		issuePath: '$.characters[0].name',
-		message: 'Expected a string.'
 	},
 	{
 		field: 'challenges collection',
@@ -342,11 +307,11 @@ const invalidFieldCases = [
 		message: 'Expected a valid UUID.'
 	},
 	{
-		field: 'character creature character id',
-		path: ['challenges', 0, 'creatures', 0, 'characterId'],
-		value: 'invalid',
-		issuePath: '$.challenges[0].creatures[0].characterId',
-		message: 'Expected a valid UUID.'
+		field: 'character creature name',
+		path: ['challenges', 0, 'creatures', 0, 'name'],
+		value: 4,
+		issuePath: '$.challenges[0].creatures[0].name',
+		message: 'Expected a string.'
 	},
 	{
 		field: 'character creature faction id',
@@ -612,13 +577,6 @@ const missingTurnId = createUuid();
 
 const invalidReferenceCases = [
 	{
-		field: 'character creature character reference',
-		path: ['challenges', 0, 'creatures', 0, 'characterId'],
-		value: createUuid(),
-		issuePath: '$.challenges[0].creatures[0].characterId',
-		message: 'References a reusable character that does not exist.'
-	},
-	{
 		field: 'character creature faction reference',
 		path: ['challenges', 0, 'creatures', 0, 'factionId'],
 		value: createUuid(),
@@ -847,32 +805,30 @@ describe('challenge domain models', () => {
 		}
 	});
 
-	it('accepts reusable characters without an initiative stat or with a positive whole number', () => {
+	const withCharacterStat = (initiativeStat: number) => ({
+		...library,
+		challenges: library.challenges.map((challenge) => ({
+			...challenge,
+			creatures: challenge.creatures.map((creature) =>
+				creature.kind === 'character' ? { ...creature, initiativeStat } : creature
+			)
+		}))
+	});
+
+	it('accepts characters without an initiative stat or with a positive whole number', () => {
 		expect(validateChallengeLibrary(library).isValid).toBe(true);
-		expect(
-			validateChallengeLibrary({
-				...library,
-				characters: library.characters.map((character) => ({
-					...character,
-					initiativeStat: 3
-				}))
-			}).isValid
-		).toBe(true);
+		expect(validateChallengeLibrary(withCharacterStat(3)).isValid).toBe(true);
 	});
 
 	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
 		'rejects invalid player initiative stat %s',
 		(initiativeStat) => {
-			const invalidLibrary = {
-				...library,
-				characters: library.characters.map((character) => ({ ...character, initiativeStat }))
-			};
-			const result = validateChallengeLibrary(invalidLibrary);
+			const result = validateChallengeLibrary(withCharacterStat(initiativeStat));
 
 			expect(result.isValid).toBe(false);
 			if (!result.isValid) {
 				expect(result.issues).toContainEqual({
-					path: '$.characters[0].initiativeStat',
+					path: '$.challenges[0].creatures[0].initiativeStat',
 					message: 'Expected a positive whole number.'
 				});
 			}
@@ -882,7 +838,6 @@ describe('challenge domain models', () => {
 	it('reports independent shape and reference issues in the same validation pass', () => {
 		const invalidLibrary = {
 			...library,
-			characters: [{ ...library.characters[0], name: 7 }],
 			challenges: library.challenges.map((challenge) => ({
 				...challenge,
 				npcTypes: challenge.npcTypes.map((npcType) => ({
@@ -891,7 +846,7 @@ describe('challenge domain models', () => {
 					initiativeStat: 0
 				})),
 				creatures: challenge.creatures.map((creature, index) =>
-					index === 0 ? { ...creature, factionId: createUuid() } : creature
+					index === 0 ? { ...creature, name: 7, factionId: createUuid() } : creature
 				)
 			}))
 		};
@@ -902,7 +857,7 @@ describe('challenge domain models', () => {
 		if (!result.isValid) {
 			expect(result.issues).toHaveLength(4);
 			expect(result.issues).toContainEqual({
-				path: '$.characters[0].name',
+				path: '$.challenges[0].creatures[0].name',
 				message: 'Expected a string.'
 			});
 			expect(result.issues).toContainEqual({
@@ -922,14 +877,14 @@ describe('challenge domain models', () => {
 
 	it('rejects duplicate entity IDs', () => {
 		const invalidLibrary = structuredClone(library);
-		invalidLibrary.challenges[0].factions[0].id = invalidLibrary.characters[0].id;
+		invalidLibrary.challenges[0].npcTypes[0].id = invalidLibrary.challenges[0].factions[0].id;
 
 		const result = validateChallengeLibrary(invalidLibrary);
 
 		expect(result.isValid).toBe(false);
 		if (!result.isValid) {
 			expect(result.issues).toContainEqual({
-				path: '$.challenges[0].factions[0].id',
+				path: '$.challenges[0].npcTypes[0].id',
 				message: 'Duplicate entity UUID.'
 			});
 		}
@@ -949,7 +904,7 @@ describe('challenge domain models', () => {
 		expectTypeOf<ChallengeLibrary['formatVersion']>().toEqualTypeOf<1>();
 	});
 
-	it('represents reusable characters, challenge entities, and turn references', () => {
+	it('represents characters, challenge entities, and turn references', () => {
 		const challenge = library.challenges[0];
 
 		expect(challenge.creatures[0].kind).toBe('character');
@@ -958,7 +913,7 @@ describe('challenge domain models', () => {
 			from: 'bottom',
 			position: 1
 		});
-		expect(library.characters[0].id).toBe(challenge.creatures[0].characterId);
+		expect('characters' in library).toBe(false);
 		expect('people' in library).toBe(false);
 		expect('groups' in library).toBe(false);
 		expect('groupIds' in challenge).toBe(false);

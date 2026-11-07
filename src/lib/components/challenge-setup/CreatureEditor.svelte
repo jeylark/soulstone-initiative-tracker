@@ -27,9 +27,9 @@
 		onMoveTurn: (creatureId: StableId, turnId: StableId, direction: 'up' | 'down') => void;
 		onMove: (direction: 'up' | 'down') => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
-		onCharacterNameChange: (characterId: StableId, name: string) => void;
+		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
-			characterId: StableId,
+			creatureId: StableId,
 			initiativeStat: number | undefined
 		) => void;
 		onNpcIdentifierChange: (creatureId: StableId, identifier: string) => void;
@@ -111,7 +111,7 @@
 				label="Character name"
 				aria-label={`Character name: ${characterName}`}
 				value={characterName}
-				oninput={(event) => onCharacterNameChange(creature.characterId, event.currentTarget.value)}
+				oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
 			/>
 			<NumberInput
 				label="Initiative stat (d6)"
@@ -124,7 +124,7 @@
 				oninput={(event) => {
 					const value = event.currentTarget.valueAsNumber;
 					onCharacterInitiativeStatChange(
-						creature.characterId,
+						creature.id,
 						Number.isSafeInteger(value) && value > 0 ? value : undefined
 					);
 				}}

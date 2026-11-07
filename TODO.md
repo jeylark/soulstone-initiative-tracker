@@ -10,7 +10,7 @@ foundations.
 
 - [x] 1.1: Connect the landing-page actions to create a challenge, open a saved
       challenge, and join a live session.
-- [x] 1.2: Build challenge setup and editing for factions, reusable characters, NPC
+- [x] 1.2: Build challenge setup and editing for factions, characters, NPC
       types, creatures, turns, initiative placement, and fairness weight.
 - [x] 1.3: Finish removing NPC type `Use`/`Selected` controls now that each NPC can
       select its own type; verify the first-type fallback and remembered
@@ -24,7 +24,7 @@ foundations.
 - [x] 1.6: Support changing creature and turn setup order.
 - [x] 1.7: Support zero or multiple turns per creature.
 - [x] 1.8: Add controls to hide and show a creature's turns.
-- [ ] 1.9: Remove "reusable characters" and treat characters like any other
+- [x] 1.9: Remove "reusable characters" and treat characters like any other
       setup entity.
 - [ ] 1.10: Support copying a challenge with fresh stable IDs and updated
       references, including turn IDs in saved tie decisions.
@@ -49,7 +49,7 @@ foundations.
 
 - [x] 2.1: Collect initiative manually for player characters.
 - [x] 2.2: Add per-turn app-roll and **Roll all** controls for missing results.
-      Roll every app-configured turn using the NPC type's or reusable
+      Roll every app-configured turn using the NPC type's or
       character's initiative stat as the number of d6; sum all dice when fewer
       than three are rolled, otherwise sum the highest three. Require a valid
       character stat for app-configured character turns, and handle missing or
@@ -105,22 +105,18 @@ foundations.
 - [ ] 3.2: Add UI for restoring the whole library only after the complete backup
       has validated; leave existing data unchanged on failure.
 - [ ] 3.3: Add UI for saving one challenge with run state (including tie
-      decisions) and only its referenced reusable characters.
+      decisions).
 - [ ] 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
       choices.
 - [ ] 3.5: Protect challenges used by active sessions from replacement; offer to
       import a copy or abort instead.
-- [ ] 3.6: Reuse matching reusable characters by stable ID and data when loading a
-      challenge; assign a fresh ID and update references when an imported ID
-      conflicts with different data.
-- [ ] 3.7: Add UI for importing only reusable characters from a challenge file.
-- [ ] 3.8: Present partial-import issues and require confirmation before importing
+- [ ] 3.6: Present partial-import issues and require confirmation before importing
       valid sections; import the challenge only when its structure and references
       are complete and valid.
-- [ ] 3.9: Reject malformed JSON and unsupported versions without partially
+- [ ] 3.7: Reject malformed JSON and unsupported versions without partially
       importing data.
-- [ ] 3.10: Ask before migrating older supported formats.
-- [ ] 3.11: Explain when an unsupported format needs a compatible app version.
+- [ ] 3.8: Ask before migrating older supported formats.
+- [ ] 3.9: Explain when an unsupported format needs a compatible app version.
 
 ## 4. Live sessions and read-only viewers
 
