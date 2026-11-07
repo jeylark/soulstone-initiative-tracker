@@ -109,6 +109,7 @@
 		class="faction-panel"
 		legend={faction.name}
 		removeLabel={`Remove faction ${faction.name}`}
+		removeText="Remove faction"
 		onRemove={() => onRemove(faction.id)}
 	>
 		<TextInput
