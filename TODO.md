@@ -80,7 +80,7 @@ foundations.
 - [ ] 2.17: Remove creature names from the cards in the roll view.
 - [x] 2.18: Add controls to hide or show a creature's turns in the DM turn list;
       hidden turns stay visible but greyed out.
-- [ ] 2.19: Remove "this result is still valid" explanations from warnings; the
+- [x] 2.19: Remove "this result is still valid" explanations from warnings; the
       warning itself is sufficient.
 - [ ] 2.20: Keep input dimensions stable when warnings or errors appear or
       disappear.

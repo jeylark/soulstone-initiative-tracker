@@ -613,9 +613,7 @@ describe('running challenge storage', () => {
 		expect(characterInput.value).toBe('0');
 		expect(screen.getByText('Initiative result: 12')).toBeTruthy();
 		await fireEvent.input(characterInput, { target: { value: '19' } });
-		expect(
-			screen.getByText('Initiative for Aria - Turn 1 is above 18. This result is still valid.')
-		).toBeTruthy();
+		expect(screen.getByText('Initiative for Aria - Turn 1 is above 18.')).toBeTruthy();
 		expect(characterInput.classList.contains('form-control--warning')).toBe(true);
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
@@ -624,44 +622,22 @@ describe('running challenge storage', () => {
 		await fireEvent.input(emptyInput, { target: { value: '21' } });
 		expect(emptyInput.value).toBe('21');
 		expect(emptyInput.classList.contains('form-control--warning')).toBe(true);
-		expect(
-			screen.getByText('Initiative for Aria - Turn 3 is above 18. This result is still valid.')
-		).toBeTruthy();
+		expect(screen.getByText('Initiative for Aria - Turn 3 is above 18.')).toBeTruthy();
 		await fireEvent.input(npcInput, { target: { value: '20' } });
-		expect(
-			screen.getByText(
-				'Initiative for Sentinel B - Turn 1 is above 18. This result is still valid.'
-			)
-		).toBeTruthy();
+		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
 		await fireEvent.input(emptyInput, { target: { value: 'not-a-number' } });
 		expect(emptyInput.value).toBe('');
 		expect(emptyInput.classList.contains('form-control--warning')).toBe(false);
-		expect(
-			screen.queryByText('Initiative for Aria - Turn 3 is above 18. This result is still valid.')
-		).toBeNull();
-		expect(
-			screen.getByText(
-				'Initiative for Sentinel B - Turn 1 is above 18. This result is still valid.'
-			)
-		).toBeTruthy();
+		expect(screen.queryByText('Initiative for Aria - Turn 3 is above 18.')).toBeNull();
+		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
 		await fireEvent.input(emptyInput, { target: { value: '1.5' } });
 		expect(emptyInput.value).toBe('1.5');
 		expect(emptyInput.classList.contains('form-control--invalid')).toBe(true);
-		expect(
-			screen.queryByText('Initiative for Aria - Turn 3 is above 18. This result is still valid.')
-		).toBeNull();
-		expect(
-			screen.getByText(
-				'Initiative for Sentinel B - Turn 1 is above 18. This result is still valid.'
-			)
-		).toBeTruthy();
+		expect(screen.queryByText('Initiative for Aria - Turn 3 is above 18.')).toBeNull();
+		expect(screen.getByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeTruthy();
 		await fireEvent.input(npcInput, { target: { value: '-1' } });
 		expect(npcInput.classList.contains('form-control--invalid')).toBe(true);
-		expect(
-			screen.queryByText(
-				'Initiative for Sentinel B - Turn 1 is above 18. This result is still valid.'
-			)
-		).toBeNull();
+		expect(screen.queryByText('Initiative for Sentinel B - Turn 1 is above 18.')).toBeNull();
 		await fireEvent.input(characterInput, { target: { value: '' } });
 		expect(characterInput.value).toBe('');
 		expect(characterInput.classList.contains('form-control--invalid')).toBe(false);
