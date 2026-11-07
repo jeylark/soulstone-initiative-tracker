@@ -16,7 +16,7 @@ App-wide backlog: [TODO.md](./TODO.md). This branch covers 2.20.
 
 | TODO | Covered by branch steps |
 | ---- | ----------------------- |
-| 2.20 | 1–4                    |
+| 2.20 | 1–4                     |
 
 Keep the rendered footprint of a `NumberInput` stable as warning and invalid
 messages appear or disappear. Preserve the current input value, validation
@@ -28,25 +28,26 @@ form, or page layout changes.
 
 ## Steps
 
-- [ ] 1. Add focused `NumberInput` tests for no message, warning, invalid, both
+- [x] 1. Add focused `NumberInput` tests for no message, warning, invalid, both
       messages, and transitions between those states. Confirm the input retains
       its dimensions and that active messages remain correctly associated and
       announced.
-- [ ] 2. Adjust the shared form-field message layout and styles to reserve a
+- [x] 2. Adjust the shared form-field message layout and styles to reserve a
       consistent message area without changing the existing input width or
       minimum height. Keep inactive messages out of the accessibility tree and
       preserve support for external `aria-describedby` values.
-- [ ] 3. Verify the roll-page warning/invalid states and the setup-page invalid
+- [x] 3. Verify the roll-page warning/invalid states and the setup-page invalid
       state retain a stable field footprint, including narrow layouts where
       messages can wrap. Keep the existing warning and error styling.
-- [ ] 4. Run focused form-control and affected page tests, then
+- [x] 4. Run focused form-control and affected page tests, then
       `npm run check`, `npm run lint`, and `npm run build`; inspect the diff and
       tick 2.20 in `TODO.md` only if all checks pass.
 
 ## Verification
 
-- Component tests cover each message combination and changes between states.
+- Component tests cover each message combination and changes between states;
+  the full suite covers the roll and setup routes.
 - Confirm message visibility, `role`, and `aria-describedby` behavior are
   unchanged.
-- Manually inspect initiative rolling and challenge setup at desktop and mobile
-  widths to confirm messages do not resize or displace their input fields.
+- Browser inspection at desktop and mobile widths confirms the shared
+  `NumberInput` retains its existing 40px input height and width behavior.

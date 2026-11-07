@@ -94,6 +94,60 @@ describe('NumberInput', () => {
 		expect(invalidMessage.textContent).toBe('Enter a non-negative whole number.');
 		expect(invalidInput.getAttribute('aria-describedby')).toBe(invalidMessage.id);
 	});
+
+	it('keeps message space reserved as validation messages change', () => {
+		const { rerender } = render(NumberInput, {
+			label: 'Initiative',
+			value: '19',
+			['aria-describedby']: 'initiative-help'
+		});
+
+		const input = screen.getByRole('spinbutton', { name: 'Initiative' }) as HTMLInputElement;
+		const messageSlots = input.parentElement?.parentElement?.querySelectorAll(
+			'.form-control-message-slot'
+		);
+		expect(messageSlots).toHaveLength(2);
+		expect(input.value).toBe('19');
+		expect(input.getAttribute('aria-describedby')).toBe('initiative-help');
+		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.queryByRole('alert')).toBeNull();
+
+		rerender({
+			label: 'Initiative',
+			value: '19',
+			['aria-describedby']: 'initiative-help',
+			hasWarning: true,
+			warningMessage: 'Values above 18 are valid.',
+			isInvalid: true,
+			invalidMessage: 'Enter a non-negative whole number.'
+		});
+
+		const warning = screen.getByRole('status');
+		const invalidMessage = screen.getByRole('alert');
+		expect(screen.getAllByText(/Values above 18|Enter a non-negative/)).toHaveLength(2);
+		expect(input.value).toBe('19');
+		expect(input.getAttribute('aria-describedby')).toBe(
+			`initiative-help ${invalidMessage.id} ${warning.id}`
+		);
+
+		rerender({
+			label: 'Initiative',
+			value: '19',
+			['aria-describedby']: 'initiative-help',
+			hasWarning: false,
+			warningMessage: undefined,
+			isInvalid: false,
+			invalidMessage: undefined
+		});
+
+		expect(input.value).toBe('19');
+		expect(input.getAttribute('aria-describedby')).toBe('initiative-help');
+		expect(screen.queryByRole('status')).toBeNull();
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(
+			input.parentElement?.parentElement?.querySelectorAll('.form-control-message-slot')
+		).toHaveLength(2);
+	});
 });
 
 describe('RangeInput', () => {
