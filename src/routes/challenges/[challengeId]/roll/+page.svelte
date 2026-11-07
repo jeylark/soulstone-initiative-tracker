@@ -293,9 +293,7 @@
 															min={0}
 															step={1}
 															{hasWarning}
-															warningMessage={hasWarning
-																? `${label} is above 18. This result is still valid.`
-																: undefined}
+															warningMessage={hasWarning ? `${label} is above 18.` : undefined}
 															{isInvalid}
 															invalidMessage={isInvalid
 																? 'Enter a non-negative whole number.'
