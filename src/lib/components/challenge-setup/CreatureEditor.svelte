@@ -64,6 +64,10 @@
 		onRemoveTurn,
 		onRemove
 	}: Props = $props();
+
+	const hasAppRollTurn = $derived(
+		creature.turns.some((turn) => turn.initiative.kind === 'roll' && turn.initiative.mode === 'app')
+	);
 </script>
 
 <Card title={name} headingLevel="h4" headerSize="medium" spacing="compact">
@@ -100,22 +104,24 @@
 				value={characterName}
 				oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
 			/>
-			<NumberInput
-				label="Initiative stat (d6)"
-				aria-label={`Initiative stat (d6) for ${characterName}`}
-				value={characterInitiativeStat ?? ''}
-				min="1"
-				step="1"
-				isInvalid={characterInitiativeStatError !== undefined}
-				invalidMessage={characterInitiativeStatError}
-				oninput={(event) => {
-					const value = event.currentTarget.valueAsNumber;
-					onCharacterInitiativeStatChange(
-						creature.id,
-						Number.isSafeInteger(value) && value > 0 ? value : undefined
-					);
-				}}
-			/>
+			{#if hasAppRollTurn}
+				<NumberInput
+					label="Initiative stat (d6)"
+					aria-label={`Initiative stat (d6) for ${characterName}`}
+					value={characterInitiativeStat ?? ''}
+					min="1"
+					step="1"
+					isInvalid={characterInitiativeStatError !== undefined}
+					invalidMessage={characterInitiativeStatError}
+					oninput={(event) => {
+						const value = event.currentTarget.valueAsNumber;
+						onCharacterInitiativeStatChange(
+							creature.id,
+							Number.isSafeInteger(value) && value > 0 ? value : undefined
+						);
+					}}
+				/>
+			{/if}
 		{:else if creature.kind === 'npc'}
 			<SelectInput
 				label="NPC type"

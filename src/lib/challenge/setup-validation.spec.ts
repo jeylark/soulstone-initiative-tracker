@@ -39,6 +39,10 @@ describe('validateChallengeSetup', () => {
 		expect(validateChallengeSetup(createChallenge())).toEqual([]);
 	});
 
+	it('ignores a hidden invalid stat when no turn is app-rolled', () => {
+		expect(validateChallengeSetup(createChallenge('manual', 0))).toEqual([]);
+	});
+
 	it('requires a positive safe-integer stat for app-mode character turns', () => {
 		const issues = validateChallengeSetup(createChallenge('app'));
 
