@@ -9,7 +9,6 @@
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
 		type Challenge,
-		type PlayerCharacter,
 		type StableId
 	} from '#lib';
 	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
@@ -28,11 +27,10 @@
 	let hasSaveError = $state(false);
 	let isSaving = $state(false);
 	let challenge = $state<Challenge>();
-	let reusableCharacters = $state<PlayerCharacter[]>([]);
 	let generationIssue = $state<GenerationIssue>();
 	let saveQueue: Promise<void> = Promise.resolve();
 	let turnDisplayLookup = $derived.by(() =>
-		challenge ? createTurnDisplayLookup(challenge, reusableCharacters) : new Map()
+		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
 	let generatedOrderDisplay = $derived.by(() => {
 		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
@@ -53,7 +51,6 @@
 					return;
 				}
 				challenge = loadedChallenge;
-				reusableCharacters = library.characters;
 				loadStatus = 'ready';
 			} catch {
 				loadStatus = 'error';
@@ -61,12 +58,9 @@
 		})();
 	});
 
-	function enqueueSave(
-		snapshotChallenge: DeepReadonly<Challenge>,
-		snapshotCharacters: DeepReadonly<PlayerCharacter[]>
-	): Promise<void> {
+	function enqueueSave(snapshotChallenge: DeepReadonly<Challenge>): Promise<void> {
 		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
-		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave, snapshotCharacters));
+		const pendingSave = saveQueue.then(() => saveChallengeToLibrary(toSave));
 		saveQueue = pendingSave.then(
 			() => {
 				hasSaveError = false;
@@ -97,7 +91,7 @@
 		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
 		isSaving = true;
 		try {
-			await enqueueSave(challengeToSave, $state.snapshot(reusableCharacters));
+			await enqueueSave(challengeToSave);
 			challenge.runState = nextRunState;
 			hasSaveError = false;
 		} catch {
@@ -114,7 +108,7 @@
 
 		creature.isHidden = isHidden;
 		try {
-			await enqueueSave($state.snapshot(challenge), $state.snapshot(reusableCharacters));
+			await enqueueSave($state.snapshot(challenge));
 		} catch {
 			hasSaveError = true;
 		}
@@ -155,18 +149,11 @@
 		{/if}
 		{#if generatedOrderDisplay}
 			<ol aria-label="Generated turn order" class="turn-order-list">
-				{#each generatedOrderDisplay.items as item (item.turnId)}
-					{@const factionColor = item.display.faction
-						? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
-						: undefined}
-					<li>
-						<div
-							class="turn-order-card-tone"
-							class:is-hidden={item.display.isHidden}
-							style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-						>
+				{#each generatedOrderDisplay.items as item (item.kind === 'turn' ? item.turnId : 'spawn')}
+					{#if item.kind === 'spawn'}
+						<li>
 							<Card
-								title={item.display.label}
+								title="Spawn"
 								headingLevel="h2"
 								headerSize="small"
 								spacing="compact"
@@ -174,16 +161,39 @@
 							>
 								<div class="turn-order-card-details">
 									<span class="turn-order-position">{item.position}</span>
-									{#if item.display.faction}
-										<span>{item.display.faction.name}</span>
-									{/if}
 								</div>
-								{#if item.display.isHidden}
-									<p class="turn-order-hidden">Hidden</p>
-								{/if}
 							</Card>
-						</div>
-					</li>
+						</li>
+					{:else}
+						{@const factionColor = item.display.faction
+							? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
+							: undefined}
+						<li>
+							<div
+								class="turn-order-card-tone"
+								class:is-hidden={item.display.isHidden}
+								style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
+							>
+								<Card
+									title={item.display.label}
+									headingLevel="h2"
+									headerSize="small"
+									spacing="compact"
+									class="turn-order-card"
+								>
+									<div class="turn-order-card-details">
+										<span class="turn-order-position">{item.position}</span>
+										{#if item.display.faction}
+											<span>{item.display.faction.name}</span>
+										{/if}
+									</div>
+									{#if item.display.isHidden}
+										<p class="turn-order-hidden">Hidden</p>
+									{/if}
+								</Card>
+							</div>
+						</li>
+					{/if}
 				{/each}
 			</ol>
 		{/if}

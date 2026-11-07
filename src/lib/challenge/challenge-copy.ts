@@ -33,7 +33,8 @@ function copyCreature(creature: DeepReadonly<ChallengeCreature>): ChallengeCreat
 		return {
 			id: creature.id,
 			kind: 'character',
-			characterId: creature.characterId,
+			name: creature.name,
+			...(creature.initiativeStat === undefined ? {} : { initiativeStat: creature.initiativeStat }),
 			factionId: creature.factionId,
 			isHidden: creature.isHidden,
 			turns
@@ -77,7 +78,11 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 						initiativeResults: { ...challenge.runState.initiativeResults },
 						...(challenge.runState.generatedTurnOrder === undefined
 							? {}
-							: { generatedTurnOrder: [...challenge.runState.generatedTurnOrder] })
+							: {
+									generatedTurnOrder: challenge.runState.generatedTurnOrder.map((entry) => ({
+										...entry
+									}))
+								})
 					}
 				})
 	};
