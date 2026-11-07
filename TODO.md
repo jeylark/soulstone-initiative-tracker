@@ -48,33 +48,33 @@ keeping its task number and wording.
   the separate per-turn **Calculate roll** action.
 - 2.22: After turn-order generation starts the challenge, lock setup and
   rolling until the challenge is reset.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.23: Show the challenge name in the run view.
 - 2.24: Make the creature name prominent inside each turn card and show its
   numeric initiative when one exists.
 - 2.25: Remove turn numbers from card titles and order indices from run-view
   cards.
 - 2.27: Make faction colors stand out more clearly from the background.
-- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
 
 ### 3. Challenge library and file workflows
 
 - 3.1: Add UI for backing up the whole library.
-- 3.2: Add UI for restoring the whole library only after the complete backup
-  has validated; leave existing data unchanged on failure.
 - 3.3: Add UI for saving one challenge with run state (including tie
   decisions).
-- 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
-  choices.
-- 3.5: Protect challenges used by active sessions from replacement; offer to
-  import a copy or abort instead.
-- 3.6: Present partial-import issues and require confirmation before importing
-  valid sections; import the challenge only when its structure and references
-  are complete and valid.
 - 3.7: Reject malformed JSON and unsupported versions without partially
   importing data.
 - 3.8: Ask before migrating older supported formats.
 - 3.9: Explain when an unsupported format needs a compatible app version.
+- 3.2: Add UI for restoring the whole library only after the complete backup
+  has validated; leave existing data unchanged on failure.
+- 3.6: Present partial-import issues and require confirmation before importing
+  valid sections; import the challenge only when its structure and references
+  are complete and valid.
+- 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
+  choices.
+- 3.5: Protect challenges used by active sessions from replacement; offer to
+  import a copy or abort instead.
 
 ### 4. Live sessions and read-only viewers
 
@@ -83,21 +83,21 @@ keeping its task number and wording.
   sessions.
 - 4.3: Add a configurable active-session limit and refuse new sessions with a
   clear message without evicting existing sessions.
-- 4.4: Add a configurable per-session viewer limit and refuse new connections
-  with a clear message without disconnecting existing viewers.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.
 - 4.7: Allow viewer-code regeneration to invalidate the previous code.
-- 4.8: Stream live turn-order updates to read-only viewers with SSE.
-- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
 - 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
+- 4.8: Stream live turn-order updates to read-only viewers with SSE.
+- 4.4: Add a configurable per-session viewer limit and refuse new connections
+  with a clear message without disconnecting existing viewers.
+- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
+- 4.13: Omit hidden turns from the read-only view.
 - 4.12: End inactive sessions after the configured timeout; viewer activity must
   not reset it.
-- 4.13: Omit hidden turns from the read-only view.
 
 ### 5. Hosting and operations
 
@@ -119,26 +119,16 @@ keeping its task number and wording.
 
 ### 6. Quality and release readiness
 
-- 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
-  for challenge setup and DM workflows.
-- 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
-  for import/export and viewer workflows.
-- 6.3: Verify mobile layouts and efficient use of larger screens for challenge
-  setup.
-- 6.4: Verify mobile layouts and efficient use of larger screens for the
-  turn-order views.
 - 6.5: Add focused tests alongside each workflow, including session limits,
   authorization, inactivity expiry, SSE updates, and persistence or import
   failure cases.
-- 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
-  and `npm run build`; ensure CI passes.
-  6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
+- 6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
   smaller sub-components where feasible, improving readability and following
   single responsibility.
-  6.10: Split the challenge creation workflow on `/challenges` into smaller
+- 6.10: Split the challenge creation workflow on `/challenges` into smaller
   sub-components where feasible, improving readability and following single
   responsibility.
-  6.14: Split the viewer entry page (`/view`) into smaller sub-components where
+- 6.14: Split the viewer entry page (`/view`) into smaller sub-components where
   feasible as live-session joining is implemented.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
@@ -159,6 +149,16 @@ keeping its task number and wording.
   rules, show field-level feedback, preserve non-blocking warnings and existing
   invalid-input behavior, and add focused integration tests. Keep new
   setup-validation rules in task 1.18.
+- 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
+  for challenge setup and DM workflows.
+- 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
+  for import/export and viewer workflows.
+- 6.3: Verify mobile layouts and efficient use of larger screens for challenge
+  setup.
+- 6.4: Verify mobile layouts and efficient use of larger screens for the
+  turn-order views.
+- 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
+  and `npm run build`; ensure CI passes.
 
 ## Done
 
