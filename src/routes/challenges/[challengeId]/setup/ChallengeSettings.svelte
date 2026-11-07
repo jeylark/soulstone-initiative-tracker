@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, NumberInput, RangeInput, TextInput } from '#lib/components';
+	import { Card, RangeNumberInput, TextInput } from '#lib/components';
 
 	interface Props {
 		name: string;
@@ -30,30 +30,24 @@
 		/>
 		<fieldset class="fairness-setting">
 			<legend>Fairness weight</legend>
-			<div class="fairness-control">
-				<RangeInput
-					label="Fairness weight slider"
-					isLabelVisuallyHidden
-					id="fairness-weight"
-					min="0"
-					max="10"
-					step="0.01"
-					value={Math.min(fairnessWeight, 10)}
-					oninput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
-				/>
-				<NumberInput
-					label="Fairness weight value"
-					isLabelVisuallyHidden
-					class="fairness-weight-input"
-					value={fairnessWeight}
-					min="0"
-					step="any"
-					oninput={(event) => {
-						const weight = event.currentTarget.valueAsNumber;
-						if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
-					}}
-				/>
-			</div>
+			<RangeNumberInput
+				sliderLabel="Fairness weight slider"
+				numberLabel="Fairness weight value"
+				isLabelVisuallyHidden
+				sliderId="fairness-weight"
+				numberClass="fairness-weight-input"
+				value={fairnessWeight}
+				min={0}
+				max={10}
+				step={0.01}
+				numberMin={0}
+				numberStep="any"
+				onSliderInput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
+				onNumberInput={(event) => {
+					const weight = event.currentTarget.valueAsNumber;
+					if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
+				}}
+			/>
 			<p class="fairness-description" aria-live="polite">
 				{getFairnessDescription(fairnessWeight)}
 			</p>
