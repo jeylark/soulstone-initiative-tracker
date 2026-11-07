@@ -149,6 +149,7 @@ keeping its task number and wording.
   rules, show field-level feedback, preserve non-blocking warnings and existing
   invalid-input behavior, and add focused integration tests. Keep new
   setup-validation rules in task 1.18.
+- 6.22: Add an option to disable all available input controls and buttons.
 - 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
   for challenge setup and DM workflows.
 - 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
