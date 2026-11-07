@@ -94,7 +94,7 @@ foundations.
       numeric initiative when one exists.
 - [ ] 2.25: Remove turn numbers from card titles and order indices from run-view
       cards.
-- [ ] 2.26: Move the hide checkbox inside each running-challenge turn card.
+- [x] 2.26: Move the hide checkbox inside each running-challenge turn card.
 - [ ] 2.27: Make faction colors stand out more clearly from the background.
 - [ ] 2.28: When an initiative stat changes, discard affected app-rolled results
       and invalidate the generated order; preserve manual/static values.

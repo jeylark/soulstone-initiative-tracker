@@ -905,11 +905,27 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage);
 
-		const visibility = (await screen.findByRole('checkbox', {
+		const visibilityControls = (await screen.findAllByRole('checkbox', {
 			name: 'Hidden from viewers: Aria'
-		})) as HTMLInputElement;
-		expect(visibility.checked).toBe(false);
-		await fireEvent.click(visibility);
+		})) as HTMLInputElement[];
+		expect(visibilityControls).toHaveLength(2);
+		expect(visibilityControls[0]?.checked).toBe(false);
+		const initialOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		const initialItems = within(initialOrder).getAllByRole('listitem');
+		const initialAriaItems = initialItems.filter((item) =>
+			item.querySelector('h2')?.textContent?.startsWith('Aria')
+		);
+		expect(initialAriaItems).toHaveLength(2);
+		for (const item of initialAriaItems) {
+			expect(
+				(
+					within(item).getByRole('checkbox', {
+						name: 'Hidden from viewers: Aria'
+					}) as HTMLInputElement
+				).checked
+			).toBe(false);
+		}
+		await fireEvent.click(visibilityControls[0]!);
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
@@ -934,27 +950,40 @@ describe('turn-order run route', () => {
 			expect(item.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
 				true
 			);
+			expect(
+				(
+					within(item).getByRole('checkbox', {
+						name: 'Hidden from viewers: Aria'
+					}) as HTMLInputElement
+				).checked
+			).toBe(true);
 		}
-		expect(items[1]?.textContent).not.toContain('Hidden');
+		expect(items[1]?.querySelector('.turn-order-hidden')).toBeNull();
 		expect(items[1]?.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
 			false
 		);
 
 		cleanup();
 		render(turnOrderPage);
-		const restoredVisibility = (await screen.findByRole('checkbox', {
+		const restoredVisibilityControls = (await screen.findAllByRole('checkbox', {
 			name: 'Hidden from viewers: Aria'
-		})) as HTMLInputElement;
-		expect(restoredVisibility.checked).toBe(true);
+		})) as HTMLInputElement[];
+		expect(restoredVisibilityControls).toHaveLength(2);
+		expect(restoredVisibilityControls.every((control) => control.checked)).toBe(true);
 
-		await fireEvent.click(restoredVisibility);
+		await fireEvent.click(restoredVisibilityControls[0]!);
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.creatures[0]?.isHidden).toBe(false);
 		});
-		expect(screen.getByRole('list', { name: 'Generated turn order' }).textContent).not.toContain(
-			'Hidden'
-		);
+		const visibleOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		expect(visibleOrder.querySelector('.turn-order-hidden')).toBeNull();
+		for (const item of within(visibleOrder).getAllByRole('listitem')) {
+			const checkbox = within(item).queryByRole('checkbox', {
+				name: 'Hidden from viewers: Aria'
+			}) as HTMLInputElement | null;
+			if (checkbox) expect(checkbox.checked).toBe(false);
+		}
 	});
 
 	it('restores a saved order and recalculates without changing initiative results', async () => {
