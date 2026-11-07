@@ -15,6 +15,8 @@ keeping its task number and wording.
 
 #### Setup
 
+- 2.36: Extract a reusable input component that combines a slider with its
+  associated input field.
 - 2.35: Validate setup values.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
