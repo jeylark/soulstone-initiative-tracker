@@ -6,10 +6,10 @@ import type {
 	StableId,
 	Turn,
 	TurnInitiative
-} from './model';
-import { createUuid } from './uuid';
+} from '../core/model';
+import { createUuid } from '../core/uuid';
 import { generateTurnOrder, prepareTurnOrder } from './turn-order';
-import type { DeepReadonly } from '../DeepReadonly';
+import type { DeepReadonly } from '../../DeepReadonly';
 
 function createTurn(initiative: Readonly<TurnInitiative>): Turn {
 	return { id: createUuid(), initiative };

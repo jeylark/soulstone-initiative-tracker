@@ -1,5 +1,5 @@
-import type { DeepReadonly } from '../DeepReadonly';
-import type { Challenge, ChallengeCreature, TurnInitiative } from './model';
+import type { DeepReadonly } from '../../DeepReadonly';
+import type { Challenge, ChallengeCreature, TurnInitiative } from '../core/model';
 
 function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiative {
 	switch (initiative.kind) {

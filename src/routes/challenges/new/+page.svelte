@@ -3,11 +3,11 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { createUuid, saveChallengeToLibrary, type Challenge } from '#lib';
-	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
+	import { getNextFactionColor } from '#lib/challenge/core/faction-colors.js';
 	import {
 		ChallengeLibraryStorageError,
 		ChallengeLibraryValidationError
-	} from '#lib/challenge/storage.js';
+	} from '#lib/challenge/storage/storage.js';
 	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';
 	import ViewPage from '#lib/components/ViewPage.svelte';
 

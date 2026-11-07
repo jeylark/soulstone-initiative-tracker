@@ -4,8 +4,8 @@ import type {
 	GeneratedTurnOrderEntry,
 	InitiativeResults,
 	StableId
-} from './model';
-import type { DeepReadonly } from '../DeepReadonly';
+} from '../core/model';
+import type { DeepReadonly } from '../../DeepReadonly';
 
 type InitiativeTurn = {
 	readonly id: StableId;

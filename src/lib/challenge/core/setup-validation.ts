@@ -1,4 +1,4 @@
-import type { DeepReadonly } from '../DeepReadonly';
+import type { DeepReadonly } from '../../DeepReadonly';
 import type { Challenge } from './model';
 import type { ValidationIssue } from './validation';
 

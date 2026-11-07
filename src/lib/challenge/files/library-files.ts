@@ -1,5 +1,5 @@
 import { downloadChallengeLibraryJson } from './json-files';
-import { loadChallengeLibrary } from './storage';
+import { loadChallengeLibrary } from '../storage/storage';
 
 /**
  * Downloads a JSON backup of the complete current IndexedDB library.

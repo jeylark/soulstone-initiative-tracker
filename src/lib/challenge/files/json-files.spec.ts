@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Challenge, ChallengeLibrary, StableId } from './model';
+import type { Challenge, ChallengeLibrary, StableId } from '../core/model';
 import {
 	ChallengeJsonFileError,
 	createChallengeJson,
@@ -11,7 +11,7 @@ import {
 	readChallengeJsonFile,
 	readChallengeLibraryJsonFile
 } from './json-files';
-import { createUuid } from './uuid';
+import { createUuid } from '../core/uuid';
 
 const firstChallengeId = createUuid();
 const secondChallengeId = createUuid();

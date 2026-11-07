@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Challenge, ChallengeCreature, Turn } from './model';
-import { createUuid } from './uuid';
+import type { Challenge, ChallengeCreature, Turn } from '../core/model';
+import { createUuid } from '../core/uuid';
 import { createTurnDisplayLookup, createTurnOrderDisplay } from './turn-display';
 
 function createTurn(initiative: Readonly<Turn['initiative']>): Turn {

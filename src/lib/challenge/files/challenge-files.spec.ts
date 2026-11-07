@@ -1,15 +1,15 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Challenge, ChallengeLibrary, StableId } from './model';
+import type { Challenge, ChallengeLibrary, StableId } from '../core/model';
 import { createChallengeJson, readChallengeJsonFile } from './json-files';
 import {
 	ChallengeImportError,
 	prepareChallengeImport,
 	saveChallengeToJsonFile
 } from './challenge-files';
-import { loadChallengeLibrary, saveChallengeLibrary } from './storage';
-import { createUuid } from './uuid';
-import { validateChallengeLibrary } from './validation';
+import { loadChallengeLibrary, saveChallengeLibrary } from '../storage/storage';
+import { createUuid } from '../core/uuid';
+import { validateChallengeLibrary } from '../core/validation';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
 const challengeId = createUuid();

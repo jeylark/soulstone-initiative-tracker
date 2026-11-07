@@ -17,8 +17,8 @@
 		type StableId,
 		type Turn
 	} from '#lib';
-	import { validateChallengeSetup } from '#lib/challenge/setup-validation.js';
-	import { getNextFactionColor } from '#lib/challenge/faction-colors.js';
+	import { validateChallengeSetup } from '#lib/challenge/core/setup-validation.js';
+	import { getNextFactionColor } from '#lib/challenge/core/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import NavButton from '#lib/components/NavButton.svelte';
 	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';

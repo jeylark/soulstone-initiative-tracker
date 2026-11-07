@@ -7,7 +7,7 @@
 		StableId,
 		ValidationIssue
 	} from '#lib';
-	import { FACTION_COLORS } from '../../challenge/faction-colors.js';
+	import { FACTION_COLORS } from '../../challenge/core/faction-colors.js';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
 	import EntityList from '../EntityList.svelte';

@@ -14,7 +14,7 @@
 		type TurnDisplay,
 		createTurnDisplayLookup
 	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
+	import { FACTION_COLORS } from '#lib/challenge/core/faction-colors.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';

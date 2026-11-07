@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { backupChallengeLibraryToJsonFile } from './library-files';
-import { saveChallengeLibrary } from './storage';
+import { saveChallengeLibrary } from '../storage/storage';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
 const library = { formatVersion: 1 as const, challenges: [] };

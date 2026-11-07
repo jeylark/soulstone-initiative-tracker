@@ -11,8 +11,8 @@
 		type Challenge,
 		type StableId
 	} from '#lib';
-	import { FACTION_COLORS } from '#lib/challenge/faction-colors.js';
-	import { prepareTurnOrder } from '#lib/challenge/turn-order.js';
+	import { FACTION_COLORS } from '#lib/challenge/core/faction-colors.js';
+	import { prepareTurnOrder } from '#lib/challenge/initiative/turn-order.js';
 	import ActionButton from '#lib/components/ActionButton.svelte';
 	import Card from '#lib/components/Card.svelte';
 	import ErrorDisplay from '#lib/components/ErrorDisplay.svelte';

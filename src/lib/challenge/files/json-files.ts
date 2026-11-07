@@ -1,7 +1,7 @@
-import type { ChallengeLibrary, StableId } from './model';
+import type { ChallengeLibrary, StableId } from '../core/model';
 import { sanitizeChallenge } from './challenge-copy';
-import { type DeepReadonly } from '../DeepReadonly';
-import { validateChallengeLibrary, type ValidationIssue } from './validation';
+import { type DeepReadonly } from '../../DeepReadonly';
+import { validateChallengeLibrary, type ValidationIssue } from '../core/validation';
 
 const JSON_FILE_MIME_TYPE = 'application/json';
 const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json';

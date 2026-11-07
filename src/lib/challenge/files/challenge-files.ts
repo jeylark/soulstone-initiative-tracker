@@ -1,9 +1,9 @@
-import type { Challenge, ChallengeLibrary, StableId } from './model';
+import type { Challenge, ChallengeLibrary, StableId } from '../core/model';
 import { sanitizeChallenge } from './challenge-copy';
-import { type DeepReadonly } from '../DeepReadonly';
+import { type DeepReadonly } from '../../DeepReadonly';
 import { downloadChallengeJson, type ChallengeFileReadResult } from './json-files';
-import type { ValidationIssue } from './validation';
-import { createUuid, parseUuid } from './uuid';
+import type { ValidationIssue } from '../core/validation';
+import { createUuid, parseUuid } from '../core/uuid';
 
 /**
  * Resolution required when a challenge file contains unreadable fields.

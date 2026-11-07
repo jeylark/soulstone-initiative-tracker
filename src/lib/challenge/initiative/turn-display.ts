@@ -1,5 +1,11 @@
-import type { DeepReadonly } from '../DeepReadonly';
-import type { Challenge, ChallengeCreature, Faction, GeneratedTurnOrder, StableId } from './model';
+import type { DeepReadonly } from '../../DeepReadonly';
+import type {
+	Challenge,
+	ChallengeCreature,
+	Faction,
+	GeneratedTurnOrder,
+	StableId
+} from '../core/model';
 
 /** Display metadata associated with one configured challenge turn. */
 export interface TurnDisplay {

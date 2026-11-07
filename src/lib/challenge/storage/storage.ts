@@ -1,6 +1,6 @@
-import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from './model';
-import type { DeepReadonly } from '../DeepReadonly';
-import { validateChallengeLibrary, type ValidationIssue } from './validation';
+import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from '../core/model';
+import type { DeepReadonly } from '../../DeepReadonly';
+import { validateChallengeLibrary, type ValidationIssue } from '../core/validation';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
 const DATABASE_VERSION = 1;
