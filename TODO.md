@@ -33,8 +33,8 @@ foundations.
 - [x] 1.12: Reduce the height of faction name inputs in challenge setup.
 - [ ] 1.13: Use the shared ActionButton component for the Roll Initiatives
       action.
-- [ ] 1.14: Move the "Add" buttons in setup to the bottom of their containers.
-- [ ] 1.15: Move the "Remove" buttons in setup to the top of their containers.
+- [x] 1.14: Move the "Add" buttons in setup to the bottom of their containers.
+- [x] 1.15: Move the "Remove" buttons in setup to the top of their containers.
 - [ ] 1.16: Make every "Remove" button in setup state which kind of entity it
       removes.
 - [ ] 1.17: Remove sorting of creatures in setup.

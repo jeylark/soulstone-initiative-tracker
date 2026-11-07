@@ -45,7 +45,7 @@ describe('EntityListItem', () => {
 		);
 	});
 
-	it('places the remove button after the content and calls onRemove', async () => {
+	it('places the remove button before the content and calls onRemove', async () => {
 		const onRemove = vi.fn();
 		render(EntityListItem, {
 			legend: 'A',
@@ -56,7 +56,7 @@ describe('EntityListItem', () => {
 
 		const button = screen.getByRole('button', { name: 'Remove A' });
 		expect(
-			screen.getByText('Entity content').compareDocumentPosition(button) &
+			button.compareDocumentPosition(screen.getByText('Entity content')) &
 				Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 

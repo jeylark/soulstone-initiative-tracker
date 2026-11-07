@@ -13,14 +13,14 @@ const actions = createRawSnippet(() => ({
 }));
 
 describe('EntityList', () => {
-	it('renders the add button before the items and calls onAdd', async () => {
+	it('renders the add button after the items and calls onAdd', async () => {
 		const onAdd = vi.fn();
 		render(EntityList, { addLabel: 'Add thing', onAdd, children: items });
 
 		const addButton = screen.getByRole('button', { name: 'Add thing' });
 		const content = screen.getByText('Item content');
 		expect(
-			addButton.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING
+			content.compareDocumentPosition(addButton) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 
 		await fireEvent.click(addButton);
