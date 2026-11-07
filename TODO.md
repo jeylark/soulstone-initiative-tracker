@@ -11,16 +11,11 @@ keeping its task number and wording.
 
 ## Open
 
-### 1. Challenge navigation and setup
-
-- 1.10: Support copying a challenge with fresh stable IDs and updated
-  references, including turn IDs in saved tie decisions.
-- 1.18: Validate setup values.
-
 ### 2. Initiative and encounter play
 
 #### Setup
 
+- 2.35: Validate setup values.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
 - 2.33: Remove the Setup, Roll, and Run navigation buttons from their
@@ -72,6 +67,8 @@ keeping its task number and wording.
 - 3.6: Present partial-import issues and require confirmation before importing
   valid sections; import the challenge only when its structure and references
   are complete and valid.
+- 3.10: Support copying a challenge with fresh stable IDs and updated
+  references, including turn IDs in saved tie decisions.
 - 3.4: Add UI for loading a challenge to continue play, with replace-or-copy
   choices.
 - 3.5: Protect challenges used by active sessions from replacement; offer to
