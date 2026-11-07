@@ -290,11 +290,12 @@
 														{@const isInvalid =
 															inputValue !== '' && parseInitiativeInput(inputValue) === undefined}
 														<NumberInput
-															{label}
+															label="Initiative"
+															aria-label={label}
 															min={0}
 															step={1}
 															{hasWarning}
-															warningMessage={hasWarning ? `${label} is above 18.` : undefined}
+															warningMessage={hasWarning ? 'Initiative is above 18.' : undefined}
 															{isInvalid}
 															invalidMessage={isInvalid
 																? 'Enter a non-negative whole number.'
@@ -327,8 +328,7 @@
 															{/if}
 															{#if diceCount === undefined}
 																<p role="status">
-																	{turnLabel} cannot be rolled because its initiative stat is missing
-																	or invalid.
+																	Cannot roll because the initiative stat is missing or invalid.
 																</p>
 															{/if}
 														</div>
