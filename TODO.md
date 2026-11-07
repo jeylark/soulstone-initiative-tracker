@@ -28,7 +28,6 @@ foundations.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
 - 2.16: Add an animated "rolling" effect for initiative rolls.
-- 2.17: Remove creature names from the cards in the roll view.
 - 2.21: Label turn-order generation **Start challenge** and remove the
   recalculation action while a challenge is running. This does not rename
   the separate per-turn **Calculate roll** action.
@@ -208,6 +207,8 @@ foundations.
   resume initiative collection.
 - 2.15: Save generated turn order as run state so a challenge can resume with
   the generated order.
+- 2.17: Remove creature names from inside the cards in the roll view; keep
+  them in card titles and accessible control names.
 - 2.18: Add controls to hide or show a creature's turns in the DM turn list;
   hidden turns stay visible but greyed out.
 - 2.19: Remove "this result is still valid" explanations from warnings; the
