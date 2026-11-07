@@ -8,9 +8,8 @@
 		ValidationIssue
 	} from '#lib/challenge';
 	import type { TurnEditorChange } from './challenge-setup-types';
-	import EntityList from '../EntityList.svelte';
 	import FactionEditor from './FactionEditor.svelte';
-	import Card from '../Card.svelte';
+	import { Card, EntityList } from '#lib/components';
 
 	interface Props {
 		factions: readonly Faction[];

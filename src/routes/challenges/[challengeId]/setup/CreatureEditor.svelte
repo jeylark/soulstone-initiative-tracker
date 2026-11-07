@@ -2,13 +2,15 @@
 	import type { ChallengeCreature, NpcType, StableId } from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import TurnEditor from './TurnEditor.svelte';
-	import Card from '../Card.svelte';
-	import EntityList from '../EntityList.svelte';
-	import EntityListItem from '../EntityListItem.svelte';
-	import CheckboxInput from '../forms/CheckboxInput.svelte';
-	import NumberInput from '../forms/NumberInput.svelte';
-	import SelectInput from '../forms/SelectInput.svelte';
-	import TextInput from '../forms/TextInput.svelte';
+	import {
+		Card,
+		CheckboxInput,
+		EntityList,
+		EntityListItem,
+		NumberInput,
+		SelectInput,
+		TextInput
+	} from '#lib/components';
 
 	interface Props {
 		creature: ChallengeCreature;

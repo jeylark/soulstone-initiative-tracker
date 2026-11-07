@@ -1,10 +1,7 @@
 <script lang="ts">
 	import type { Turn, TurnInitiative } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
-	import Card from '../Card.svelte';
-	import EntityListItem from '../EntityListItem.svelte';
-	import NumberInput from '../forms/NumberInput.svelte';
-	import SelectInput from '../forms/SelectInput.svelte';
+	import { Card, EntityListItem, NumberInput, SelectInput } from '#lib/components';
 
 	interface Props {
 		turn: Readonly<Turn>;

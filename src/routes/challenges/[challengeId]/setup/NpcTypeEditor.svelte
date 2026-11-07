@@ -1,10 +1,6 @@
 <script lang="ts">
 	import type { NpcType, StableId } from '#lib/challenge';
-	import Card from '../Card.svelte';
-	import EntityList from '../EntityList.svelte';
-	import EntityListItem from '../EntityListItem.svelte';
-	import NumberInput from '../forms/NumberInput.svelte';
-	import TextInput from '../forms/TextInput.svelte';
+	import { Card, EntityList, EntityListItem, NumberInput, TextInput } from '#lib/components';
 
 	interface Props {
 		npcTypes: readonly NpcType[];

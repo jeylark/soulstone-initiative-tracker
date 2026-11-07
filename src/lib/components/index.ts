@@ -2,7 +2,6 @@
 export { default as ActionButton } from './ActionButton.svelte';
 /** Shared card surface component. */
 export { default as Card } from './Card.svelte';
-export * from './challenge-setup';
 /** Renders a collection of entities as a list. */
 export { default as EntityList } from './EntityList.svelte';
 /** Renders one entity within an entity list. */

@@ -10,12 +10,14 @@
 	} from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
-	import EntityList from '../EntityList.svelte';
-	import EntityListItem from '../EntityListItem.svelte';
-	import ActionButton from '../ActionButton.svelte';
-	import Card from '../Card.svelte';
-	import ColorPickerInput from '../forms/ColorPickerInput.svelte';
-	import TextInput from '../forms/TextInput.svelte';
+	import {
+		ActionButton,
+		Card,
+		ColorPickerInput,
+		EntityList,
+		EntityListItem,
+		TextInput
+	} from '#lib/components';
 
 	interface Props {
 		faction: Readonly<Faction>;

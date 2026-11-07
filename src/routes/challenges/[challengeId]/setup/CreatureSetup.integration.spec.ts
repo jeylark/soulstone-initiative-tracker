@@ -2,7 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge, renderSetup } from '../../../routes/view-test-support';
+import { createSetupChallenge, renderSetup } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },

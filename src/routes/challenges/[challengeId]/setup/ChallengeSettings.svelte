@@ -1,8 +1,5 @@
 <script lang="ts">
-	import Card from '../Card.svelte';
-	import NumberInput from '../forms/NumberInput.svelte';
-	import RangeInput from '../forms/RangeInput.svelte';
-	import TextInput from '../forms/TextInput.svelte';
+	import { Card, NumberInput, RangeInput, TextInput } from '#lib/components';
 
 	interface Props {
 		name: string;

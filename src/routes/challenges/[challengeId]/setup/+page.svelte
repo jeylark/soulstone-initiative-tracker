@@ -19,17 +19,12 @@
 		type StableId,
 		type Turn
 	} from '#lib/challenge';
-	import {
-		ActionButton,
-		ChallengeSettings,
-		CreatureSetup,
-		ErrorDisplay,
-		NpcTypeEditor,
-		NavButton,
-		ViewPage,
-		type InitiativeChoice,
-		type TurnEditorChange
-	} from '#lib/components';
+	import { ActionButton, ErrorDisplay, NavButton, ViewPage } from '#lib/components';
+	import ChallengeSettings from './ChallengeSettings.svelte';
+	import CreatureSetup from './CreatureSetup.svelte';
+	import NpcTypeEditor from './NpcTypeEditor.svelte';
+	import type { InitiativeChoice, TurnEditorChange } from './challenge-setup-types';
+	import './challenge-setup.css';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
