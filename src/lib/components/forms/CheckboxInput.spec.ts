@@ -11,8 +11,11 @@ describe('CheckboxInput', () => {
 		const onchange = vi.fn();
 		render(CheckboxInput, {
 			label: 'Hidden from viewers',
+			// These keys intentionally match native HTML input attributes.
+			// eslint-disable-next-line @typescript-eslint/naming-convention -- Preserve the native attribute name.
 			checked: true,
 			id: 'visibility-checkbox',
+			// eslint-disable-next-line @typescript-eslint/naming-convention -- Preserve the native attribute name.
 			disabled: false,
 			class: 'visibility-control',
 			onchange
