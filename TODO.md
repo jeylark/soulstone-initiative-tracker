@@ -19,7 +19,15 @@ keeping its task number and wording.
 
 ### 2. Initiative and encounter play
 
-- 2.8: Omit hidden turns from the read-only view.
+#### Setup
+
+- 2.28: When an initiative stat changes, discard affected app-rolled results
+  and invalidate the generated order; preserve manual/static values.
+- 2.33: Remove the Setup, Roll, and Run navigation buttons from their
+  respective tabs.
+
+#### Rolling
+
 - 2.10: Detect same-faction initiative ties and block turn-order generation
   until the DM has resolved them. Ties across factions stay with the
   fairness algorithm.
@@ -27,10 +35,15 @@ keeping its task number and wording.
   unresolved ties when generation is blocked.
 - 2.12: Save tie decisions in the run state. Discard them for a tie group when
   a member is rerolled, and keep the remaining decisions on recalculation.
+- 2.16: Add an animated "rolling" effect for initiative rolls.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
+
+#### Run
+
+- 2.8: Omit hidden turns from the read-only view.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
-- 2.16: Add an animated "rolling" effect for initiative rolls.
 - 2.21: Label turn-order generation **Start challenge** and remove the
   recalculation action while a challenge is running. This does not rename
   the separate per-turn **Calculate roll** action.
@@ -42,13 +55,8 @@ keeping its task number and wording.
 - 2.25: Remove turn numbers from card titles and order indices from run-view
   cards.
 - 2.27: Make faction colors stand out more clearly from the background.
-- 2.28: When an initiative stat changes, discard affected app-rolled results
-  and invalidate the generated order; preserve manual/static values.
-- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
-- 2.33: Remove the Setup, Roll, and Run navigation buttons from their
-  respective tabs.
 
 ### 3. Challenge library and file workflows
 
