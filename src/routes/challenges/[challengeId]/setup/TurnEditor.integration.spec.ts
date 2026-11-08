@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
+import { createUuid, loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
@@ -26,6 +26,53 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('keeps invalid singleton indices editable and explicitly repairs a missing target', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Turn recovery';
+		const targetTurnId = createUuid();
+		challenge.creatures = [
+			{
+				id: createUuid(),
+				kind: 'character',
+				name: 'Hero',
+				factionId: challenge.factions[0].id,
+				isHidden: false,
+				turns: [
+					{ id: targetTurnId, initiative: { kind: 'static', value: 12 } },
+					{
+						id: createUuid(),
+						initiative: {
+							kind: 'relative-position',
+							relation: 'after',
+							targetTurnId: createUuid(),
+							index: -1
+						}
+					}
+				]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+		const turn = within(screen.getByRole('group', { name: 'Hero' })).getByRole('group', {
+			name: 'Turn 2'
+		});
+		const target = within(turn).getByRole('combobox', { name: 'Target turn' });
+		expect(target.getAttribute('aria-invalid')).toBe('true');
+		expect((target as HTMLSelectElement).selectedOptions[0].textContent).toBe(
+			'Missing target turn'
+		);
+		await fireEvent.input(within(turn).getByRole('spinbutton', { name: 'Index' }), {
+			target: { value: '1' }
+		});
+		await fireEvent.change(target, { target: { value: targetTurnId } });
+		expect(screen.queryByRole('region', { name: 'Setup validation errors' })).toBeNull();
+		await waitFor(async () =>
+			expect((await loadChallengeLibrary()).challenges[0].creatures[0].turns[1].initiative).toEqual(
+				{ kind: 'relative-position', relation: 'after', targetTurnId, index: 1 }
+			)
+		);
+	});
+
 	it('uses hard-coded initiative modes for new creatures and allows independent turn overrides', async () => {
 		await renderSetup();
 

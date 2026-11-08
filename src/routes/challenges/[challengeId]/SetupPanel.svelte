@@ -10,7 +10,7 @@
 		getNextFactionColor,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
-		validateChallengeSetup,
+		getChallengeSetupIssues,
 		type Challenge,
 		type ChallengeCreature,
 		type Faction,
@@ -45,7 +45,7 @@
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
-	let setupIssues = $derived(loadStatus === 'ready' ? validateChallengeSetup(challenge) : []);
+	let setupIssues = $derived(loadStatus === 'ready' ? getChallengeSetupIssues(challenge) : []);
 
 	onMount(() => {
 		if (sharedChallenge) {
@@ -163,6 +163,25 @@
 
 	function updateChallengeName(name: string) {
 		challenge.name = name;
+	}
+
+	function resetSavedProgress(): void {
+		if (
+			window.confirm(
+				'Reset saved initiative results, tie decisions, turn order and round progress?'
+			)
+		) {
+			delete challenge.runState;
+		}
+	}
+
+	function updateCreatureFaction(creatureId: StableId, factionId: StableId): void {
+		if (!challenge.factions.some((faction) => faction.id === factionId)) return;
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature) return;
+		creature.factionId = factionId;
+		if (challenge.runState) delete challenge.runState.tieDecisions;
+		invalidateGeneratedTurnOrder();
 	}
 
 	function updateFairnessWeight(weight: number) {
@@ -543,6 +562,21 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
+		{#if setupIssues.length > 0}
+			<section aria-label="Setup validation errors" class="setup-issue-summary">
+				<h2>Validation errors</h2>
+				<ul>
+					{#each setupIssues as issue (issue.path)}
+						<li>{issue.path}: {issue.message}</li>
+					{/each}
+				</ul>
+				{#if setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
+					<ActionButton variant="danger" onclick={resetSavedProgress}
+						>Reset saved progress</ActionButton
+					>
+				{/if}
+			</section>
+		{/if}
 		<div class="challenge-setup">
 			<ChallengeSettings
 				name={challenge.name}
@@ -574,6 +608,7 @@
 				onCreateCharacter={addCharacter}
 				onCreateNpc={addNpc}
 				onCreatureVisibilityChange={updateCreatureVisibility}
+				onCreatureFactionChange={updateCreatureFaction}
 				onNpcTypeChange={updateNpcType}
 				onCharacterNameChange={updateCharacterName}
 				onCharacterInitiativeStatChange={updateCharacterInitiativeStat}
@@ -600,3 +635,16 @@
 		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>
+
+<style>
+	.setup-issue-summary {
+		margin: 16px 0;
+		overflow-wrap: anywhere;
+	}
+	.setup-issue-summary h2 {
+		font-size: 18px;
+	}
+	.setup-issue-summary ul {
+		padding-left: 24px;
+	}
+</style>

@@ -9,7 +9,7 @@
 		ChallengeLibraryValidationError,
 		createUuid,
 		getNextFactionColor,
-		loadChallengeLibrary,
+		loadChallengeLibraryWithDiagnostics,
 		saveChallengeToLibrary,
 		type Challenge
 	} from '#lib/challenge';
@@ -19,6 +19,7 @@
 	let loadStatus = $state<LoadStatus>('loading');
 	let challenges = $state<readonly Challenge[]>([]);
 	let loadErrorDetails = $state('');
+	let unreadableDetails = $state('');
 	let createErrorDetails = $state('');
 	let isCreating = $state(false);
 	let draftChallenge: Challenge | undefined;
@@ -42,8 +43,18 @@
 	async function loadChallenges(): Promise<void> {
 		loadStatus = 'loading';
 		loadErrorDetails = '';
+		unreadableDetails = '';
 		try {
-			challenges = (await loadChallengeLibrary()).challenges;
+			const result = await loadChallengeLibraryWithDiagnostics();
+			challenges = result.library.challenges;
+			unreadableDetails = result.unreadableChallenges
+				.map((entry) =>
+					[
+						`${entry.name?.trim() || `Challenge ${entry.index + 1}`}${entry.id ? ` (${entry.id})` : ''}`,
+						...entry.issues.map((issue) => `${issue.path}: ${issue.message}`)
+					].join('\n')
+				)
+				.join('\n\n');
 			loadStatus = 'ready';
 		} catch (error) {
 			loadErrorDetails = describeError(error);
@@ -94,6 +105,12 @@
 </script>
 
 <ViewPage title="Challenges">
+	{#if loadStatus === 'ready' && unreadableDetails}
+		<ErrorDisplay
+			message="Some saved challenges could not be loaded."
+			details={unreadableDetails}
+		/>
+	{/if}
 	{#if loadStatus === 'loading'}
 		<p>Loading saved challenges…</p>
 	{:else if loadStatus === 'error'}

@@ -9,6 +9,31 @@ import {
 	validateChallengeLibrary
 } from '#lib/challenge';
 import { createUuid } from './uuid';
+import { validateReadableChallengeLibrary } from './validation';
+
+describe('readable challenge-library validation', () => {
+	it('allows numerical and reference errors while strict validation rejects them', () => {
+		const value = structuredClone(library);
+		value.challenges[0].fairnessWeight = Number.NaN;
+		value.challenges[0].creatures[0].factionId = createUuid();
+		value.challenges[0].runState.initiativeResults[ids.turn] = -2;
+		expect(validateReadableChallengeLibrary(value).isValid).toBe(true);
+		expect(validateChallengeLibrary(value).isValid).toBe(false);
+	});
+
+	it('still rejects unsafe shapes and ambiguous identities', () => {
+		expect(validateReadableChallengeLibrary({ ...library, challenges: [null] }).isValid).toBe(
+			false
+		);
+		expect(
+			validateReadableChallengeLibrary({
+				...library,
+				challenges: [library.challenges[0], library.challenges[0]]
+			}).isValid
+		).toBe(false);
+		expect(validateReadableChallengeLibrary({ ...library, formatVersion: 9 }).isValid).toBe(false);
+	});
+});
 
 const ids = {
 	challenge: createUuid(),

@@ -2,8 +2,12 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './+page.svelte';
-import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge } from '../view-test-support';
+import {
+	loadChallengeLibrary,
+	loadChallengeLibraryWithDiagnostics,
+	saveChallengeToLibrary
+} from '#lib/challenge';
+import { createSetupChallenge, seedStoredChallengeLibrary } from '../view-test-support';
 
 const { mockedGoto } = vi.hoisted(() => ({ mockedGoto: vi.fn() }));
 
@@ -20,6 +24,24 @@ beforeEach(() => {
 });
 
 describe('challenge hub', () => {
+	it('reports unreadable challenges alongside healthy cards and permits creation without deleting them', async () => {
+		const challenge = { ...createSetupChallenge(), name: 'Healthy' };
+		await seedStoredChallengeLibrary({
+			formatVersion: 1,
+			challenges: [{ name: 'Broken', creatures: null }, challenge]
+		});
+		render(savedChallengesPage);
+		expect(await screen.findByRole('heading', { level: 3, name: 'Healthy' })).toBeTruthy();
+		expect(screen.getByText('Some saved challenges could not be loaded.')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
+		expect(screen.getByText(/Broken/).textContent).toContain('$.challenges[0].creatures');
+		await fireEvent.click(screen.getByRole('button', { name: 'Create new challenge' }));
+		await vi.waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		const saved = await loadChallengeLibraryWithDiagnostics();
+		expect(saved.library.challenges).toHaveLength(2);
+		expect(saved.unreadableChallenges[0].name).toBe('Broken');
+	});
+
 	it('offers challenge creation when the library is empty', async () => {
 		render(savedChallengesPage);
 

@@ -5,6 +5,26 @@ import setupChallengePage from './challenges/[challengeId]/SetupPanel.svelte';
 
 export const setupChallengeId = '00000000-0000-4000-8000-000000000001' as StableId;
 
+export async function seedStoredChallengeLibrary(value: unknown): Promise<void> {
+	const database = await new Promise<IDBDatabase>((resolve, reject) => {
+		const request = globalThis.indexedDB.open('soulstone-challenge-library', 1);
+		request.onupgradeneeded = () => request.result.createObjectStore('challengeLibrary');
+		request.onsuccess = () => resolve(request.result);
+		request.onerror = () => reject(request.error);
+	});
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const transaction = database.transaction('challengeLibrary', 'readwrite');
+			transaction.objectStore('challengeLibrary').put(value, 'current');
+			transaction.oncomplete = () => resolve();
+			transaction.onerror = () => reject(transaction.error);
+			transaction.onabort = () => reject(transaction.error);
+		});
+	} finally {
+		database.close();
+	}
+}
+
 export function createSetupChallenge(): Challenge {
 	const createdAt = new Date('2026-01-01T00:00:00.000Z');
 	return {
