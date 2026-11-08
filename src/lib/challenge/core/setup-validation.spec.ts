@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Challenge, StableId } from './model';
 import { createUuid } from './uuid';
-import { validateChallengeSetup } from './setup-validation';
+import { getChallengeSetupIssues, validateChallengeSetup } from './setup-validation';
 
 const ids = {
 	challenge: createUuid(),
@@ -35,6 +35,21 @@ function createChallenge(mode: 'app' | 'manual' = 'manual', initiativeStat?: num
 }
 
 describe('validateChallengeSetup', () => {
+	it('collects missing references and invalid saved progress as repairable Setup issues', () => {
+		const challenge = createChallenge();
+		challenge.creatures[0].factionId = createUuid();
+		challenge.runState = { initiativeResults: { [ids.turn]: -1 } };
+		expect(getChallengeSetupIssues(challenge)).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ path: '$.creatures[0].factionId' }),
+				expect.objectContaining({ path: `$.runState.initiativeResults.${ids.turn}` })
+			])
+		);
+		challenge.creatures[0].factionId = ids.faction;
+		delete challenge.runState;
+		expect(getChallengeSetupIssues(challenge)).toEqual([]);
+	});
+
 	it('allows a character without a stat when its turns are manual', () => {
 		expect(validateChallengeSetup(createChallenge())).toEqual([]);
 	});

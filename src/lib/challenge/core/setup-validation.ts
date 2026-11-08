@@ -1,6 +1,28 @@
 import type { DeepReadonly } from '../../DeepReadonly';
-import type { Challenge } from './model';
-import type { ValidationIssue } from './validation';
+import { CHALLENGE_FORMAT_VERSION, type Challenge } from './model';
+import { validateChallengeLibrary, type ValidationIssue } from './validation';
+
+/**
+ * Collects all current setup and saved-data errors for an editable challenge.
+ * @param challenge Structurally readable challenge whose fields and references may be invalid.
+ * @returns Live blocking issues with challenge-relative paths, preferring existing inline Setup messages.
+ */
+export function getChallengeSetupIssues(
+	challenge: DeepReadonly<Challenge>
+): readonly ValidationIssue[] {
+	const issues = [...validateChallengeSetup(challenge)];
+	const result = validateChallengeLibrary({
+		formatVersion: CHALLENGE_FORMAT_VERSION,
+		challenges: [challenge]
+	});
+	if (!result.isValid) {
+		for (const issue of result.issues) {
+			const path = issue.path.replace('$.challenges[0]', '$');
+			if (!issues.some((existing) => existing.path === path)) issues.push({ ...issue, path });
+		}
+	}
+	return issues;
+}
 
 type NamedValue = {
 	readonly path: string;

@@ -126,13 +126,15 @@ function validateArray<T>(
 function validateCharacterDetails(
 	value: UnknownRecord,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): boolean {
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
 	let isValidInitiativeStat = true;
 	if (
 		value.initiativeStat !== undefined &&
-		(typeof value.initiativeStat !== 'number' || !Number.isFinite(value.initiativeStat))
+		(typeof value.initiativeStat !== 'number' ||
+			(hasStrictValues && !Number.isFinite(value.initiativeStat)))
 	) {
 		addIssue(`${path}.initiativeStat`, 'Expected a finite number.');
 		isValidInitiativeStat = false;
@@ -153,7 +155,12 @@ function validateFaction(value: unknown, path: string, addIssue: IssueRecorder):
 	return isValidId && isValidName && isValidColor;
 }
 
-function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder): value is NpcType {
+function validateNpcType(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
+): value is NpcType {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected an NPC type object.');
 		return false;
@@ -162,7 +169,8 @@ function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder):
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
 	const isValidInitiativeStat =
-		typeof value.initiativeStat === 'number' && Number.isFinite(value.initiativeStat);
+		typeof value.initiativeStat === 'number' &&
+		(!hasStrictValues || Number.isFinite(value.initiativeStat));
 	if (!isValidInitiativeStat) {
 		addIssue(`${path}.initiativeStat`, 'Expected a finite number.');
 	}
@@ -182,7 +190,8 @@ function validateInitiativeRollMode(
 function validateTurnInitiative(
 	value: unknown,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is TurnInitiative {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected an initiative object.');
@@ -193,7 +202,8 @@ function validateTurnInitiative(
 		case 'roll':
 			return validateInitiativeRollMode(value.mode, `${path}.mode`, addIssue);
 		case 'static':
-			if (typeof value.value === 'number' && Number.isFinite(value.value)) return true;
+			if (typeof value.value === 'number' && (!hasStrictValues || Number.isFinite(value.value)))
+				return true;
 			addIssue(`${path}.value`, 'Expected a finite initiative value.');
 			return false;
 		case 'fixed-position': {
@@ -202,7 +212,10 @@ function validateTurnInitiative(
 				addIssue(`${path}.from`, 'Expected "top" or "bottom".');
 				isValid = false;
 			}
-			if (typeof value.position !== 'number' || !Number.isFinite(value.position)) {
+			if (
+				typeof value.position !== 'number' ||
+				(hasStrictValues && !Number.isFinite(value.position))
+			) {
 				addIssue(`${path}.position`, 'Expected a finite number.');
 				isValid = false;
 			}
@@ -221,7 +234,7 @@ function validateTurnInitiative(
 			if (
 				'index' in value &&
 				value.index !== undefined &&
-				(typeof value.index !== 'number' || !Number.isFinite(value.index))
+				(typeof value.index !== 'number' || (hasStrictValues && !Number.isFinite(value.index)))
 			) {
 				addIssue(`${path}.index`, 'Expected a finite number.');
 				isValid = false;
@@ -237,7 +250,12 @@ function validateTurnInitiative(
 	}
 }
 
-function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): value is Turn {
+function validateTurn(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
+): value is Turn {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected a turn object.');
 		return false;
@@ -250,34 +268,48 @@ function validateTurn(value: unknown, path: string, addIssue: IssueRecorder): va
 		addIssue(`${path}.initiative`, 'Expected an initiative rule.');
 		isValidInitiative = false;
 	} else {
-		isValidInitiative = validateTurnInitiative(value.initiative, `${path}.initiative`, addIssue);
+		isValidInitiative = validateTurnInitiative(
+			value.initiative,
+			`${path}.initiative`,
+			addIssue,
+			hasStrictValues
+		);
 	}
 
 	return isValidId && isValidInitiative;
 }
 
-function validateTurns(value: unknown, path: string, addIssue: IssueRecorder): value is Turn[] {
-	return validateArray(value, path, addIssue, validateTurn);
+function validateTurns(
+	value: unknown,
+	path: string,
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
+): value is Turn[] {
+	return validateArray(value, path, addIssue, (turn, turnPath, recordIssue): turn is Turn =>
+		validateTurn(turn, turnPath, recordIssue, hasStrictValues)
+	);
 }
 
 function validateCharacterCreature(
 	value: UnknownRecord,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is UnknownRecord & CharacterCreature {
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
-	const isValidDetails = validateCharacterDetails(value, path, addIssue);
+	const isValidDetails = validateCharacterDetails(value, path, addIssue, hasStrictValues);
 	const isValidFactionId = validateStableId(value.factionId, `${path}.factionId`, addIssue);
 	const isValidHidden = typeof value.isHidden === 'boolean';
 	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
-	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue);
+	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue, hasStrictValues);
 	return isValidId && isValidDetails && isValidFactionId && isValidHidden && isValidTurns;
 }
 
 function validateNpcCreature(
 	value: UnknownRecord,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is UnknownRecord & NpcCreature {
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidTypeId = validateStableId(value.creatureTypeId, `${path}.creatureTypeId`, addIssue);
@@ -285,7 +317,7 @@ function validateNpcCreature(
 	const isValidFactionId = validateStableId(value.factionId, `${path}.factionId`, addIssue);
 	const isValidHidden = typeof value.isHidden === 'boolean';
 	if (!isValidHidden) addIssue(`${path}.isHidden`, 'Expected a boolean.');
-	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue);
+	const isValidTurns = validateTurns(value.turns, `${path}.turns`, addIssue, hasStrictValues);
 	return (
 		isValidId &&
 		isValidTypeId &&
@@ -299,14 +331,16 @@ function validateNpcCreature(
 function validateCreature(
 	value: unknown,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is ChallengeCreature {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected a creature object.');
 		return false;
 	}
-	if (value.kind === 'character') return validateCharacterCreature(value, path, addIssue);
-	if (value.kind === 'npc') return validateNpcCreature(value, path, addIssue);
+	if (value.kind === 'character')
+		return validateCharacterCreature(value, path, addIssue, hasStrictValues);
+	if (value.kind === 'npc') return validateNpcCreature(value, path, addIssue, hasStrictValues);
 
 	addIssue(`${path}.kind`, 'Expected "character" or "npc".');
 	return false;
@@ -315,7 +349,8 @@ function validateCreature(
 function validateRunState(
 	value: unknown,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is ChallengeRunState {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected a run state object.');
@@ -332,7 +367,10 @@ function validateRunState(
 				addIssue(`${path}.initiativeResults.${id}`, 'Expected a valid turn UUID key.');
 				isValidResults = false;
 			}
-			if (typeof initiative !== 'number' || !Number.isInteger(initiative) || initiative < 0) {
+			if (
+				typeof initiative !== 'number' ||
+				(hasStrictValues && (!Number.isInteger(initiative) || initiative < 0))
+			) {
 				addIssue(
 					`${path}.initiativeResults.${id}`,
 					'Expected a non-negative whole-number initiative value.'
@@ -357,8 +395,7 @@ function validateRunState(
 		'spawnCount' in value &&
 		value.spawnCount !== undefined &&
 		(typeof value.spawnCount !== 'number' ||
-			!Number.isInteger(value.spawnCount) ||
-			value.spawnCount < 0)
+			(hasStrictValues && (!Number.isInteger(value.spawnCount) || value.spawnCount < 0)))
 	) {
 		addIssue(`${path}.spawnCount`, 'Expected a non-negative whole number.');
 		isValidSpawnCount = false;
@@ -373,7 +410,7 @@ function validateRunState(
 		} else {
 			tieDecisions.forEach((decision: unknown, index) => {
 				const decisionPath = `${path}.tieDecisions[${index}]`;
-				if (!Array.isArray(decision) || decision.length < 2) {
+				if (!Array.isArray(decision) || (hasStrictValues && decision.length < 2)) {
 					addIssue(decisionPath, 'Expected an array of at least two turn UUIDs.');
 					isValidTieDecisions = false;
 					return;
@@ -393,7 +430,8 @@ function validateRunState(
 function validateChallenge(
 	value: unknown,
 	path: string,
-	addIssue: IssueRecorder
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
 ): value is Challenge {
 	if (!isRecord(value)) {
 		addIssue(path, 'Expected a challenge object.');
@@ -414,10 +452,12 @@ function validateChallenge(
 		value.npcTypes,
 		`${path}.npcTypes`,
 		addIssue,
-		validateNpcType
+		(npcType, typePath, recordIssue): npcType is NpcType =>
+			validateNpcType(npcType, typePath, recordIssue, hasStrictValues)
 	);
 	const isValidFairnessWeight =
-		typeof value.fairnessWeight === 'number' && Number.isFinite(value.fairnessWeight);
+		typeof value.fairnessWeight === 'number' &&
+		(!hasStrictValues || Number.isFinite(value.fairnessWeight));
 	if (!isValidFairnessWeight) {
 		addIssue(`${path}.fairnessWeight`, 'Expected a finite number.');
 	}
@@ -425,11 +465,17 @@ function validateChallenge(
 		value.creatures,
 		`${path}.creatures`,
 		addIssue,
-		validateCreature
+		(creature, creaturePath, recordIssue): creature is ChallengeCreature =>
+			validateCreature(creature, creaturePath, recordIssue, hasStrictValues)
 	);
 	let isValidRunState = true;
 	if ('runState' in value && value.runState !== undefined) {
-		isValidRunState = validateRunState(value.runState, `${path}.runState`, addIssue);
+		isValidRunState = validateRunState(
+			value.runState,
+			`${path}.runState`,
+			addIssue,
+			hasStrictValues
+		);
 	}
 
 	return (
@@ -445,7 +491,11 @@ function validateChallenge(
 	);
 }
 
-function validateLibraryShape(value: unknown, addIssue: IssueRecorder): value is ChallengeLibrary {
+function validateLibraryShape(
+	value: unknown,
+	addIssue: IssueRecorder,
+	hasStrictValues: boolean
+): value is ChallengeLibrary {
 	if (!isRecord(value)) {
 		addIssue('$', 'Expected a challenge library object.');
 		return false;
@@ -457,7 +507,8 @@ function validateLibraryShape(value: unknown, addIssue: IssueRecorder): value is
 		value.challenges,
 		'$.challenges',
 		addIssue,
-		validateChallenge
+		(challenge, path, recordIssue): challenge is Challenge =>
+			validateChallenge(challenge, path, recordIssue, hasStrictValues)
 	);
 	return isValidVersion && isValidChallenges;
 }
@@ -665,12 +716,30 @@ function validateRunStateReferences(
  * @returns A discriminated result containing either the validated library or all issues.
  */
 export function validateChallengeLibrary(value: unknown): ValidationResult<ChallengeLibrary> {
+	return validateLibrary(value, true);
+}
+
+/**
+ * Checks that library data can be safely edited, without requiring valid setup or saved progress.
+ * @param value Sanitized untrusted library data to check for model shape and unique identities.
+ * @returns A typed editable library, or structural issues; numeric and reference errors remain for Setup.
+ */
+export function validateReadableChallengeLibrary(
+	value: unknown
+): ValidationResult<ChallengeLibrary> {
+	return validateLibrary(value, false);
+}
+
+function validateLibrary(
+	value: unknown,
+	hasStrictValues: boolean
+): ValidationResult<ChallengeLibrary> {
 	const { addIssue, getIssues } = createIssueFactory();
-	const isValidShape = validateLibraryShape(value, addIssue);
+	const isValidShape = validateLibraryShape(value, addIssue, hasStrictValues);
 	if (isRecord(value)) {
 		validateUniqueIds(value, addIssue);
 		getArray(value.challenges).forEach((challenge, index) => {
-			if (isRecord(challenge)) {
+			if (hasStrictValues && isRecord(challenge)) {
 				validateChallengeReferences(challenge, `$.challenges[${index}]`, addIssue);
 			}
 		});
