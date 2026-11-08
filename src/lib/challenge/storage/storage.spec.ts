@@ -4,6 +4,7 @@ import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from 
 import {
 	ChallengeLibraryValidationError,
 	loadChallengeLibrary,
+	loadChallengeLibraryWithDiagnostics,
 	saveChallengeLibrary,
 	saveChallengeToLibrary
 } from './storage';
@@ -115,9 +116,9 @@ describe('challenge library storage', () => {
 		});
 	});
 
-	it('saves a challenge while skipping malformed existing challenges', async () => {
+	it('saves a challenge while retaining unreadable existing records', async () => {
 		const savedChallenge = createChallenge('Saved');
-		const invalidChallenge = { ...createChallenge('Invalid'), fairnessWeight: Infinity };
+		const invalidChallenge = { ...createChallenge('Invalid'), creatures: null };
 		const newChallenge = createChallenge('New');
 		await seedStoredLibrary({
 			...emptyLibrary,
@@ -130,6 +131,63 @@ describe('challenge library storage', () => {
 			...emptyLibrary,
 			challenges: [savedChallenge, newChallenge]
 		});
+		await expect(loadChallengeLibraryWithDiagnostics(indexedDbFactory)).resolves.toMatchObject({
+			unreadableChallenges: [
+				{ index: 1, name: 'Invalid', issues: [{ path: '$.challenges[1].creatures' }] }
+			]
+		});
+	});
+
+	it('loads healthy challenges independently and reports unreadable entries', async () => {
+		await seedStoredLibrary({ ...library, challenges: [null, ...library.challenges] });
+		await expect(loadChallengeLibraryWithDiagnostics(indexedDbFactory)).resolves.toMatchObject({
+			library,
+			unreadableChallenges: [{ index: 0, issues: [{ path: '$.challenges[0]' }] }]
+		});
+	});
+
+	it('removes obsolete relative distance from all turns without assigning sibling indices', async () => {
+		const challenge = createChallenge('Legacy');
+		const factionId = createUuid();
+		const targetTurnId = createUuid();
+		const target = { id: targetTurnId, initiative: { kind: 'static' as const, value: 10 } };
+		const turns = Array.from({ length: 4 }, () => ({
+			id: createUuid(),
+			initiative: {
+				kind: 'relative-position' as const,
+				relation: 'after' as const,
+				targetTurnId,
+				distance: 1
+			}
+		}));
+		const creature = {
+			id: createUuid(),
+			kind: 'character' as const,
+			name: 'Hero',
+			factionId,
+			isHidden: false,
+			turns: [target, ...turns]
+		};
+		await seedStoredLibrary({
+			...emptyLibrary,
+			unused: true,
+			challenges: [
+				{
+					...challenge,
+					factions: [{ id: factionId, name: 'Players', color: 'blue' }],
+					creatures: [creature]
+				}
+			]
+		});
+		const result = await loadChallengeLibrary(indexedDbFactory);
+		expect(result.challenges[0].creatures[0].turns).toEqual([
+			target,
+			...turns.map((turn) => ({
+				id: turn.id,
+				initiative: { kind: 'relative-position', relation: 'after', targetTurnId }
+			}))
+		]);
+		expect(result).not.toHaveProperty('unused');
 	});
 
 	it('replaces a saved challenge by ID, keeping others', async () => {
@@ -158,13 +216,14 @@ describe('challenge library storage', () => {
 		});
 	});
 
-	it('does not save a challenge with a non-finite setup value', async () => {
+	it('preserves numeric setup-invalid values for repair', async () => {
 		const invalid = { ...createChallenge('Bad'), fairnessWeight: Number.NaN };
 
-		await expect(saveChallengeToLibrary(invalid, indexedDbFactory)).rejects.toBeInstanceOf(
-			ChallengeLibraryValidationError
-		);
-		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
+		await saveChallengeToLibrary(invalid, indexedDbFactory);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			challenges: [invalid]
+		});
 	});
 
 	it('isolates data between IndexedDB factories', async () => {
