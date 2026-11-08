@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
+		advanceTurn,
 		createTurnOrderDisplay,
 		createTurnDisplayLookup,
 		loadChallengeLibrary,
@@ -45,7 +46,11 @@
 	let generatedOrderDisplay = $derived.by(() => {
 		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
 		return generatedTurnOrder
-			? createTurnOrderDisplay(generatedTurnOrder, turnDisplayLookup)
+			? createTurnOrderDisplay(
+					generatedTurnOrder,
+					turnDisplayLookup,
+					challenge?.runState?.initiativeResults
+				)
 			: undefined;
 	});
 
@@ -129,6 +134,26 @@
 		}
 	}
 
+	async function advanceToNextTurn(): Promise<void> {
+		if (!challenge?.runState?.generatedTurnOrder || isSaving) return;
+
+		const previousRunState = challenge.runState;
+		const nextRunState = advanceTurn($state.snapshot(previousRunState));
+		const challengeToSave = { ...$state.snapshot(challenge), runState: nextRunState };
+		isSaving = true;
+		try {
+			challenge.runState = nextRunState;
+			if (sharedChallenge && onSave) await onSave();
+			else await enqueueSave(challengeToSave);
+			hasSaveError = false;
+		} catch {
+			challenge.runState = previousRunState;
+			hasSaveError = true;
+		} finally {
+			isSaving = false;
+		}
+	}
+
 	async function updateCreatureVisibility(creatureId: StableId, isHidden: boolean): Promise<void> {
 		if (!challenge) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
@@ -153,6 +178,9 @@
 		<div class="run-layout">
 			<section aria-label="Challenge controls and status">
 				<p>{challenge.name}</p>
+				{#if generatedOrderDisplay}
+					<p>Spawns: {challenge.runState?.spawnCount ?? 0}</p>
+				{/if}
 				{#if generatedOrderDisplay?.hasUnknownTurnIds}
 					<p role="status">
 						Some saved turns are no longer in this challenge. Recalculate the turn order to update
@@ -199,6 +227,9 @@
 					</ul>
 				{/if}
 
+				{#if generatedOrderDisplay}
+					<ActionButton disabled={isSaving} onclick={advanceToNextTurn}>Next turn</ActionButton>
+				{/if}
 				<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
 					{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
 				</ActionButton>

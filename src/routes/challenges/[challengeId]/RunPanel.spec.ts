@@ -85,6 +85,75 @@ describe('turn-order run route', () => {
 		);
 	});
 
+	it('advances to the next turn, counts spawns, and saves the rotated order', async () => {
+		const challenge = createRunChallenge();
+		const staticTurnId = '00000000-0000-4000-8000-000000000028' as StableId;
+		challenge.creatures.push({
+			id: '00000000-0000-4000-8000-000000000029' as StableId,
+			kind: 'character',
+			name: 'Mira',
+			factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+			isHidden: false,
+			turns: [{ id: staticTurnId, initiative: { kind: 'static', value: 3 } }]
+		});
+		challenge.runState!.initiativeResults[ariaTurnId] = 0;
+		challenge.runState!.generatedTurnOrder!.splice(2, 0, {
+			kind: 'turn',
+			turnId: staticTurnId
+		});
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		expect(await screen.findByText('Spawns: 0')).toBeTruthy();
+		expect(screen.getByText('Initiative: 0')).toBeTruthy();
+		expect(screen.getByText('Initiative: 12')).toBeTruthy();
+		expect(screen.getByText('Initiative: 3')).toBeTruthy();
+		const titles = () =>
+			within(screen.getByRole('list', { name: 'Generated turn order' }))
+				.getAllByRole('listitem')
+				.map((item) => item.querySelector('h2')?.textContent);
+
+		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
+
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Rook', 'Mira', 'Spawn', 'Aria']));
+		const rotatedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		expect(within(rotatedOrder).getByText('Initiative: 12')).toBeTruthy();
+		expect(within(rotatedOrder).getByText('Initiative: 3')).toBeTruthy();
+		expect(within(rotatedOrder).getByText('Initiative: 0')).toBeTruthy();
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Mira', 'Spawn', 'Aria', 'Rook']));
+		expect(screen.getByText('Spawns: 0')).toBeTruthy();
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook', 'Mira']));
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.spawnCount).toBe(1);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: staticTurnId },
+				{ kind: 'spawn' }
+			]);
+		});
+		expect(screen.getByText('Spawns: 1')).toBeTruthy();
+	});
+
+	it('hides the next-turn button until an order exists', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		await screen.findByRole('button', { name: 'Generate turn order' });
+		expect(screen.queryByRole('button', { name: 'Next turn' })).toBeNull();
+	});
+
 	it('shows a loading state while the challenge library is being read', () => {
 		render(turnOrderPage);
 
@@ -300,7 +369,7 @@ describe('turn-order run route', () => {
 		return challenge;
 	}
 
-	it('renders the saved order as numbered faction-colored cards', async () => {
+	it('renders the saved order as faction-colored cards without position indices', async () => {
 		const challenge = createRunChallenge();
 		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
 		challenge.runState!.generatedTurnOrder = [
@@ -319,11 +388,12 @@ describe('turn-order run route', () => {
 			'Aria',
 			'Spawn'
 		]);
-		expect(
-			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
-		).toEqual(['1', '2', '3']);
-		expect(items[0]?.textContent).toContain('Enemies');
-		expect(items[1]?.textContent).toContain('Players');
+		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
+		expect(items[0]?.textContent).toContain('Initiative: 12');
+		expect(items[1]?.textContent).toContain('Initiative: 6');
+		expect(items[2]?.textContent).not.toContain('Initiative:');
+		expect(items[0]?.textContent).not.toContain('Enemies');
+		expect(items[1]?.textContent).not.toContain('Players');
 		expect(
 			items.map((item) =>
 				item
@@ -392,6 +462,8 @@ describe('turn-order run route', () => {
 		);
 		for (const item of ariaItems) {
 			expect(item.textContent).toContain('Hidden');
+			expect(within(item).getByText('Hidden', { selector: 'span' })).toBeTruthy();
+			expect(item.querySelector('.turn-order-hidden')).toBeNull();
 			expect(item.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
 				true
 			);

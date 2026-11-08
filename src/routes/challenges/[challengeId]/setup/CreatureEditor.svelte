@@ -72,6 +72,7 @@
 <Card title={name} headingLevel="h4" headerSize="medium" spacing="compact">
 	<EntityListItem
 		class="creature"
+		data-entity-id={creature.id}
 		aria-label={name}
 		legend={name}
 		removeLabel={`Remove ${name}`}
@@ -92,7 +93,7 @@
 					label="Initiative stat (d6)"
 					aria-label={`Initiative stat (d6) for ${characterName}`}
 					value={characterInitiativeStat ?? ''}
-					min="1"
+					min="0"
 					step="1"
 					isInvalid={initiativeStatError !== undefined}
 					invalidMessage={initiativeStatError}

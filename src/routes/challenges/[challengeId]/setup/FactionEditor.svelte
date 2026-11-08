@@ -100,6 +100,7 @@
 <Card title={faction.name} headingLevel="h3" headerSize="medium" variant="inset" spacing="compact">
 	<EntityListItem
 		class="faction-panel"
+		data-entity-id={faction.id}
 		legend={faction.name}
 		removeLabel={`Remove faction ${faction.name}`}
 		removeText="Remove faction"

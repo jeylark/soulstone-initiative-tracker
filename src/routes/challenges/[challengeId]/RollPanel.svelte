@@ -91,7 +91,7 @@
 				? creature.initiativeStat
 				: challenge?.npcTypes.find((npcType) => npcType.id === creature.creatureTypeId)
 						?.initiativeStat;
-		return typeof stat === 'number' && Number.isSafeInteger(stat) && stat > 0 ? stat : undefined;
+		return typeof stat === 'number' && Number.isSafeInteger(stat) && stat >= 0 ? stat : undefined;
 	}
 
 	function rollInitiativeForTurn(

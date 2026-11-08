@@ -28,7 +28,7 @@ beforeEach(async () => {
 });
 
 describe('turn list', () => {
-	it('renders the saved order as numbered faction-colored cards', async () => {
+	it('renders faction-colored cards without position indices or faction names', async () => {
 		const challenge = createRunChallenge();
 		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
 		challenge.runState!.generatedTurnOrder = [
@@ -47,11 +47,9 @@ describe('turn list', () => {
 			'Aria',
 			'Spawn'
 		]);
-		expect(
-			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
-		).toEqual(['1', '2', '3']);
-		expect(items[0]?.textContent).toContain('Enemies');
-		expect(items[1]?.textContent).toContain('Players');
+		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
+		expect(items[0]?.textContent).not.toContain('Enemies');
+		expect(items[1]?.textContent).not.toContain('Players');
 		expect(
 			items.map((item) =>
 				item

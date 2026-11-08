@@ -344,6 +344,18 @@ function validateRunState(
 		);
 	}
 
+	let isValidSpawnCount = true;
+	if (
+		'spawnCount' in value &&
+		value.spawnCount !== undefined &&
+		(typeof value.spawnCount !== 'number' ||
+			!Number.isInteger(value.spawnCount) ||
+			value.spawnCount < 0)
+	) {
+		addIssue(`${path}.spawnCount`, 'Expected a non-negative whole number.');
+		isValidSpawnCount = false;
+	}
+
 	let isValidTieDecisions = true;
 	if ('tieDecisions' in value && value.tieDecisions !== undefined) {
 		const tieDecisions = value.tieDecisions;
@@ -367,7 +379,7 @@ function validateRunState(
 			});
 		}
 	}
-	return isValidResults && isValidOrder && isValidTieDecisions;
+	return isValidResults && isValidOrder && isValidSpawnCount && isValidTieDecisions;
 }
 
 function validateChallenge(

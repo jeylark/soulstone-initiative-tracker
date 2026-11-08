@@ -71,6 +71,7 @@ function getCyclicTurns(turns: readonly RelativeTurn[]): ReadonlySet<string> {
 
 /**
  * Finds setup values that prevent a challenge from starting.
+ * An NPC identifier may be blank only when that NPC is the sole creature of its NPC type.
  * @param challenge Challenge setup whose names, initiative values, and placement rules are checked.
  * @returns Every blocking setup issue, with a data path and a message for the setup UI.
  */
@@ -79,7 +80,7 @@ export function validateChallengeSetup(
 ): readonly ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 	const validInitiativeStat = (value: number | undefined): value is number =>
-		typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+		typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 	const challengeName = [{ path: '$.name', value: challenge.name }];
 	const factionNames = challenge.factions.map((faction, index) => ({
 		path: `$.factions[${index}].name`,
@@ -110,7 +111,17 @@ export function validateChallengeSetup(
 	issues.push(...addBlankNameIssues(factionNames, 'Faction name'));
 	issues.push(...addBlankNameIssues(npcTypeNames, 'NPC type name'));
 	issues.push(...addBlankNameIssues(characterNames, 'Character name'));
-	issues.push(...addBlankNameIssues(npcIdentifiers, 'NPC identifier'));
+	const npcCountByType = new Map<string, number>();
+	for (const { creatureTypeId } of npcIdentifiers) {
+		npcCountByType.set(creatureTypeId, (npcCountByType.get(creatureTypeId) ?? 0) + 1);
+	}
+	// A sole NPC of its type may omit its identifier.
+	issues.push(
+		...addBlankNameIssues(
+			npcIdentifiers.filter(({ creatureTypeId }) => npcCountByType.get(creatureTypeId)! > 1),
+			'NPC identifier'
+		)
+	);
 	issues.push(
 		...addDuplicateNameIssues(
 			factionNames,
@@ -147,7 +158,7 @@ export function validateChallengeSetup(
 		if (!validInitiativeStat(npcType.initiativeStat)) {
 			issues.push({
 				path: `$.npcTypes[${index}].initiativeStat`,
-				message: 'Initiative stat must be a positive whole number.'
+				message: 'Initiative stat must be a non-negative whole number.'
 			});
 		}
 	});
@@ -163,7 +174,7 @@ export function validateChallengeSetup(
 					message:
 						creature.initiativeStat === undefined
 							? 'An initiative stat is required for characters with app-rolled turns.'
-							: 'Initiative stat must be a positive whole number.'
+							: 'Initiative stat must be a non-negative whole number.'
 				});
 			}
 		}
