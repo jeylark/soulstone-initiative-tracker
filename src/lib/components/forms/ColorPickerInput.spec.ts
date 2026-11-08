@@ -48,4 +48,25 @@ describe('ColorPickerInput', () => {
 			expect((radio as HTMLInputElement).matches(':disabled')).toBe(true);
 		}
 	});
+
+	it('shows warning and invalid messages on the group', () => {
+		render(ColorPickerInput, {
+			label: 'Faction color',
+			name: 'color',
+			options: [{ value: 'blue', label: 'Blue', hex: '#5687c8' }],
+			value: 'blue',
+			hasWarning: true,
+			warningMessage: 'Similar to another faction.',
+			isInvalid: true,
+			invalidMessage: 'Choose a color.',
+			onchange: vi.fn()
+		});
+
+		const group = screen.getByRole('group', { name: 'Faction color' });
+		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		expect(warning.textContent).toBe('Similar to another faction.');
+		expect(invalid.textContent).toBe('Choose a color.');
+		expect(group.getAttribute('aria-describedby')).toBe(`${invalid.id} ${warning.id}`);
+	});
 });

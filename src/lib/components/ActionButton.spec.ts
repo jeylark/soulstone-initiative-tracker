@@ -50,4 +50,29 @@ describe('ActionButton', () => {
 		const button = screen.getByRole('button', { name: 'Remove thing' });
 		expect(button.getAttribute('aria-pressed')).toBe('true');
 	});
+
+	it('shows warning and invalid messages accessibly', () => {
+		render(ActionButton, {
+			children: label,
+			['aria-describedby']: 'help',
+			hasWarning: true,
+			warningMessage: 'Careful.',
+			isInvalid: true,
+			invalidMessage: 'Not allowed.'
+		});
+
+		const control = screen.getByRole('button', { name: 'Save' });
+		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		expect(warning.textContent).toBe('Careful.');
+		expect(invalid.textContent).toBe('Not allowed.');
+		expect(control.getAttribute('aria-describedby')).toBe(`help ${invalid.id} ${warning.id}`);
+	});
+
+	it('renders no messages by default', () => {
+		render(ActionButton, { children: label });
+
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(screen.queryByRole('status')).toBeNull();
+	});
 });

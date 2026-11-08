@@ -48,4 +48,30 @@ describe('NavButton', () => {
 		await fireEvent.click(link);
 		expect(onclick).not.toHaveBeenCalled();
 	});
+
+	it('shows warning and invalid messages accessibly', () => {
+		render(NavButton, {
+			href: '/x',
+			children: label,
+			['aria-describedby']: 'help',
+			hasWarning: true,
+			warningMessage: 'Careful.',
+			isInvalid: true,
+			invalidMessage: 'Not allowed.'
+		});
+
+		const control = screen.getByRole('link', { name: 'Go' });
+		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		expect(warning.textContent).toBe('Careful.');
+		expect(invalid.textContent).toBe('Not allowed.');
+		expect(control.getAttribute('aria-describedby')).toBe(`help ${invalid.id} ${warning.id}`);
+	});
+
+	it('renders no messages by default', () => {
+		render(NavButton, { href: '/x', children: label });
+
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(screen.queryByRole('status')).toBeNull();
+	});
 });

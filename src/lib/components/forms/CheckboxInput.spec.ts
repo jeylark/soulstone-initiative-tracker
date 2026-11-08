@@ -47,4 +47,18 @@ describe('CheckboxInput', () => {
 		expect(input.getAttribute('aria-invalid')).toBe('true');
 		expect(input.getAttribute('aria-describedby')).toBe(`visibility-help ${message.id}`);
 	});
+
+	it('connects warning messages accessibly', () => {
+		render(CheckboxInput, {
+			label: 'Hidden',
+			hasWarning: true,
+			warningMessage: 'Players will not see this.',
+			['aria-describedby']: 'help'
+		});
+
+		const input = screen.getByRole('checkbox', { name: 'Hidden' });
+		const warning = screen.getByRole('status');
+		expect(warning.textContent).toBe('Players will not see this.');
+		expect(input.getAttribute('aria-describedby')).toBe(`help ${warning.id}`);
+	});
 });
