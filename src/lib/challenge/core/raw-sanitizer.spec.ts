@@ -6,7 +6,7 @@ describe('raw challenge-library sanitization', () => {
 		const date = new Date('2026-01-01');
 		const value = {
 			formatVersion: 1,
-			unused: true,
+			unused: 'legacy',
 			challenges: [
 				{
 					id: 'challenge',
@@ -14,9 +14,9 @@ describe('raw challenge-library sanitization', () => {
 					createdAt: date,
 					updatedAt: date,
 					fairnessWeight: -1,
-					unused: true,
-					factions: [{ id: 'faction', name: 'Players', color: 'blue', unused: true }],
-					npcTypes: [{ id: 'type', name: 'Monster', initiativeStat: 3, unused: true }],
+					unused: 'legacy',
+					factions: [{ id: 'faction', name: 'Players', color: 'blue', unused: 'legacy' }],
+					npcTypes: [{ id: 'type', name: 'Monster', initiativeStat: 3, unused: 'legacy' }],
 					creatures: [
 						{
 							id: 'creature',
@@ -24,11 +24,11 @@ describe('raw challenge-library sanitization', () => {
 							name: 'Hero',
 							factionId: 'faction',
 							isHidden: false,
-							unused: true,
+							unused: 'legacy',
 							turns: [
 								{
 									id: 'turn',
-									unused: true,
+									unused: 'legacy',
 									initiative: {
 										kind: 'relative-position',
 										relation: 'after',
@@ -43,11 +43,11 @@ describe('raw challenge-library sanitization', () => {
 						initiativeResults: { turn: 7 },
 						tieDecisions: [['turn', 'other']],
 						generatedTurnOrder: [
-							{ kind: 'turn', turnId: 'turn', unused: true },
-							{ kind: 'spawn', unused: true }
+							{ kind: 'turn', turnId: 'turn', unused: 'legacy' },
+							{ kind: 'spawn', unused: 'legacy' }
 						],
 						spawnCount: 2,
-						unused: true
+						unused: 'legacy'
 					}
 				}
 			]
@@ -94,6 +94,44 @@ describe('raw challenge-library sanitization', () => {
 		});
 		expect(value.challenges[0].creatures[0].turns[0].initiative.distance).toBe(4);
 		expect(sanitizeChallengeLibraryData(result)).toEqual(result);
+	});
+
+	it('keeps only the fields belonging to recognized initiative and creature variants', () => {
+		const initiatives = [
+			{ kind: 'roll', mode: 'app' },
+			{ kind: 'static', value: 12 },
+			{ kind: 'fixed-position', from: 'bottom', position: 2 },
+			{ kind: 'relative-position', relation: 'before', targetTurnId: 'target', index: 1 }
+		];
+		const creature = {
+			id: 'npc',
+			kind: 'npc',
+			creatureTypeId: 'type',
+			identifier: '1',
+			factionId: 'faction',
+			isHidden: true,
+			turns: initiatives.map((initiative, index) => ({ id: String(index), initiative }))
+		};
+		const expected = { formatVersion: 1, challenges: [{ creatures: [creature] }] };
+		const value = {
+			formatVersion: 1,
+			challenges: [
+				{
+					creatures: [
+						{
+							...creature,
+							name: 'unused character field',
+							initiativeStat: 4,
+							turns: creature.turns.map((turn) => ({
+								...turn,
+								initiative: { unused: 'legacy', ...turn.initiative }
+							}))
+						}
+					]
+				}
+			]
+		};
+		expect(sanitizeChallengeLibraryData(value)).toEqual(expected);
 	});
 
 	it('preserves malformed known fields, unknown kinds and dynamic result keys for validation', () => {
