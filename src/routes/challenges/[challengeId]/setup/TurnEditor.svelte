@@ -30,6 +30,10 @@
 	let positionError = $derived(issueMessage(setupIssues, `${issuePath}.position`));
 	let indexError = $derived(issueMessage(setupIssues, `${issuePath}.index`));
 	let relativeError = $derived(issueMessage(setupIssues, issuePath));
+	let targetError = $derived(
+		issueMessage(setupIssues, `${issuePath}.targetTurnId`) ?? relativeError
+	);
+	let staticError = $derived(issueMessage(setupIssues, `${issuePath}.value`));
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
 		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
@@ -76,6 +80,8 @@
 			{#if turn.initiative.kind === 'static'}
 				<NumberInput
 					label="Static initiative"
+					isInvalid={staticError !== undefined}
+					invalidMessage={staticError}
 					value={turn.initiative.value}
 					step="1"
 					oninput={(event) => {
@@ -97,7 +103,7 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
-				{#if siblingCount > 1}
+				{#if siblingCount > 1 || indexError !== undefined}
 					<NumberInput
 						label="Index"
 						isInvalid={indexError !== undefined}
@@ -116,8 +122,8 @@
 				{/if}
 				<SelectInput
 					label="Target turn"
-					isInvalid={relativeError !== undefined}
-					invalidMessage={relativeError}
+					isInvalid={targetError !== undefined}
+					invalidMessage={targetError}
 					value={turn.initiative.targetTurnId}
 					onchange={(event) =>
 						onChange({
@@ -125,6 +131,9 @@
 							targetTurnId: event.currentTarget.value as TurnTarget['id']
 						})}
 				>
+					{#if !targetTurns.some((target) => turn.initiative.kind === 'relative-position' && target.id === turn.initiative.targetTurnId)}
+						<option value={turn.initiative.targetTurnId} disabled>Missing target turn</option>
+					{/if}
 					{#each targetTurns as target (target.id)}
 						<option value={target.id}>{target.name}</option>
 					{/each}

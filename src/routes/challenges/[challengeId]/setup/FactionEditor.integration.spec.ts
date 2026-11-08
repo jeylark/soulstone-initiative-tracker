@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveChallengeToLibrary } from '#lib/challenge';
+import { createUuid, saveChallengeToLibrary } from '#lib/challenge';
 import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
@@ -26,6 +26,27 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('renders the unassigned creature list without inventing a faction or faction actions', async () => {
+		const challenge = createSetupChallenge();
+		challenge.creatures = [
+			{
+				id: createUuid(),
+				kind: 'character',
+				name: 'Orphan',
+				factionId: createUuid(),
+				isHidden: false,
+				turns: [{ id: createUuid(), initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+		const group = within(screen.getByRole('region', { name: 'Unassigned creatures' }));
+		expect(group.getByRole('group', { name: 'Orphan' })).toBeTruthy();
+		expect(group.queryByRole('button', { name: 'Add Player' })).toBeNull();
+		expect(group.queryByRole('button', { name: /Remove faction/ })).toBeNull();
+		expect(group.queryByRole('textbox', { name: /Faction name/ })).toBeNull();
+	});
+
 	it('prefers unused faction colors and allows color reuse', async () => {
 		await renderSetup();
 

@@ -1,7 +1,7 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveChallengeToLibrary } from '#lib/challenge';
+import { createUuid, saveChallengeToLibrary } from '#lib/challenge';
 import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
@@ -26,6 +26,33 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('shows a missing NPC type instead of silently selecting another and permits repair', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Missing type';
+		const typeId = createUuid();
+		challenge.npcTypes = [{ id: typeId, name: 'Sentinel', initiativeStat: 2 }];
+		challenge.creatures = [
+			{
+				id: createUuid(),
+				kind: 'npc',
+				creatureTypeId: createUuid(),
+				identifier: '1',
+				factionId: challenge.factions[1].id,
+				isHidden: false,
+				turns: []
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+		const selector = screen.getByRole('combobox', { name: 'NPC type for NPC 1' });
+		expect(selector.getAttribute('aria-invalid')).toBe('true');
+		expect((selector as HTMLSelectElement).selectedOptions[0].textContent).toBe('Missing NPC type');
+		await fireEvent.change(selector, { target: { value: typeId } });
+		expect(
+			screen.getByRole('combobox', { name: 'NPC type for Sentinel 1' }).getAttribute('aria-invalid')
+		).not.toBe('true');
+	});
+
 	it('adds players and NPCs to their faction without opening forms', async () => {
 		await renderSetup();
 

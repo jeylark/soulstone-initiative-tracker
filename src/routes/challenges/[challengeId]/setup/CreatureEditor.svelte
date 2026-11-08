@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { ChallengeCreature, NpcType, StableId, ValidationIssue } from '#lib/challenge';
+	import type {
+		ChallengeCreature,
+		Faction,
+		NpcType,
+		StableId,
+		ValidationIssue
+	} from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import { issueMessage } from './issue-messages';
 	import TurnEditor from './TurnEditor.svelte';
@@ -21,6 +27,8 @@
 		setupIssues: readonly ValidationIssue[];
 		issuePath: string;
 		npcTypes: readonly NpcType[];
+		factions?: readonly Faction[];
+		onFactionChange?: (creatureId: StableId, factionId: StableId) => void;
 		targetTurns: readonly TurnTarget[];
 		siblingCount: (turnId: StableId) => number;
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
@@ -49,6 +57,8 @@
 		setupIssues,
 		issuePath,
 		npcTypes,
+		factions = [],
+		onFactionChange,
 		targetTurns,
 		siblingCount,
 		onVisibilityChange,
@@ -65,6 +75,8 @@
 	let nameError = $derived(issueMessage(setupIssues, `${issuePath}.name`));
 	let identifierError = $derived(issueMessage(setupIssues, `${issuePath}.identifier`));
 	let initiativeStatError = $derived(issueMessage(setupIssues, `${issuePath}.initiativeStat`));
+	let factionError = $derived(issueMessage(setupIssues, `${issuePath}.factionId`));
+	let npcTypeError = $derived(issueMessage(setupIssues, `${issuePath}.creatureTypeId`));
 
 	const hasAppRollTurn = $derived(
 		creature.turns.some((turn) => turn.initiative.kind === 'roll' && turn.initiative.mode === 'app')
@@ -81,6 +93,20 @@
 		removeText="Remove creature"
 		onRemove={() => onRemove(creature.id)}
 	>
+		{#if onFactionChange}
+			<SelectInput
+				label="Faction"
+				aria-label={`Faction for ${name}`}
+				value={creature.factionId}
+				isInvalid={factionError !== undefined}
+				invalidMessage={factionError}
+				onchange={(event) => onFactionChange?.(creature.id, event.currentTarget.value as StableId)}
+			>
+				<option value={creature.factionId} disabled>Missing faction</option>
+				{#each factions as faction (faction.id)}<option value={faction.id}>{faction.name}</option
+					>{/each}
+			</SelectInput>
+		{/if}
 		{#if creature.kind === 'character'}
 			<TextInput
 				label="Character name"
@@ -113,8 +139,13 @@
 				label="NPC type"
 				aria-label={`NPC type for ${name}`}
 				value={creature.creatureTypeId}
+				isInvalid={npcTypeError !== undefined}
+				invalidMessage={npcTypeError}
 				onchange={(event) => onNpcTypeChange(creature.id, event.currentTarget.value as StableId)}
 			>
+				{#if !npcTypes.some((npcType) => creature.kind === 'npc' && npcType.id === creature.creatureTypeId)}
+					<option value={creature.creatureTypeId} disabled>Missing NPC type</option>
+				{/if}
 				{#each npcTypes as npcType (npcType.id)}
 					<option value={npcType.id}>{npcType.name}</option>
 				{/each}

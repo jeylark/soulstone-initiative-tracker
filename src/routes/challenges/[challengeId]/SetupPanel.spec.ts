@@ -32,6 +32,28 @@ beforeEach(async () => {
 });
 
 describe('challenge setup view', () => {
+	it('shows complete saved-data diagnostics and only resets progress after confirmation', async () => {
+		const challenge = {
+			...createSetupChallenge(),
+			name: 'Recovery',
+			runState: { initiativeResults: {}, spawnCount: -1 }
+		};
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+		expect(screen.getByRole('region', { name: 'Setup validation errors' }).textContent).toContain(
+			'$.runState.spawnCount'
+		);
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		await fireEvent.click(screen.getByRole('button', { name: 'Reset saved progress' }));
+		expect(screen.getByRole('region', { name: 'Setup validation errors' })).toBeTruthy();
+		confirm.mockReturnValue(true);
+		await fireEvent.click(screen.getByRole('button', { name: 'Reset saved progress' }));
+		expect(screen.queryByRole('region', { name: 'Setup validation errors' })).toBeNull();
+		await waitFor(async () =>
+			expect((await loadChallengeLibrary()).challenges[0].runState).toBeUndefined()
+		);
+	});
+
 	it('has a heading and a link back to the landing page', async () => {
 		render(setupChallengePage);
 
