@@ -46,12 +46,16 @@ describe('CheckboxInput', () => {
 		const input = screen.getByRole('checkbox', { name: 'Confirm visibility' }) as HTMLInputElement;
 		const message = screen.getByRole('alert');
 		const warning = screen.getByRole('status');
-		const messageArea = input.closest('.form-field-messages')?.querySelector('.form-control-message-area');
+		const messageArea = input
+			.closest('.form-field-messages')
+			?.querySelector('.form-control-message-area');
 		expect(message.textContent).toBe('Choose whether this creature is hidden.');
 		expect(warning.textContent).toBe('Players will not see this.');
 		expect(messageArea?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(2);
 		expect(input.getAttribute('aria-invalid')).toBe('true');
-		expect(input.getAttribute('aria-describedby')).toBe(`visibility-help ${message.id} ${warning.id}`);
+		expect(input.getAttribute('aria-describedby')).toBe(
+			`visibility-help ${message.id} ${warning.id}`
+		);
 	});
 
 	it('connects warning messages accessibly', () => {

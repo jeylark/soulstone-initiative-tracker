@@ -65,7 +65,9 @@ describe('ColorPickerInput', () => {
 		const group = screen.getByRole('group', { name: 'Faction color' });
 		const warning = screen.getByRole('status');
 		const invalid = screen.getByRole('alert');
-		const messageArea = group.closest('.form-field-messages')?.querySelector('.form-control-message-area');
+		const messageArea = group
+			.closest('.form-field-messages')
+			?.querySelector('.form-control-message-area');
 		expect(warning.textContent).toBe('Similar to another faction.');
 		expect(invalid.textContent).toBe('Choose a color.');
 		expect(messageArea?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(2);

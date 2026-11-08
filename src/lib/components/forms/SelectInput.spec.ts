@@ -45,7 +45,9 @@ describe('SelectInput', () => {
 		const control = screen.getByRole('combobox', { name: 'Faction' });
 		const warning = screen.getByRole('status');
 		const invalid = screen.getByRole('alert');
-		const messageArea = control.closest('.form-field-messages')?.querySelector('.form-control-message-area');
+		const messageArea = control
+			.closest('.form-field-messages')
+			?.querySelector('.form-control-message-area');
 		expect(warning.textContent).toBe('Careful.');
 		expect(invalid.textContent).toBe('Not allowed.');
 		expect(messageArea?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(2);
