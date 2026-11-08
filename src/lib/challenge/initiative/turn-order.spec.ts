@@ -207,19 +207,17 @@ describe('generateTurnOrder', () => {
 		]);
 	});
 
-	it('places relative turns before and after their target at distance zero', () => {
+	it('places singleton relative turns adjacent to their target', () => {
 		const factionId = createUuid();
 		const before = createTurn({
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: createUuid()
 		});
 		const target = staticTurn(7);
 		const after = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 0,
 			targetTurnId: target.id
 		});
 		const beforeTarget = {
@@ -227,7 +225,6 @@ describe('generateTurnOrder', () => {
 			initiative: {
 				kind: 'relative-position',
 				relation: 'before',
-				distance: 0,
 				targetTurnId: target.id
 			}
 		} satisfies Turn;
@@ -239,27 +236,42 @@ describe('generateTurnOrder', () => {
 		]);
 	});
 
-	it('leaves the configured number of turns between a relative turn and its target', () => {
-		const factionId = createUuid();
-		const leading = staticTurn(10);
+	it('orders indexed siblings adjacent to their target on both sides across factions', () => {
+		const targetFactionId = createUuid();
+		const hookFactionId = createUuid();
 		const target = staticTurn(8);
-		const trailing = staticTurn(6);
-		const oneBefore = createTurn({
+		const beforeNearest = createTurn({
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 1,
+			index: 1,
 			targetTurnId: target.id
 		});
-		const oneAfter = createTurn({
+		const beforeFarthest = createTurn({
+			kind: 'relative-position',
+			relation: 'before',
+			index: 2,
+			targetTurnId: target.id
+		});
+		const afterNearest = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 1,
+			index: 1,
+			targetTurnId: target.id
+		});
+		const afterFarthest = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			index: 2,
 			targetTurnId: target.id
 		});
 
 		expect(
-			order([createCreature(factionId, [leading, target, trailing, oneBefore, oneAfter])])
-		).toEqual([oneBefore.id, leading.id, target.id, trailing.id, oneAfter.id]);
+			order([
+				createCreature(targetFactionId, [target]),
+				createCreature(hookFactionId, [afterFarthest, beforeNearest]),
+				createCreature(createUuid(), [beforeFarthest, afterNearest])
+			])
+		).toEqual([beforeFarthest.id, beforeNearest.id, target.id, afterNearest.id, afterFarthest.id]);
 	});
 
 	it('resolves a relative turn whose target is another hooked turn', () => {
@@ -268,13 +280,11 @@ describe('generateTurnOrder', () => {
 		const middle = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 0,
 			targetTurnId: target.id
 		});
 		const last = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 0,
 			targetTurnId: middle.id
 		});
 
@@ -290,13 +300,11 @@ describe('generateTurnOrder', () => {
 		const first = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 0,
 			targetTurnId: createUuid()
 		});
 		const second = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 0,
 			targetTurnId: first.id
 		});
 		const firstWithCycle = {
@@ -304,7 +312,6 @@ describe('generateTurnOrder', () => {
 			initiative: {
 				kind: 'relative-position',
 				relation: 'after',
-				distance: 0,
 				targetTurnId: second.id
 			}
 		} satisfies Turn;
@@ -405,29 +412,75 @@ describe('generateTurnOrder', () => {
 		expect(order([createCreature(factionId, [top, bottom])])).toEqual([top.id, bottom.id]);
 	});
 
-	it('clamps relative placements that fall beyond either end of the list', () => {
+	it('keeps relative hook subtrees attached to their target when unrelated turns are inserted', () => {
 		const factionId = createUuid();
-		const first = staticTurn(9);
-		const second = staticTurn(8);
-		const tooEarly = createTurn({
-			kind: 'relative-position',
-			relation: 'before',
-			distance: 5,
-			targetTurnId: first.id
-		});
-		const tooLate = createTurn({
+		const unrelatedHigh = staticTurn(10);
+		const target = staticTurn(8);
+		const unrelatedLow = staticTurn(6);
+		const nearest = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 5,
-			targetTurnId: second.id
+			targetTurnId: target.id
+		});
+		const nested = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			targetTurnId: nearest.id
 		});
 
-		expect(order([createCreature(factionId, [first, second, tooEarly, tooLate])])).toEqual([
-			tooEarly.id,
-			first.id,
-			second.id,
-			tooLate.id
+		expect(
+			order([createCreature(factionId, [unrelatedHigh, target, unrelatedLow, nearest, nested])])
+		).toEqual([unrelatedHigh.id, target.id, nearest.id, nested.id, unrelatedLow.id]);
+	});
+
+	it('counts fixed positions by root turns, not by relative hooks in their groups', () => {
+		const factionId = createUuid();
+		const target = staticTurn(10);
+		const other = staticTurn(8);
+		const fixed = createTurn({ kind: 'fixed-position', from: 'top', position: 2 });
+		const before = createTurn({
+			kind: 'relative-position',
+			relation: 'before',
+			targetTurnId: target.id
+		});
+
+		expect(order([createCreature(factionId, [target, other, fixed, before])])).toEqual([
+			before.id,
+			target.id,
+			fixed.id,
+			other.id
 		]);
+	});
+
+	it.each([
+		{ caseName: 'missing', firstIndex: undefined, secondIndex: undefined },
+		{ caseName: 'zero', firstIndex: 0, secondIndex: 2 },
+		{ caseName: 'negative', firstIndex: -1, secondIndex: 2 },
+		{ caseName: 'fractional', firstIndex: 1.5, secondIndex: 2 },
+		{ caseName: 'duplicate', firstIndex: 1, secondIndex: 1 },
+		{ caseName: 'gapped', firstIndex: 1, secondIndex: 3 }
+	])('rejects $caseName sibling indices', ({ firstIndex, secondIndex }) => {
+		const factionId = createUuid();
+		const target = staticTurn(5);
+		const first = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			...(firstIndex === undefined ? {} : { index: firstIndex }),
+			targetTurnId: target.id
+		});
+		const second = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			...(secondIndex === undefined ? {} : { index: secondIndex }),
+			targetTurnId: target.id
+		});
+
+		expect(() => order([createCreature(factionId, [target, first, second])])).toThrow(
+			expect.objectContaining({
+				name: 'TurnOrderError',
+				turnIds: [first.id, second.id]
+			})
+		);
 	});
 
 	it('rejects a relative placement whose target is not in the challenge order', () => {
@@ -435,7 +488,6 @@ describe('generateTurnOrder', () => {
 		const unresolved = createTurn({
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: createUuid()
 		});
 
@@ -463,21 +515,20 @@ describe('prepareTurnOrder', () => {
 		});
 	});
 
-	it('reports turns whose fixed or relative placement was clamped', () => {
+	it('reports fixed placement clamping without clamping relative hooks', () => {
 		const factionId = createUuid();
 		const target = staticTurn(3);
 		const fixed = createTurn({ kind: 'fixed-position', from: 'top', position: 99 });
 		const relative = createTurn({
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 99,
 			targetTurnId: target.id
 		});
 		const challenge = createChallenge([createCreature(factionId, [target, fixed, relative])]);
 
 		expect(prepareTurnOrder(challenge, {})).toMatchObject({
 			status: 'generated',
-			clampedTurnIds: [fixed.id, relative.id]
+			clampedTurnIds: [fixed.id]
 		});
 	});
 
@@ -505,7 +556,6 @@ describe('prepareTurnOrder', () => {
 		const unresolved = createTurn({
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: createUuid()
 		});
 		const challenge = createChallenge([createCreature(factionId, [missing, unresolved])]);
@@ -521,7 +571,6 @@ describe('prepareTurnOrder', () => {
 		const unresolved = createTurn({
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: createUuid()
 		});
 		const challenge = createChallenge([createCreature(factionId, [unresolved])]);

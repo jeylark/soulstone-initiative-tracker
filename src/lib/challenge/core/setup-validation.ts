@@ -10,6 +10,8 @@ type NamedValue = {
 type RelativeTurn = {
 	readonly id: string;
 	readonly path: string;
+	readonly relation: 'before' | 'after';
+	readonly index?: number;
 	readonly targetTurnId: string;
 };
 
@@ -189,14 +191,6 @@ export function validateChallengeSetup(
 					path: `${path}.position`,
 					message: 'Position must be a positive whole number.'
 				});
-			} else if (
-				turn.initiative.kind === 'relative-position' &&
-				(!Number.isSafeInteger(turn.initiative.distance) || turn.initiative.distance < 0)
-			) {
-				issues.push({
-					path: `${path}.distance`,
-					message: 'Distance must be a non-negative whole number.'
-				});
 			}
 		});
 	});
@@ -208,12 +202,45 @@ export function validateChallengeSetup(
 						{
 							id: turn.id,
 							path: `$.creatures[${creatureIndex}].turns[${turnIndex}].initiative`,
+							relation: turn.initiative.relation,
+							...(turn.initiative.index === undefined ? {} : { index: turn.initiative.index }),
 							targetTurnId: turn.initiative.targetTurnId
 						}
 					]
 				: []
 		)
 	);
+	const indexIssuePaths = new Set<string>();
+	function addIndexIssue(path: string, message: string): void {
+		const indexPath = `${path}.index`;
+		if (indexIssuePaths.has(indexPath)) return;
+		indexIssuePaths.add(indexPath);
+		issues.push({ path: indexPath, message });
+	}
+	const relativeGroups = new Map<string, RelativeTurn[]>();
+	for (const turn of relativeTurns) {
+		if (turn.index !== undefined && (!Number.isSafeInteger(turn.index) || turn.index < 1)) {
+			addIndexIssue(turn.path, 'Index must be a positive whole number.');
+		}
+		const key = JSON.stringify([turn.targetTurnId, turn.relation]);
+		const group = relativeGroups.get(key) ?? [];
+		group.push(turn);
+		relativeGroups.set(key, group);
+	}
+	for (const group of relativeGroups.values()) {
+		if (group.length < 2) continue;
+		const indices = group.map(({ index }) => index);
+		const hasContiguousIndices =
+			indices.every((index): index is number => Number.isSafeInteger(index) && index! > 0) &&
+			new Set(indices).size === group.length &&
+			Math.min(...indices) === 1 &&
+			Math.max(...indices) === group.length;
+		if (!hasContiguousIndices) {
+			for (const turn of group) {
+				addIndexIssue(turn.path, 'Multiple hooks need unique, contiguous indices starting at 1.');
+			}
+		}
+	}
 	const relativeTurnPaths = new Map<string, string>(
 		relativeTurns.map(({ id, path }) => [id, path])
 	);

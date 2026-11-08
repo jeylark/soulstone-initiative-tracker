@@ -17,7 +17,7 @@ function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiativ
 			return {
 				kind: 'relative-position',
 				relation: initiative.relation,
-				distance: initiative.distance,
+				...(initiative.index === undefined ? {} : { index: initiative.index }),
 				targetTurnId: initiative.targetTurnId
 			};
 	}

@@ -107,12 +107,12 @@ export type TurnInitiative =
 			position: number;
 	  }
 	| {
-			/** Place the turn at an offset from another turn after the list is ordered. */
+			/** Place the turn immediately before or after its target within a sibling group. */
 			kind: 'relative-position';
 			/** Whether this turn is placed before or after its target. */
 			relation: 'before' | 'after';
-			/** Number of positions between this turn and its target. */
-			distance: number;
+			/** One-based order among hooks sharing this target and relation; index 1 is nearest the target. */
+			index?: number;
 			/** ID of the turn that determines this turn's relative placement. */
 			targetTurnId: StableId;
 	  };

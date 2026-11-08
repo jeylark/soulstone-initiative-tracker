@@ -95,6 +95,25 @@
 			}));
 		});
 	}
+
+	function siblingCount(turnId: StableId): number {
+		const turn = creatures.flatMap((creature) => creature.turns).find((item) => item.id === turnId);
+		if (turn?.initiative.kind !== 'relative-position') return 0;
+		const { targetTurnId, relation } = turn.initiative;
+		return creatures.reduce(
+			(count, creature) =>
+				count +
+				creature.turns.filter((item) => {
+					const initiative = item.initiative;
+					return (
+						initiative.kind === 'relative-position' &&
+						initiative.targetTurnId === targetTurnId &&
+						initiative.relation === relation
+					);
+				}).length,
+			0
+		);
+	}
 </script>
 
 <Card title={faction.name} headingLevel="h3" headerSize="medium" variant="inset" spacing="compact">
@@ -145,6 +164,7 @@
 					issuePath={`$.creatures[${creatures.indexOf(creature)}]`}
 					{npcTypes}
 					targetTurns={targetTurns()}
+					{siblingCount}
 					onVisibilityChange={onCreatureVisibilityChange}
 					{onNpcTypeChange}
 					{onCharacterNameChange}
