@@ -252,7 +252,7 @@ suite (7 files, 98 tests passed); editor/source diagnostics (no errors);
 `git diff --check` (clean); Prettier applied to every changed file. Manual
 checks: none; desktop/mobile interaction is reserved for SPAWN-05. Skipped:
 app-wide `npm run check`, `npm run lint`, and `npm test` per AGENTS.md. Blockers:
-none. Commit hash: record in a subsequent completion note after committing.
+none. Commit: `1b23456`.
 
 ### SPAWN-04: Missing Initiatives and Ties
 
