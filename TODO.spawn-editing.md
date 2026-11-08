@@ -179,7 +179,7 @@ Manual checks: none (no UI). Skipped: `npm test`/`npm run lint`/`npm run build`
 
 ### SPAWN-02: Run Editing Transitions
 
-- [ ] Complete and commit `feat: add Spawn editing controls to Run`.
+- [x] Complete and commit `feat: add Spawn editing controls to Run`.
 
 **Dependencies:** SPAWN-01.
 
@@ -203,7 +203,14 @@ Advancing after completion must count Spawn exactly once.
 
 **Gate:** Focused RunPanel and page tests; formatting; `npm run check`; step diff.
 
-**Completion:** Not started.
+**Completion:** 2026-11-08, Copilot session on branch `upgraded-spoon`. Changed:
+`RunPanel.svelte` (Edit Challenge, entry save before Setup navigation, guarded Next
+turn, Calculate Turn Order completing editing with Spawn first), `+page.svelte`
+(tab switches blocked during transition saves, `onTabChange` wiring), and their
+specs. Checks: `npx vitest run "src/routes/challenges/[challengeId]"` (167 tests
+passed); `npm run check` (0 errors); eslint on edited files clean; prettier applied.
+Not covered: no-op/empty/hidden-turn edge tests beyond existing generation tests.
+Manual checks: none. Skipped: `npm test`/`npm run build` (pre-PR only). Blockers: none.
 
 ### SPAWN-03: Restricted Setup Controls
 
