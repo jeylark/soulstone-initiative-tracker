@@ -133,9 +133,8 @@ describe('turn-order run route', () => {
 			kind: 'turn',
 			turnId: '00000000-0000-4000-8000-000000000099' as StableId
 		});
-		await saveChallengeToLibrary(challenge);
 
-		render(turnOrderPage);
+		render(turnOrderPage, { props: { sharedChallenge: challenge } });
 
 		expect(
 			await screen.findByText(
