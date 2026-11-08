@@ -17,23 +17,18 @@ function normalizedName(value: string): string {
 	return value.trim().toLowerCase();
 }
 
-function addBlankNameIssues(
-	values: readonly NamedValue[],
-	label: string,
-	issues: ValidationIssue[]
-): void {
+function addBlankNameIssues(values: readonly NamedValue[], label: string): ValidationIssue[] {
+	const issues: ValidationIssue[] = [];
 	for (const { path, value } of values) {
 		if (value.trim().length === 0) {
 			issues.push({ path, message: `${label} must not be blank.` });
 		}
 	}
+	return issues;
 }
 
-function addDuplicateNameIssues(
-	values: readonly NamedValue[],
-	message: string,
-	issues: ValidationIssue[]
-): void {
+function addDuplicateNameIssues(values: readonly NamedValue[], message: string): ValidationIssue[] {
+	const issues: ValidationIssue[] = [];
 	const seen = new Set<string>();
 	for (const { path, value } of values) {
 		const name = normalizedName(value);
@@ -44,6 +39,7 @@ function addDuplicateNameIssues(
 			seen.add(name);
 		}
 	}
+	return issues;
 }
 
 function getCyclicTurns(turns: readonly RelativeTurn[]): ReadonlySet<string> {
@@ -112,30 +108,33 @@ export function validateChallengeSetup(
 			: []
 	);
 
-	addBlankNameIssues(challengeName, 'Challenge name', issues);
-	addBlankNameIssues(factionNames, 'Faction name', issues);
-	addBlankNameIssues(npcTypeNames, 'NPC type name', issues);
-	addBlankNameIssues(characterNames, 'Character name', issues);
-	addBlankNameIssues(npcIdentifiers, 'NPC identifier', issues);
-	addDuplicateNameIssues(
-		factionNames,
-		'Faction names must be unique, ignoring case and surrounding whitespace.',
-		issues
+	issues.push(...addBlankNameIssues(challengeName, 'Challenge name'));
+	issues.push(...addBlankNameIssues(factionNames, 'Faction name'));
+	issues.push(...addBlankNameIssues(npcTypeNames, 'NPC type name'));
+	issues.push(...addBlankNameIssues(characterNames, 'Character name'));
+	issues.push(...addBlankNameIssues(npcIdentifiers, 'NPC identifier'));
+	issues.push(
+		...addDuplicateNameIssues(
+			factionNames,
+			'Faction names must be unique, ignoring case and surrounding whitespace.'
+		)
 	);
-	addDuplicateNameIssues(
-		[...characterNames, ...npcTypeNames],
-		'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.',
-		issues
+	issues.push(
+		...addDuplicateNameIssues(
+			[...characterNames, ...npcTypeNames],
+			'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+		)
 	);
 	for (const creatureTypeId of new Set(
 		npcIdentifiers.map(({ creatureTypeId }) => creatureTypeId)
 	)) {
-		addDuplicateNameIssues(
-			npcIdentifiers
-				.filter((item) => item.creatureTypeId === creatureTypeId)
-				.map(({ path, value }) => ({ path, value })),
-			'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.',
-			issues
+		issues.push(
+			...addDuplicateNameIssues(
+				npcIdentifiers
+					.filter((item) => item.creatureTypeId === creatureTypeId)
+					.map(({ path, value }) => ({ path, value })),
+				'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+			)
 		);
 	}
 
