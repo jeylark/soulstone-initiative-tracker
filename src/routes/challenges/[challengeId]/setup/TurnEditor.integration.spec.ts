@@ -147,6 +147,67 @@ describe('new challenge setup', () => {
 		expect(within(thirdPlayer).queryByRole('group', { name: 'Turn 1' })).toBeNull();
 	});
 
+	it('uses sibling indices for shared hook directions without redundant direction controls', async () => {
+		await renderSetup();
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		for (let index = 0; index < 3; index += 1) {
+			await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		}
+		const firstPlayer = within(playersPanel).getByRole('group', { name: 'Player 1' });
+		const secondPlayer = within(playersPanel).getByRole('group', { name: 'Player 2' });
+		const thirdPlayer = within(playersPanel).getByRole('group', { name: 'Player 3' });
+		const firstTurn = within(firstPlayer).getByRole('group', { name: 'Turn 1' });
+		const secondTurn = within(secondPlayer).getByRole('group', { name: 'Turn 1' });
+		const thirdTurn = within(thirdPlayer).getByRole('group', { name: 'Turn 1' });
+
+		const firstInitiative = within(firstTurn).getByRole('combobox', { name: 'Turn initiative' });
+		await fireEvent.change(firstInitiative, { target: { value: 'fixed-top' } });
+		expect(within(firstTurn).getByRole('spinbutton', { name: 'Position' })).toBeTruthy();
+		expect(within(firstTurn).queryByRole('combobox', { name: 'Count from' })).toBeNull();
+		await fireEvent.change(firstInitiative, { target: { value: 'fixed-bottom' } });
+
+		await fireEvent.change(within(secondTurn).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'relative-after' }
+		});
+		await fireEvent.change(within(thirdTurn).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'relative-after' }
+		});
+
+		expect(within(secondTurn).getByRole('combobox', { name: 'Target turn' })).toBeTruthy();
+		expect(within(secondTurn).queryByRole('combobox', { name: 'Relationship' })).toBeNull();
+		expect(within(secondTurn).queryByRole('spinbutton', { name: 'Distance' })).toBeNull();
+		const firstIndex = await within(secondTurn).findByRole('spinbutton', { name: 'Index' });
+		const secondIndex = await within(thirdTurn).findByRole('spinbutton', { name: 'Index' });
+		await fireEvent.input(firstIndex, { target: { value: '1' } });
+		await fireEvent.input(secondIndex, { target: { value: '2' } });
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			const fixed = saved?.creatures.find(
+				(creature) => creature.kind === 'character' && creature.name === 'Player 1'
+			)?.turns[0]?.initiative;
+			const firstHook = saved?.creatures.find(
+				(creature) => creature.kind === 'character' && creature.name === 'Player 2'
+			)?.turns[0]?.initiative;
+			const secondHook = saved?.creatures.find(
+				(creature) => creature.kind === 'character' && creature.name === 'Player 3'
+			)?.turns[0]?.initiative;
+			expect(fixed).toMatchObject({ kind: 'fixed-position', from: 'bottom' });
+			expect(firstHook).toMatchObject({ kind: 'relative-position', relation: 'after', index: 1 });
+			expect(secondHook).toMatchObject({ kind: 'relative-position', relation: 'after', index: 2 });
+		});
+
+		await fireEvent.change(within(thirdTurn).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'relative-before' }
+		});
+		await waitFor(() => {
+			expect(within(secondTurn).queryByRole('spinbutton', { name: 'Index' })).toBeNull();
+			expect(within(thirdTurn).queryByRole('spinbutton', { name: 'Index' })).toBeNull();
+		});
+		expect(within(firstPlayer).getByRole('group', { name: 'Turn 1' })).toBeTruthy();
+	});
+
 	it('uses initiative choices for direction and restores the saved placement selections', async () => {
 		await renderSetup();
 
@@ -173,7 +234,8 @@ describe('new challenge setup', () => {
 		expect(within(turns[0]!).getByRole('spinbutton', { name: 'Position' })).toBeTruthy();
 		expect(within(turns[1]!).getByRole('spinbutton', { name: 'Position' })).toBeTruthy();
 		for (const turn of turns.slice(2)) {
-			expect(within(turn).getByRole('spinbutton', { name: 'Distance' })).toBeTruthy();
+			expect(within(turn).queryByRole('spinbutton', { name: 'Distance' })).toBeNull();
+			expect(within(turn).queryByRole('spinbutton', { name: 'Index' })).toBeNull();
 			expect(within(turn).getByRole('combobox', { name: 'Target turn' })).toBeTruthy();
 		}
 
@@ -185,13 +247,11 @@ describe('new challenge setup', () => {
 				{
 					kind: 'relative-position',
 					relation: 'before',
-					distance: 1,
 					targetTurnId: savedChallenge.creatures[0]!.turns[0]!.id
 				},
 				{
 					kind: 'relative-position',
 					relation: 'after',
-					distance: 1,
 					targetTurnId: savedChallenge.creatures[0]!.turns[0]!.id
 				}
 			]);

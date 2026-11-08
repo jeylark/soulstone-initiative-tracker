@@ -214,8 +214,16 @@ function validateTurnInitiative(
 				addIssue(`${path}.relation`, 'Expected "before" or "after".');
 				isValid = false;
 			}
-			if (typeof value.distance !== 'number' || !Number.isFinite(value.distance)) {
-				addIssue(`${path}.distance`, 'Expected a finite number.');
+			if ('distance' in value) {
+				addIssue(`${path}.distance`, 'Relative placement no longer supports distance.');
+				isValid = false;
+			}
+			if (
+				'index' in value &&
+				value.index !== undefined &&
+				(typeof value.index !== 'number' || !Number.isFinite(value.index))
+			) {
+				addIssue(`${path}.index`, 'Expected a finite number.');
 				isValid = false;
 			}
 			if (!validateStableId(value.targetTurnId, `${path}.targetTurnId`, addIssue)) {

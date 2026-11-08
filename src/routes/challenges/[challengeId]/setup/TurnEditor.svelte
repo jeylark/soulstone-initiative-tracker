@@ -11,6 +11,7 @@
 		issuePath: string;
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
+		siblingCount: number;
 		onChange: (change: Readonly<TurnEditorChange>) => void;
 		onRemove: () => void;
 	}
@@ -22,11 +23,12 @@
 		issuePath,
 		creatureName,
 		targetTurns,
+		siblingCount,
 		onChange,
 		onRemove
 	}: Props = $props();
 	let positionError = $derived(issueMessage(setupIssues, `${issuePath}.position`));
-	let distanceError = $derived(issueMessage(setupIssues, `${issuePath}.distance`));
+	let indexError = $derived(issueMessage(setupIssues, `${issuePath}.index`));
 	let relativeError = $derived(issueMessage(setupIssues, issuePath));
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
@@ -95,18 +97,23 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
-				<NumberInput
-					label="Distance"
-					isInvalid={distanceError !== undefined}
-					invalidMessage={distanceError}
-					value={turn.initiative.distance}
-					min="0"
-					step="1"
-					oninput={(event) => {
-						const distance = event.currentTarget.valueAsNumber;
-						if (Number.isFinite(distance)) onChange({ kind: 'relative-distance', distance });
-					}}
-				/>
+				{#if siblingCount > 1}
+					<NumberInput
+						label="Index"
+						isInvalid={indexError !== undefined}
+						invalidMessage={indexError}
+						value={turn.initiative.index ?? ''}
+						min="1"
+						step="1"
+						oninput={(event) => {
+							const index = event.currentTarget.valueAsNumber;
+							onChange({
+								kind: 'relative-index',
+								index: Number.isFinite(index) ? index : undefined
+							});
+						}}
+					/>
+				{/if}
 				<SelectInput
 					label="Target turn"
 					isInvalid={relativeError !== undefined}

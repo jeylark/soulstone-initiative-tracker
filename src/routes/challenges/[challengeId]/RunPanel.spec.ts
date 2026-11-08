@@ -285,13 +285,11 @@ describe('turn-order run route', () => {
 		challenge.creatures[0]!.turns[0]!.initiative = {
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: rookTurnId
 		};
 		challenge.creatures[1]!.turns[0]!.initiative = {
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: ariaTurnId
 		};
 		await saveChallengeToLibrary(challenge);
@@ -586,13 +584,11 @@ describe('turn-order run route', () => {
 		challenge.creatures[0]!.turns[0]!.initiative = {
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: rookTurnId
 		};
 		challenge.creatures[1]!.turns[0]!.initiative = {
 			kind: 'relative-position',
 			relation: 'before',
-			distance: 0,
 			targetTurnId: ariaTurnId
 		};
 		await saveChallengeToLibrary(challenge);

@@ -398,7 +398,6 @@
 			turn.initiative = {
 				kind: 'relative-position',
 				relation: choice === 'relative-before' ? 'before' : 'after',
-				distance: 1,
 				targetTurnId: otherTurn.id
 			};
 		} else hasChanged = false;
@@ -433,9 +432,10 @@
 		} else if (change.kind === 'fixed-position' && initiative.kind === 'fixed-position') {
 			hasChanged = initiative.position !== change.position;
 			initiative.position = change.position;
-		} else if (change.kind === 'relative-distance' && initiative.kind === 'relative-position') {
-			hasChanged = initiative.distance !== change.distance;
-			initiative.distance = change.distance;
+		} else if (change.kind === 'relative-index' && initiative.kind === 'relative-position') {
+			hasChanged = initiative.index !== change.index;
+			if (change.index === undefined) delete initiative.index;
+			else initiative.index = change.index;
 		} else if (change.kind === 'relative-target' && initiative.kind === 'relative-position') {
 			hasChanged = initiative.targetTurnId !== change.targetTurnId;
 			initiative.targetTurnId = change.targetTurnId;

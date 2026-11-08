@@ -22,6 +22,7 @@
 		issuePath: string;
 		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
+		siblingCount: (turnId: StableId) => number;
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (creatureId: StableId, name: string) => void;
@@ -49,6 +50,7 @@
 		issuePath,
 		npcTypes,
 		targetTurns,
+		siblingCount,
 		onVisibilityChange,
 		onNpcTypeChange,
 		onCharacterNameChange,
@@ -145,6 +147,7 @@
 					issuePath={`${issuePath}.turns[${index}].initiative`}
 					creatureName={name}
 					targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
+					siblingCount={siblingCount(turn.id)}
 					onChange={(change) => onTurnChange(creature.id, turn.id, change)}
 					onRemove={() => onRemoveTurn(creature.id, turn.id)}
 				/>

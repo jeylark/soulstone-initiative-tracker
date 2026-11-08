@@ -235,7 +235,7 @@ describe('validateChallengeSetup', () => {
 				initiative: {
 					kind: 'relative-position',
 					relation: 'after',
-					distance: -1,
+					index: -1,
 					targetTurnId: ids.turn
 				}
 			}
@@ -247,8 +247,99 @@ describe('validateChallengeSetup', () => {
 			'$.fairnessWeight',
 			'$.npcTypes[0].initiativeStat',
 			'$.creatures[0].turns[1].initiative.position',
-			'$.creatures[0].turns[2].initiative.distance'
+			'$.creatures[0].turns[2].initiative.index'
 		]);
+	});
+
+	it('requires contiguous sibling indices only within each target and direction group', () => {
+		const challenge = createChallenge();
+		const targetTurnId = ids.turn;
+		const makeHook = (
+			relation: 'before' | 'after',
+			index: number | undefined,
+			target = targetTurnId
+		) => ({
+			id: createUuid(),
+			initiative: {
+				kind: 'relative-position' as const,
+				relation,
+				...(index === undefined ? {} : { index }),
+				targetTurnId: target
+			}
+		});
+		const beforeOne = makeHook('before', 1);
+		const beforeTwo = makeHook('before', 2);
+		const afterOne = makeHook('after', 1);
+		challenge.creatures[0]!.turns.push(beforeOne, beforeTwo, afterOne);
+
+		expect(validateChallengeSetup(challenge)).toEqual([]);
+	});
+
+	it('blocks missing, duplicate, and gapped indices for multi-hook groups', () => {
+		for (const indices of [
+			[undefined, undefined],
+			[1, 1],
+			[1, 3]
+		] as const) {
+			const challenge = createChallenge();
+			const targetTurnId = ids.turn;
+			const hooks = indices.map((index) => ({
+				id: createUuid(),
+				initiative: {
+					kind: 'relative-position' as const,
+					relation: 'after' as const,
+					...(index === undefined ? {} : { index }),
+					targetTurnId
+				}
+			}));
+			challenge.creatures[0]!.turns.push(...hooks);
+
+			const issues = validateChallengeSetup(challenge);
+
+			expect(issues.map(({ path }) => path)).toEqual(
+				hooks.map(
+					(hook) =>
+						`$.creatures[0].turns[${challenge.creatures[0]!.turns.indexOf(hook)}].initiative.index`
+				)
+			);
+		}
+	});
+
+	it('allows a singleton to keep an unused index and updates groups after target changes', () => {
+		const challenge = createChallenge();
+		const targetTurnId = ids.turn;
+		const sibling = {
+			id: createUuid(),
+			initiative: {
+				kind: 'relative-position' as const,
+				relation: 'after' as const,
+				index: 1,
+				targetTurnId
+			}
+		};
+		const secondSibling = {
+			id: createUuid(),
+			initiative: {
+				kind: 'relative-position' as const,
+				relation: 'after' as const,
+				index: 2,
+				targetTurnId
+			}
+		};
+		challenge.creatures[0]!.turns.push(sibling, secondSibling);
+		const otherTargetId = createUuid();
+		challenge.creatures[0]!.turns.push({
+			id: otherTargetId,
+			initiative: { kind: 'static', value: 1 }
+		});
+		expect(validateChallengeSetup(challenge)).toEqual([]);
+
+		challenge.creatures[0]!.turns.splice(2, 1);
+		expect(validateChallengeSetup(challenge)).toEqual([]);
+
+		challenge.creatures[0]!.turns.push(secondSibling);
+		secondSibling.initiative.targetTurnId = otherTargetId;
+		expect(validateChallengeSetup(challenge)).toEqual([]);
 	});
 
 	it('blocks relative-placement cycles before rolling', () => {
@@ -261,7 +352,6 @@ describe('validateChallengeSetup', () => {
 				initiative: {
 					kind: 'relative-position',
 					relation: 'before',
-					distance: 0,
 					targetTurnId: secondTurnId
 				}
 			},
@@ -270,7 +360,6 @@ describe('validateChallengeSetup', () => {
 				initiative: {
 					kind: 'relative-position',
 					relation: 'before',
-					distance: 0,
 					targetTurnId: firstTurnId
 				}
 			}

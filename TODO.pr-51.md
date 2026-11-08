@@ -124,6 +124,13 @@ otherwise record this subset and leave it Open.
 
 - [x] Remove Relationship and Count from inputs.
 
+  - 2026-11-08, branch `laughing-goggles`. Changed: `TurnEditor.svelte`,
+    `challenge-setup-types.ts`, `SetupPanel.svelte`, `FactionEditor.svelte`,
+    `CreatureEditor.svelte`, and `TurnEditor.integration.spec.ts`.
+  - Checks: focused setup tests (2 files, 61 passed); placement-focused tests
+    (7 files, 209 passed); `npm run check` (0 errors, 0 warnings).
+  - Manual checks: none. Main TODO entries moved to Done: none; no exact Open
+    match. Remaining overlap and blockers: none.
   - 2026-11-08 (Copilot session, branch `copilot/pr51-03`). Changed:
     `TurnEditor.svelte`, `challenge-setup-types.ts`, `SetupPanel.svelte`,
     `TurnEditor.integration.spec.ts`, `SetupPanel.spec.ts`, and the faction,
@@ -140,8 +147,9 @@ otherwise record this subset and leave it Open.
 
 **Confirmed behavior:** Keep the Turn initiative choices Fixed position from top,
 Fixed position from bottom, Before another turn, and After another turn. Remove
-only the separate controls that repeat these choices. Keep Position and Target
-turn; keep model `from` and `relation` fields.
+only the separate controls that repeat these choices, including Count from and
+Relationship. Keep Position and Target turn; keep model `from` and `relation`
+fields.
 
 **Implementation:** Remove the duplicate SelectInput blocks in
 [TurnEditor.svelte](src/routes/challenges/%5BchallengeId%5D/setup/TurnEditor.svelte).
@@ -151,8 +159,9 @@ and [SetupPanel.svelte](src/routes/challenges/%5BchallengeId%5D/SetupPanel.svelt
 Direction changes remain supported through `setTurnInitiative`.
 
 **Tests:** [TurnEditor.integration.spec.ts](src/routes/challenges/%5BchallengeId%5D/setup/TurnEditor.integration.spec.ts)
-and SetupPanel's tests: duplicate controls absent, all four choices update model
-direction correctly, and saved/imported selections still render correctly.
+and SetupPanel's tests: duplicate controls absent, Position and Target turn
+retained, all four choices update model direction correctly, and saved/imported
+selections still render correctly.
 
 **Main TODO:** No exact Open match.
 
@@ -191,23 +200,43 @@ and continued rejection of invalid/missing values.
 
 ### PR51-06: Adjacent Hooks and Sibling Ordering
 
-- [ ] Fix hooked turns separated from their target; replace Distance with sibling Index.
+- [x] Fix hooked turns separated from their target; replace Distance with sibling Index.
+
+  - 2026-11-08, branch `laughing-goggles`. Changed: `model.ts`, `validation.ts`,
+    `setup-validation.ts`, `turn-order.ts`, `challenge-copy.ts`, `TurnEditor.svelte`,
+    `CreatureEditor.svelte`, `FactionEditor.svelte`, `SetupPanel.svelte`,
+    `challenge-setup-types.ts`, `PROJECT_DECISIONS.md`, `model.spec.ts`,
+    `setup-validation.spec.ts`, `turn-order.spec.ts`, `challenge-copy.spec.ts`,
+    `challenge-files.spec.ts`, `RunPanel.spec.ts`, and
+    `TurnEditor.integration.spec.ts`.
+  - Compatibility: format v1 is unreleased under current project policy; no
+    migration was needed. Legacy `distance` is rejected and never mapped to
+    `index`.
+  - Checks: `npm run test:unit -- --run src/lib/challenge/core/model.spec.ts
+src/lib/challenge/core/setup-validation.spec.ts
+src/lib/challenge/initiative/turn-order.spec.ts
+src/lib/challenge/files/challenge-copy.spec.ts
+src/lib/challenge/files/challenge-files.spec.ts
+'src/routes/challenges/[challengeId]/RunPanel.spec.ts'
+'src/routes/challenges/[challengeId]/setup/TurnEditor.integration.spec.ts'`
+    (7 files, 209 passed); `npm run check` (0 errors, 0 warnings).
+  - Additional checks: focused `npx eslint` on changed TS/Svelte files (passed);
+    `npm run build` (passed); `git diff --check` (clean). Not run: full `npm test`
+    and repository-wide `npm run lint`.
+  - Manual checks: none. Main TODO entries moved to Done: none; 2.5 and 2.6
+    remain Done without duplication. Remaining overlap and blockers: none.
 
 **Confirmed behavior:** Remove Distance entirely. A single hook is adjacent to its
 target and does not show or require an index. Multiple hooks sharing both
 `targetTurnId` and `relation` require unique contiguous indices `1..N`.
 Index 1 is nearest the target: after is `target, 1, 2`; before is `2, 1, target`.
-Before and after groups are separate, and grouping is challenge-wide.
+Before and after groups are separate, and grouping is challenge-wide. Nested hook
+subtrees stay attached to their hook. Fixed positions count root turns only, so a
+root and all of its relative descendants occupy one fixed-position slot; fixed
+position clamping remains unchanged.
 
-**Current evidence:** `SetupPanel.setTurnInitiative` creates `distance: 1`;
-[turn-order.ts](src/lib/challenge/initiative/turn-order.ts) places an after hook at
-`targetIndex + 1 + distance`, leaving an intervening turn. Existing tests define
-distance zero as adjacent. This is a product/schema change, not just an off-by-one
-patch. Later sequential hook insertions may also split previously placed hooks;
-write a regression test rather than assuming a default change solves everything.
-
-**Implementation:** Replace relative `distance` with an optional sibling index
-(suggested model field: `index`) in `TurnInitiative` and `HookedTurn`. Validate
+**Implementation:** Replaced relative `distance` with optional sibling `index`
+in `TurnInitiative` and the private hook model. Validated
 conditional group requirements in setup and generation, with field issues and
 affected turn IDs. Show Index only for groups larger than one. Adding/removing
 hooks or changing target/direction must update requirements and invalidate stale
@@ -216,10 +245,9 @@ block generation rather than being silently repaired.
 
 Use dependency-aware sibling ordering instead of independent distance splices.
 Preserve chained hooks, missing-target/cycle rejection, fairness ordering,
-fixed-position behavior, and final Spawn. Ensure unrelated later insertions cannot
-separate attached relative groups. Nested hook subtrees and conflicts with fixed
-absolute positions need explicit fixtures and a documented resolution rule;
-confirm any behavior change to fixed placement before implementing it.
+fixed-position behavior, and final Spawn. Unrelated later insertions cannot
+separate attached relative groups. Relative descendants do not consume fixed
+positions; fixed placement counts root turns only.
 
 **Coordinated files:**
 [model.ts](src/lib/challenge/core/model.ts),
@@ -231,10 +259,9 @@ CreatureEditor, SetupPanel, and setup change types. Update product documentation
 relative spacing/clamping no longer applies; fixed-position clamping remains.
 Preserve stable IDs, collected results, and tie decisions.
 
-**Compatibility gate:** Inspect storage/import paths and establish whether released
-format data must remain usable before editing readers. If required, agree the
-migration first. Do not silently reinterpret old `distance` as `index`; their
-meanings differ. Update unreleased fixtures directly under repository policy.
+**Compatibility gate:** Completed. Project policy requires migrations only for
+released formats; format v1 is unreleased. The reader rejects legacy `distance`
+instead of reinterpreting it. Unreleased fixtures were updated directly.
 
 **Tests:** [turn-order.spec.ts](src/lib/challenge/initiative/turn-order.spec.ts),
 core model/validation specs, setup integration specs, RunPanel fixtures,
@@ -244,7 +271,8 @@ Cover singleton adjacency; siblings on both sides; mixed directions/cross-factio
 groups; missing, zero, negative, fractional, duplicate and gapped indices;
 one-to-two/two-to-one transitions; changed targets; hooked targets/chains;
 later insertions; fixed boundaries; cycles/missing targets; copy remapping;
-and file roundtrips. Search for remaining distance fixtures before finishing.
+and file roundtrips. No legacy `distance` fixture remains except the explicit
+reader-rejection regression.
 
 **Main TODO:** No exact Open match. Keep documented behavior consistent with
 already-Done 2.5 and 2.6 without reopening or duplicating them.

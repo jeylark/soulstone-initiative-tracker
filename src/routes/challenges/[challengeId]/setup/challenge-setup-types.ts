@@ -38,10 +38,10 @@ export type TurnEditorChange =
 			position: number;
 	  }
 	| {
-			/** Discriminant selecting a relative-placement distance update. */
-			kind: 'relative-distance';
-			/** New number of positions between this turn and its target. */
-			distance: number;
+			/** Discriminant selecting a relative sibling-index update. */
+			kind: 'relative-index';
+			/** New one-based sibling index, or undefined when cleared. */
+			index: number | undefined;
 	  }
 	| {
 			/** Discriminant selecting a relative-placement target update. */
