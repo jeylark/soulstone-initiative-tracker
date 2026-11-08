@@ -61,20 +61,30 @@ describe('RangeInput', () => {
 			step: 0.01,
 			['aria-describedby']: 'initiative-help',
 			hasWarning: true,
-			warningMessage: 'Values above 18 are valid.'
+			warningMessage: 'Values above 18 are valid.',
+			isInvalid: true,
+			invalidMessage: 'Enter a non-negative whole number.'
 		});
 
 		const slider = screen.getByRole('slider', { name: 'Initiative slider' }) as HTMLInputElement;
 		const number = screen.getByRole('spinbutton', { name: 'Initiative value' }) as HTMLInputElement;
 		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		const messageArea = slider.closest('.form-field-messages')?.querySelector('.form-control-message-area');
 
 		expect(warning.textContent).toBe('Values above 18 are valid.');
+		expect(invalid.textContent).toBe('Enter a non-negative whole number.');
+		expect(messageArea?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(2);
 		expect(slider.classList.contains('form-control--warning')).toBe(true);
 		expect(number.classList.contains('form-control--warning')).toBe(true);
 		expect(slider.getAttribute('aria-invalid')).toBeNull();
 		expect(number.getAttribute('aria-invalid')).toBeNull();
-		expect(slider.getAttribute('aria-describedby')).toBe(`initiative-help ${warning.id}`);
-		expect(number.getAttribute('aria-describedby')).toBe(`initiative-help ${warning.id}`);
+		expect(slider.getAttribute('aria-describedby')).toBe(
+			`initiative-help ${invalid.id} ${warning.id}`
+		);
+		expect(number.getAttribute('aria-describedby')).toBe(
+			`initiative-help ${invalid.id} ${warning.id}`
+		);
 
 		rerender({
 			label: 'Initiative',
