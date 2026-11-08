@@ -32,6 +32,7 @@
 				>
 					<EntityListItem
 						class="npc-type-card"
+						data-entity-id={npcType.id}
 						legend={npcType.name}
 						removeLabel={`Remove NPC type ${npcType.name}`}
 						removeText="Remove NPC type"

@@ -200,7 +200,9 @@ describe('new challenge setup', () => {
 		cleanup();
 		await renderSetup();
 		expect(
-			screen.getAllByRole('combobox', { name: 'Turn initiative' }).map((select) => (select as HTMLSelectElement).value)
+			screen
+				.getAllByRole('combobox', { name: 'Turn initiative' })
+				.map((select) => (select as HTMLSelectElement).value)
 		).toEqual(choices);
 		expect(screen.queryByRole('combobox', { name: 'Count from' })).toBeNull();
 		expect(screen.queryByRole('combobox', { name: 'Relationship' })).toBeNull();

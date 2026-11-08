@@ -49,6 +49,7 @@
 >
 	<EntityListItem
 		class="turn-card"
+		data-entity-id={turn.id}
 		aria-label={`Turn ${turnNumber}`}
 		legend={`Turn ${turnNumber}`}
 		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
@@ -81,15 +82,6 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'fixed-position'}
-				<SelectInput
-					label="Count from"
-					value={turn.initiative.from}
-					onchange={(event) =>
-						onChange({ kind: 'fixed-from', from: event.currentTarget.value as 'top' | 'bottom' })}
-				>
-					<option value="top">Top</option>
-					<option value="bottom">Bottom</option>
-				</SelectInput>
 				<NumberInput
 					label="Position"
 					isInvalid={positionError !== undefined}
@@ -103,18 +95,6 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
-				<SelectInput
-					label="Relationship"
-					value={turn.initiative.relation}
-					onchange={(event) =>
-						onChange({
-							kind: 'relative-relation',
-							relation: event.currentTarget.value as 'before' | 'after'
-						})}
-				>
-					<option value="before">Before</option>
-					<option value="after">After</option>
-				</SelectInput>
 				<NumberInput
 					label="Distance"
 					isInvalid={distanceError !== undefined}
