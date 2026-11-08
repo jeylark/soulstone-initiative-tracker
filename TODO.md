@@ -15,7 +15,6 @@ under the same category, keeping its task number and wording.
 
 #### Setup
 
-- 2.35: Validate setup values.
 - 2.33: Remove the Setup, Roll, and Run navigation buttons from their
   respective tabs.
 
@@ -226,6 +225,7 @@ under the same category, keeping its task number and wording.
   and invalidate the generated order; preserve manual/static values.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
+- 2.35: Validate setup values.
 - 2.34: Add a separate disable option for each input control and button.
 - 2.36: Extract a reusable input component that combines a slider with its
   associated input field.

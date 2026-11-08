@@ -3,7 +3,12 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
-	import { loadChallengeLibrary, saveChallengeToLibrary, type Challenge } from '#lib/challenge';
+	import {
+		loadChallengeLibrary,
+		saveChallengeToLibrary,
+		validateChallengeSetup,
+		type Challenge
+	} from '#lib/challenge';
 	import { ErrorDisplay, ViewPage } from '#lib/components';
 	import RollPanel from './RollPanel.svelte';
 	import RunPanel from './RunPanel.svelte';
@@ -21,6 +26,7 @@
 	let challenge = $state<Challenge>();
 	let activeTab = $state<WorkflowTab>('setup');
 	let hasSaveError = $state(false);
+	let setupIssues = $derived(challenge ? validateChallengeSetup(challenge) : []);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -87,6 +93,7 @@
 
 	async function selectTab(tab: WorkflowTab): Promise<void> {
 		if (tab === activeTab) return;
+		if (tab !== 'setup' && setupIssues.length > 0) return;
 		try {
 			await saveNow();
 			activeTab = tab;
@@ -112,7 +119,7 @@
 		const nextTab = workflowTabs[nextIndex];
 		if (!nextTab) return;
 		void selectTab(nextTab).then(() => {
-			document.getElementById(`challenge-tab-${nextTab}`)?.focus();
+			if (activeTab === nextTab) document.getElementById(`challenge-tab-${nextTab}`)?.focus();
 		});
 	}
 </script>
@@ -138,6 +145,7 @@
 					id={`challenge-tab-${tab}`}
 					role="tab"
 					aria-selected={activeTab === tab}
+					aria-disabled={tab !== 'setup' && setupIssues.length > 0}
 					aria-controls={`challenge-panel-${tab}`}
 					tabindex={activeTab === tab ? 0 : -1}
 					onclick={() => void selectTab(tab)}

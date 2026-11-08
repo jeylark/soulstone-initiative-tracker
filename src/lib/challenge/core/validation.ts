@@ -132,11 +132,9 @@ function validateCharacterDetails(
 	let isValidInitiativeStat = true;
 	if (
 		value.initiativeStat !== undefined &&
-		(typeof value.initiativeStat !== 'number' ||
-			!Number.isSafeInteger(value.initiativeStat) ||
-			value.initiativeStat < 1)
+		(typeof value.initiativeStat !== 'number' || !Number.isFinite(value.initiativeStat))
 	) {
-		addIssue(`${path}.initiativeStat`, 'Expected a positive whole number.');
+		addIssue(`${path}.initiativeStat`, 'Expected a finite number.');
 		isValidInitiativeStat = false;
 	}
 	return isValidName && isValidInitiativeStat;
@@ -164,11 +162,9 @@ function validateNpcType(value: unknown, path: string, addIssue: IssueRecorder):
 	const isValidId = validateStableId(value.id, `${path}.id`, addIssue);
 	const isValidName = validateString(value.name, `${path}.name`, addIssue);
 	const isValidInitiativeStat =
-		typeof value.initiativeStat === 'number' &&
-		Number.isSafeInteger(value.initiativeStat) &&
-		value.initiativeStat > 0;
+		typeof value.initiativeStat === 'number' && Number.isFinite(value.initiativeStat);
 	if (!isValidInitiativeStat) {
-		addIssue(`${path}.initiativeStat`, 'Expected a positive whole number.');
+		addIssue(`${path}.initiativeStat`, 'Expected a finite number.');
 	}
 	return isValidId && isValidName && isValidInitiativeStat;
 }
@@ -206,12 +202,8 @@ function validateTurnInitiative(
 				addIssue(`${path}.from`, 'Expected "top" or "bottom".');
 				isValid = false;
 			}
-			if (
-				typeof value.position !== 'number' ||
-				!Number.isSafeInteger(value.position) ||
-				value.position < 1
-			) {
-				addIssue(`${path}.position`, 'Expected a positive whole-number position.');
+			if (typeof value.position !== 'number' || !Number.isFinite(value.position)) {
+				addIssue(`${path}.position`, 'Expected a finite number.');
 				isValid = false;
 			}
 			return isValid;
@@ -222,12 +214,8 @@ function validateTurnInitiative(
 				addIssue(`${path}.relation`, 'Expected "before" or "after".');
 				isValid = false;
 			}
-			if (
-				typeof value.distance !== 'number' ||
-				!Number.isSafeInteger(value.distance) ||
-				value.distance < 0
-			) {
-				addIssue(`${path}.distance`, 'Expected a non-negative whole-number distance.');
+			if (typeof value.distance !== 'number' || !Number.isFinite(value.distance)) {
+				addIssue(`${path}.distance`, 'Expected a finite number.');
 				isValid = false;
 			}
 			if (!validateStableId(value.targetTurnId, `${path}.targetTurnId`, addIssue)) {
@@ -409,11 +397,9 @@ function validateChallenge(
 		validateNpcType
 	);
 	const isValidFairnessWeight =
-		typeof value.fairnessWeight === 'number' &&
-		Number.isFinite(value.fairnessWeight) &&
-		value.fairnessWeight >= 0;
+		typeof value.fairnessWeight === 'number' && Number.isFinite(value.fairnessWeight);
 	if (!isValidFairnessWeight) {
-		addIssue(`${path}.fairnessWeight`, 'Expected a non-negative number.');
+		addIssue(`${path}.fairnessWeight`, 'Expected a finite number.');
 	}
 	const isValidCreatures = validateArray(
 		value.creatures,

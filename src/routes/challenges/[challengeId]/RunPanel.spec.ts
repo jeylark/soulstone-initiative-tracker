@@ -89,6 +89,27 @@ describe('turn-order run route', () => {
 		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
 	});
 
+	it('shows a non-blocking warning when placement values are clamped', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		challenge.creatures[0]!.turns[0]!.initiative = {
+			kind: 'fixed-position',
+			from: 'top',
+			position: 99
+		};
+		challenge.runState = { initiativeResults: { [rookTurnId]: 7 } };
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		expect(
+			await screen.findByText('Some placement values exceed the available order and were clamped.')
+		).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(screen.getByRole('list', { name: 'Turns with clamped placement' })).toBeTruthy();
+	});
+
 	it('lists missing results and preserves the saved order without navigating away', async () => {
 		const challenge = createRunChallenge();
 		delete challenge.runState?.initiativeResults[ariaTurnId];

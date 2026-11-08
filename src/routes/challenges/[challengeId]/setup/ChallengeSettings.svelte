@@ -1,14 +1,19 @@
 <script lang="ts">
+	import type { ValidationIssue } from '#lib/challenge';
 	import { Card, RangeInput, TextInput } from '#lib/components';
+	import { issueMessage } from './issue-messages';
 
 	interface Props {
 		name: string;
 		fairnessWeight: number;
+		setupIssues: readonly ValidationIssue[];
 		onNameChange: (name: string) => void;
 		onFairnessWeightChange: (weight: number) => void;
 	}
 
-	let { name, fairnessWeight, onNameChange, onFairnessWeightChange }: Props = $props();
+	let { name, fairnessWeight, setupIssues, onNameChange, onFairnessWeightChange }: Props = $props();
+	let nameError = $derived(issueMessage(setupIssues, '$.name'));
+	let fairnessWeightError = $derived(issueMessage(setupIssues, '$.fairnessWeight'));
 
 	function getFairnessDescription(weight: number): string {
 		if (weight === 0) return 'Pure initiative ordering.';
@@ -26,6 +31,8 @@
 			label="Challenge name"
 			value={name}
 			autocomplete="off"
+			isInvalid={nameError !== undefined}
+			invalidMessage={nameError}
 			oninput={(event) => onNameChange(event.currentTarget.value)}
 		/>
 		<fieldset class="fairness-setting">
@@ -41,10 +48,12 @@
 				step={0.01}
 				numberMin={0}
 				numberStep="any"
+				isInvalid={fairnessWeightError !== undefined}
+				invalidMessage={fairnessWeightError}
 				onSliderInput={(event) => onFairnessWeightChange(event.currentTarget.valueAsNumber)}
 				onNumberInput={(event) => {
 					const weight = event.currentTarget.valueAsNumber;
-					if (Number.isFinite(weight) && weight >= 0) onFairnessWeightChange(weight);
+					if (Number.isFinite(weight)) onFairnessWeightChange(weight);
 				}}
 			/>
 			<p class="fairness-description" aria-live="polite">

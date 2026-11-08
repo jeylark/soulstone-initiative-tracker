@@ -1,23 +1,28 @@
 <script lang="ts">
-	import type { NpcType, StableId } from '#lib/challenge';
+	import type { NpcType, StableId, ValidationIssue } from '#lib/challenge';
 	import { Card, EntityList, EntityListItem, NumberInput, TextInput } from '#lib/components';
+	import { issueMessage } from './issue-messages';
 
 	interface Props {
 		npcTypes: readonly NpcType[];
+		setupIssues: readonly ValidationIssue[];
 		onCreate: () => void;
 		onRename: (npcTypeId: StableId, name: string) => void;
 		onInitiativeStatChange: (npcTypeId: StableId, initiativeStat: number) => void;
 		onRemove: (npcTypeId: StableId) => void;
 	}
 
-	let { npcTypes, onCreate, onRename, onInitiativeStatChange, onRemove }: Props = $props();
+	let { npcTypes, setupIssues, onCreate, onRename, onInitiativeStatChange, onRemove }: Props =
+		$props();
 </script>
 
 <Card title="NPC types" headerSize="large">
 	<fieldset class="setup-section npc-type-strip-section">
 		<legend>NPC types</legend>
 		<EntityList addLabel="Add NPC Type" onAdd={onCreate} layout="strip">
-			{#each npcTypes as npcType (npcType.id)}
+			{#each npcTypes as npcType, index (npcType.id)}
+				{@const nameError = issueMessage(setupIssues, `$.npcTypes[${index}].name`)}
+				{@const statError = issueMessage(setupIssues, `$.npcTypes[${index}].initiativeStat`)}
 				<Card
 					title={npcType.name}
 					headingLevel="h3"
@@ -36,6 +41,8 @@
 							label="NPC type name"
 							aria-label={`NPC type name: ${npcType.name}`}
 							value={npcType.name}
+							isInvalid={nameError !== undefined}
+							invalidMessage={nameError}
 							oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
 						/>
 						<NumberInput
@@ -44,8 +51,12 @@
 							value={npcType.initiativeStat}
 							min="1"
 							step="1"
-							oninput={(event) =>
-								onInitiativeStatChange(npcType.id, event.currentTarget.valueAsNumber)}
+							isInvalid={statError !== undefined}
+							invalidMessage={statError}
+							oninput={(event) => {
+								const value = event.currentTarget.valueAsNumber;
+								if (Number.isFinite(value)) onInitiativeStatChange(npcType.id, value);
+							}}
 						/>
 					</EntityListItem>
 				</Card>

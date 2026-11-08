@@ -1,18 +1,33 @@
 <script lang="ts">
-	import type { Turn, TurnInitiative } from '#lib/challenge';
+	import type { Turn, TurnInitiative, ValidationIssue } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
+	import { issueMessage } from './issue-messages';
 	import { Card, EntityListItem, NumberInput, SelectInput } from '#lib/components';
 
 	interface Props {
 		turn: Readonly<Turn>;
 		turnNumber: number;
+		setupIssues: readonly ValidationIssue[];
+		issuePath: string;
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
 		onChange: (change: Readonly<TurnEditorChange>) => void;
 		onRemove: () => void;
 	}
 
-	let { turn, turnNumber, creatureName, targetTurns, onChange, onRemove }: Props = $props();
+	let {
+		turn,
+		turnNumber,
+		setupIssues,
+		issuePath,
+		creatureName,
+		targetTurns,
+		onChange,
+		onRemove
+	}: Props = $props();
+	let positionError = $derived(issueMessage(setupIssues, `${issuePath}.position`));
+	let distanceError = $derived(issueMessage(setupIssues, `${issuePath}.distance`));
+	let relativeError = $derived(issueMessage(setupIssues, issuePath));
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
 		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
@@ -60,8 +75,10 @@
 					label="Static initiative"
 					value={turn.initiative.value}
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'static-value', value: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const value = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(value)) onChange({ kind: 'static-value', value });
+					}}
 				/>
 			{:else if turn.initiative.kind === 'fixed-position'}
 				<SelectInput
@@ -75,11 +92,15 @@
 				</SelectInput>
 				<NumberInput
 					label="Position"
+					isInvalid={positionError !== undefined}
+					invalidMessage={positionError}
 					value={turn.initiative.position}
 					min="1"
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'fixed-position', position: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const position = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(position)) onChange({ kind: 'fixed-position', position });
+					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
 				<SelectInput
@@ -96,14 +117,20 @@
 				</SelectInput>
 				<NumberInput
 					label="Distance"
+					isInvalid={distanceError !== undefined}
+					invalidMessage={distanceError}
 					value={turn.initiative.distance}
 					min="0"
 					step="1"
-					oninput={(event) =>
-						onChange({ kind: 'relative-distance', distance: event.currentTarget.valueAsNumber })}
+					oninput={(event) => {
+						const distance = event.currentTarget.valueAsNumber;
+						if (Number.isFinite(distance)) onChange({ kind: 'relative-distance', distance });
+					}}
 				/>
 				<SelectInput
 					label="Target turn"
+					isInvalid={relativeError !== undefined}
+					invalidMessage={relativeError}
 					value={turn.initiative.targetTurnId}
 					onchange={(event) =>
 						onChange({

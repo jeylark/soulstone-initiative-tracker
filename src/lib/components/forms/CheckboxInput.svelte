@@ -5,16 +5,23 @@
 	interface Props extends Omit<HTMLInputAttributes, 'type'> {
 		label: string;
 		isLabelVisuallyHidden?: boolean;
+		/** Whether to display the warning message. */
+		hasWarning?: boolean;
+		/** Warning text shown below the checkbox. */
+		warningMessage?: string;
 		isInvalid?: boolean;
 		invalidMessage?: string;
 	}
 
 	const inputId = $props.id();
 	const invalidId = `${inputId}-invalid`;
+	const warningId = `${inputId}-warning`;
 
 	let {
 		label,
 		isLabelVisuallyHidden = false,
+		hasWarning = false,
+		warningMessage,
 		isInvalid = false,
 		invalidMessage,
 		'aria-describedby': externalDescribedBy,
@@ -26,7 +33,8 @@
 	let describedBy = $derived(
 		[
 			...(externalDescribedBy ? [externalDescribedBy] : []),
-			...(isInvalid && invalidMessage ? [invalidId] : [])
+			...(isInvalid && invalidMessage ? [invalidId] : []),
+			...(hasWarning && warningMessage ? [warningId] : [])
 		].join(' ') || undefined
 	);
 </script>
@@ -46,6 +54,13 @@
 		{#if isInvalid && invalidMessage}
 			<p id={invalidId} class="form-control-message form-control-message--invalid" role="alert">
 				{invalidMessage}
+			</p>
+		{/if}
+	</div>
+	<div class="form-control-message-slot">
+		{#if hasWarning && warningMessage}
+			<p id={warningId} class="form-control-message form-control-message--warning" role="status">
+				{warningMessage}
 			</p>
 		{/if}
 	</div>

@@ -529,24 +529,19 @@
 			<ChallengeSettings
 				name={challenge.name}
 				fairnessWeight={challenge.fairnessWeight}
+				{setupIssues}
 				onNameChange={updateChallengeName}
 				onFairnessWeightChange={updateFairnessWeight}
 			/>
 
 			<NpcTypeEditor
 				npcTypes={challenge.npcTypes}
+				{setupIssues}
 				onCreate={addNpcType}
 				onRename={renameNpcType}
 				onInitiativeStatChange={updateNpcTypeInitiativeStat}
 				onRemove={removeNpcType}
 			/>
-			{#if setupIssues.length > 0}
-				<ul class="setup-validation-issues" role="alert">
-					{#each setupIssues as issue (issue.path)}
-						<li>{issue.message}</li>
-					{/each}
-				</ul>
-			{/if}
 
 			<CreatureSetup
 				factions={challenge.factions}

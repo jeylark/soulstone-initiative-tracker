@@ -458,7 +458,26 @@ describe('prepareTurnOrder', () => {
 				{ kind: 'turn', turnId: high.id },
 				{ kind: 'turn', turnId: low.id },
 				{ kind: 'spawn' }
-			]
+			],
+			clampedTurnIds: []
+		});
+	});
+
+	it('reports turns whose fixed or relative placement was clamped', () => {
+		const factionId = createUuid();
+		const target = staticTurn(3);
+		const fixed = createTurn({ kind: 'fixed-position', from: 'top', position: 99 });
+		const relative = createTurn({
+			kind: 'relative-position',
+			relation: 'after',
+			distance: 99,
+			targetTurnId: target.id
+		});
+		const challenge = createChallenge([createCreature(factionId, [target, fixed, relative])]);
+
+		expect(prepareTurnOrder(challenge, {})).toMatchObject({
+			status: 'generated',
+			clampedTurnIds: [fixed.id, relative.id]
 		});
 	});
 
@@ -561,7 +580,8 @@ describe('initiative ties', () => {
 		});
 		expect(prepareTurnOrder(challenge, {}, [[b.id, a.id]])).toEqual({
 			status: 'generated',
-			order: [{ kind: 'turn', turnId: b.id }, { kind: 'turn', turnId: a.id }, { kind: 'spawn' }]
+			order: [{ kind: 'turn', turnId: b.id }, { kind: 'turn', turnId: a.id }, { kind: 'spawn' }],
+			clampedTurnIds: []
 		});
 	});
 

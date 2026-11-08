@@ -247,37 +247,23 @@ const invalidFieldCases = [
 	{
 		field: 'NPC initiative stat',
 		path: ['challenges', 0, 'npcTypes', 0, 'initiativeStat'],
-		value: 0,
+		value: Infinity,
 		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
-		message: 'Expected a positive whole number.'
-	},
-	{
-		field: 'fractional NPC initiative stat',
-		path: ['challenges', 0, 'npcTypes', 0, 'initiativeStat'],
-		value: 1.5,
-		issuePath: '$.challenges[0].npcTypes[0].initiativeStat',
-		message: 'Expected a positive whole number.'
+		message: 'Expected a finite number.'
 	},
 	{
 		field: 'fairness weight',
 		path: ['challenges', 0, 'fairnessWeight'],
 		value: '3',
 		issuePath: '$.challenges[0].fairnessWeight',
-		message: 'Expected a non-negative number.'
-	},
-	{
-		field: 'negative fairness weight',
-		path: ['challenges', 0, 'fairnessWeight'],
-		value: -1,
-		issuePath: '$.challenges[0].fairnessWeight',
-		message: 'Expected a non-negative number.'
+		message: 'Expected a finite number.'
 	},
 	{
 		field: 'non-finite fairness weight',
 		path: ['challenges', 0, 'fairnessWeight'],
 		value: Infinity,
 		issuePath: '$.challenges[0].fairnessWeight',
-		message: 'Expected a non-negative number.'
+		message: 'Expected a finite number.'
 	},
 	{
 		field: 'creatures collection',
@@ -406,18 +392,11 @@ const invalidFieldCases = [
 		message: 'Expected "top" or "bottom".'
 	},
 	{
-		field: 'fixed initiative position',
+		field: 'non-finite fixed initiative position',
 		path: ['challenges', 0, 'creatures', 0, 'turns', 1, 'initiative'],
-		value: { kind: 'fixed-position', from: 'bottom', position: 0 },
+		value: { kind: 'fixed-position', from: 'bottom', position: Infinity },
 		issuePath: '$.challenges[0].creatures[0].turns[1].initiative.position',
-		message: 'Expected a positive whole-number position.'
-	},
-	{
-		field: 'fractional fixed initiative position',
-		path: ['challenges', 0, 'creatures', 0, 'turns', 1, 'initiative'],
-		value: { kind: 'fixed-position', from: 'bottom', position: 1.5 },
-		issuePath: '$.challenges[0].creatures[0].turns[1].initiative.position',
-		message: 'Expected a positive whole-number position.'
+		message: 'Expected a finite number.'
 	},
 	{
 		field: 'relative initiative relation',
@@ -432,28 +411,16 @@ const invalidFieldCases = [
 		message: 'Expected "before" or "after".'
 	},
 	{
-		field: 'relative initiative distance',
+		field: 'non-finite relative initiative distance',
 		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
 		value: {
 			kind: 'relative-position',
 			relation: 'after',
-			distance: -1,
+			distance: Infinity,
 			targetTurnId: ids.secondTurn
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.distance',
-		message: 'Expected a non-negative whole-number distance.'
-	},
-	{
-		field: 'fractional relative initiative distance',
-		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
-		value: {
-			kind: 'relative-position',
-			relation: 'after',
-			distance: 1.5,
-			targetTurnId: ids.secondTurn
-		},
-		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.distance',
-		message: 'Expected a non-negative whole-number distance.'
+		message: 'Expected a finite number.'
 	},
 	{
 		field: 'relative initiative target id',
@@ -851,13 +818,41 @@ describe('challenge domain models', () => {
 		}))
 	});
 
-	it('accepts characters without an initiative stat or with a positive whole number', () => {
+	it('accepts characters without an initiative stat or with a finite initiative stat', () => {
 		expect(validateChallengeLibrary(library).isValid).toBe(true);
 		expect(validateChallengeLibrary(withCharacterStat(3)).isValid).toBe(true);
+		expect(validateChallengeLibrary(withCharacterStat(0)).isValid).toBe(true);
+		expect(validateChallengeLibrary(withCharacterStat(-1)).isValid).toBe(true);
+		expect(validateChallengeLibrary(withCharacterStat(1.5)).isValid).toBe(true);
 	});
 
-	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
-		'rejects invalid player initiative stat %s',
+	it('accepts finite numeric values that fail setup readiness rules', () => {
+		const invalidSetupLibrary: ChallengeLibrary = structuredClone(library);
+		const challenge = invalidSetupLibrary.challenges[0]!;
+		challenge.fairnessWeight = -1;
+		challenge.npcTypes[0]!.initiativeStat = 0;
+		const character = challenge.creatures[0];
+		if (character?.kind === 'character') {
+			character.initiativeStat = -1;
+			character.turns[0]!.initiative = {
+				kind: 'relative-position',
+				relation: 'before',
+				distance: -1,
+				targetTurnId: ids.secondTurn
+			};
+			character.turns[1]!.initiative = {
+				kind: 'fixed-position',
+				from: 'top',
+				position: 0.5
+			};
+		}
+		delete challenge.runState;
+
+		expect(validateChallengeLibrary(invalidSetupLibrary).isValid).toBe(true);
+	});
+
+	it.each([Number.NaN, Infinity, -Infinity])(
+		'rejects non-finite player initiative stat %s',
 		(initiativeStat) => {
 			const result = validateChallengeLibrary(withCharacterStat(initiativeStat));
 
@@ -865,7 +860,7 @@ describe('challenge domain models', () => {
 			if (!result.isValid) {
 				expect(result.issues).toContainEqual({
 					path: '$.challenges[0].creatures[0].initiativeStat',
-					message: 'Expected a positive whole number.'
+					message: 'Expected a finite number.'
 				});
 			}
 		}
@@ -879,7 +874,7 @@ describe('challenge domain models', () => {
 				npcTypes: challenge.npcTypes.map((npcType) => ({
 					...npcType,
 					name: 4,
-					initiativeStat: 0
+					initiativeStat: Infinity
 				})),
 				creatures: challenge.creatures.map((creature, index) =>
 					index === 0 ? { ...creature, name: 7, factionId: createUuid() } : creature
@@ -902,7 +897,7 @@ describe('challenge domain models', () => {
 			});
 			expect(result.issues).toContainEqual({
 				path: '$.challenges[0].npcTypes[0].initiativeStat',
-				message: 'Expected a positive whole number.'
+				message: 'Expected a finite number.'
 			});
 			expect(result.issues).toContainEqual({
 				path: '$.challenges[0].creatures[0].factionId',

@@ -30,4 +30,26 @@ describe('SelectInput', () => {
 		expect(onchange).toHaveBeenCalledOnce();
 		expect(select.value).toBe('enemies');
 	});
+
+	it('shows warning and invalid messages accessibly', () => {
+		render(SelectInput, {
+			label: 'Faction',
+			children: createRawSnippet(() => ({ render: () => '<option>A</option>' })),
+			['aria-describedby']: 'help',
+			hasWarning: true,
+			warningMessage: 'Careful.',
+			isInvalid: true,
+			invalidMessage: 'Not allowed.'
+		});
+
+		const control = screen.getByRole('combobox', { name: 'Faction' });
+		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		expect(warning.textContent).toBe('Careful.');
+		expect(invalid.textContent).toBe('Not allowed.');
+		expect(control.classList.contains('form-control--warning')).toBe(true);
+		expect(control.classList.contains('form-control--invalid')).toBe(true);
+		expect(control.getAttribute('aria-invalid')).toBe('true');
+		expect(control.getAttribute('aria-describedby')).toBe(`help ${invalid.id} ${warning.id}`);
+	});
 });

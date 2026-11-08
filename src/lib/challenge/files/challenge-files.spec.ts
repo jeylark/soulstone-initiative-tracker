@@ -130,6 +130,21 @@ describe('challenge file workflows', () => {
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
+	it('round-trips finite setup-invalid values in a challenge file', async () => {
+		const challenge = createChallenge();
+		challenge.fairnessWeight = -1;
+		const character = challenge.creatures[0];
+		if (character?.kind === 'character') character.initiativeStat = 0;
+		const invalidSetupLibrary = { ...library, challenges: [challenge] };
+		const readResult = await readChallengeFile(
+			createChallengeJson(invalidSetupLibrary, challenge.id)
+		);
+
+		const preparedImport = prepareChallengeImport(emptyLibrary, readResult);
+
+		expect(preparedImport.challenge).toEqual(challenge);
+	});
+
 	it('requires confirmation for a partially invalid file and rejects it without a valid challenge', async () => {
 		const partialFile = createJsonFile(
 			JSON.stringify({

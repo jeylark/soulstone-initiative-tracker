@@ -66,6 +66,158 @@ describe('challenge setup persistence', () => {
 		});
 	});
 
+	it('autosaves finite invalid values and blocks rolling until corrected', async () => {
+		await renderSetup();
+		const fairnessInput = screen.getByRole('spinbutton', { name: 'Fairness weight value' });
+
+		await fireEvent.input(fairnessInput, { target: { value: '-1' } });
+
+		await waitFor(async () => {
+			expect((await loadChallengeLibrary()).challenges[0]?.fairnessWeight).toBe(-1);
+		});
+		expect(
+			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
+		).toBe(true);
+		expect(screen.getByText('Fairness weight must be a non-negative number.')).toBeTruthy();
+	});
+
+	it('shows validation messages on the inputs they belong to', async () => {
+		await renderSetup();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: ' ' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		await fireEvent.input(screen.getByRole('textbox', { name: /^NPC type name/ }), {
+			target: { value: '' }
+		});
+
+		const challengeName = screen.getByRole('textbox', { name: 'Challenge name' });
+		expect(challengeName.getAttribute('aria-invalid')).toBe('true');
+		expect(challengeName.getAttribute('aria-describedby')).toBeTruthy();
+		expect(screen.getByText('Challenge name must not be blank.')).toBeTruthy();
+		const npcTypeName = screen.getByRole('textbox', { name: /^NPC type name/ });
+		expect(npcTypeName.getAttribute('aria-invalid')).toBe('true');
+		expect(screen.getByText('NPC type name must not be blank.')).toBeTruthy();
+		expect(document.querySelector('.setup-validation-issues')).toBeNull();
+	});
+
+	it('marks every input in duplicate-name groups as invalid', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Duplicate names';
+		challenge.factions[1]!.name = ' players ';
+		challenge.npcTypes = [
+			{
+				id: '00000000-0000-4000-8000-000000000004' as StableId,
+				name: 'Sentinel',
+				initiativeStat: 1
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000005' as StableId,
+				name: ' sentinel ',
+				initiativeStat: 1
+			}
+		];
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'SENTINEL',
+				factionId: challenge.factions[0]!.id,
+				isHidden: false,
+				turns: []
+			},
+			...['A', 'a'].map((identifier, index) => ({
+				id: `00000000-0000-4000-8000-00000000001${index + 2}` as StableId,
+				kind: 'npc' as const,
+				creatureTypeId: '00000000-0000-4000-8000-000000000004' as StableId,
+				identifier,
+				factionId: challenge.factions[1]!.id,
+				isHidden: false,
+				turns: []
+			}))
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const factionNameInputs = screen
+			.getAllByRole('textbox')
+			.filter((input) => input.getAttribute('aria-label')?.startsWith('Faction name:'));
+		const npcTypeNameInputs = screen
+			.getAllByRole('textbox')
+			.filter((input) => input.getAttribute('aria-label')?.startsWith('NPC type name:'));
+		const characterNameInput = screen.getByRole('textbox', { name: 'Character name: SENTINEL' });
+		const npcIdentifierInputs = screen.getAllByRole('textbox', { name: 'NPC identifier' });
+		const duplicateInputs = [
+			...factionNameInputs.map((input) => ({
+				input,
+				message: 'Faction names must be unique, ignoring case and surrounding whitespace.'
+			})),
+			...npcTypeNameInputs.map((input) => ({
+				input,
+				message:
+					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			})),
+			{
+				input: characterNameInput,
+				message:
+					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			},
+			...npcIdentifierInputs.map((input) => ({
+				input,
+				message:
+					'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+			}))
+		];
+
+		expect(factionNameInputs).toHaveLength(2);
+		expect(npcTypeNameInputs).toHaveLength(2);
+		expect(npcIdentifierInputs).toHaveLength(2);
+		for (const { input, message } of duplicateInputs) {
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			const errorId = input.getAttribute('aria-describedby');
+			expect(errorId).toBeTruthy();
+			expect(document.getElementById(errorId ?? '')?.textContent).toContain(message);
+		}
+	});
+
+	it('persists invalid finite placement values in editable drafts', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Draft';
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: challenge.factions[0]!.id,
+				isHidden: false,
+				turns: [
+					{
+						id: '00000000-0000-4000-8000-000000000006' as StableId,
+						initiative: { kind: 'roll', mode: 'manual' }
+					}
+				]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'fixed-top' }
+		});
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Position' }), {
+			target: { value: '0.5' }
+		});
+
+		await waitFor(async () => {
+			const turn = (await loadChallengeLibrary()).challenges[0]?.creatures[0]?.turns[0];
+			expect(turn?.initiative).toEqual({ kind: 'fixed-position', from: 'top', position: 0.5 });
+		});
+		expect(
+			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
+		).toBe(true);
+	});
+
 	it('hides the character initiative stat unless a turn is app-rolled, keeping the value', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [
@@ -185,7 +337,7 @@ describe('challenge setup persistence', () => {
 			await screen.findAllByText(
 				'An initiative stat is required for characters with app-rolled turns.'
 			)
-		).toHaveLength(2);
+		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 
@@ -557,7 +709,7 @@ describe('challenge setup persistence', () => {
 			await screen.findAllByText(
 				'An initiative stat is required for characters with app-rolled turns.'
 			)
-		).toHaveLength(2);
+		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 

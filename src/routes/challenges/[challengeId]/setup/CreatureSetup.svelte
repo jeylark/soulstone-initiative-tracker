@@ -69,9 +69,10 @@
 	<fieldset class="setup-section faction-board-section">
 		<legend>Factions</legend>
 		<EntityList addLabel="Add Faction" onAdd={onCreateFaction} layout="grid">
-			{#each factions as faction (faction.id)}
+			{#each factions as faction, factionIndex (faction.id)}
 				<FactionEditor
 					{faction}
+					{factionIndex}
 					{creatures}
 					{npcTypes}
 					{setupIssues}

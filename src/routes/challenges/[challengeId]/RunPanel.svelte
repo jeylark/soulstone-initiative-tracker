@@ -37,6 +37,11 @@
 	let turnDisplayLookup = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
+	let clampedTurnIds = $derived.by(() => {
+		if (!challenge?.runState?.generatedTurnOrder) return [];
+		const preparation = prepareTurnOrder(challenge, challenge.runState.initiativeResults);
+		return preparation.status === 'generated' ? preparation.clampedTurnIds : [];
+	});
 	let generatedOrderDisplay = $derived.by(() => {
 		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
 		return generatedTurnOrder
@@ -155,6 +160,14 @@
 		{/if}
 		{#if generatedOrderDisplay}
 			<TurnList items={generatedOrderDisplay.items} onVisibilityChange={updateCreatureVisibility} />
+		{/if}
+		{#if clampedTurnIds.length > 0}
+			<p role="status">Some placement values exceed the available order and were clamped.</p>
+			<ul aria-label="Turns with clamped placement">
+				{#each clampedTurnIds as turnId (turnId)}
+					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+				{/each}
+			</ul>
 		{/if}
 
 		{#if generationIssue?.status === 'missing-results'}

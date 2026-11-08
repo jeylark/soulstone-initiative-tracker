@@ -115,9 +115,9 @@ describe('challenge library storage', () => {
 		});
 	});
 
-	it('saves a challenge while skipping invalid existing challenges', async () => {
+	it('saves a challenge while skipping malformed existing challenges', async () => {
 		const savedChallenge = createChallenge('Saved');
-		const invalidChallenge = { ...createChallenge('Invalid'), fairnessWeight: -1 };
+		const invalidChallenge = { ...createChallenge('Invalid'), fairnessWeight: Infinity };
 		const newChallenge = createChallenge('New');
 		await seedStoredLibrary({
 			...emptyLibrary,
@@ -147,8 +147,19 @@ describe('challenge library storage', () => {
 		});
 	});
 
-	it('does not save an invalid challenge', async () => {
-		const invalid = { ...createChallenge('Bad'), fairnessWeight: -1 };
+	it('saves and reloads a challenge with finite setup-invalid values', async () => {
+		const draft = { ...createChallenge('Draft'), fairnessWeight: -1 };
+
+		await saveChallengeToLibrary(draft, indexedDbFactory);
+
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			challenges: [draft]
+		});
+	});
+
+	it('does not save a challenge with a non-finite setup value', async () => {
+		const invalid = { ...createChallenge('Bad'), fairnessWeight: Number.NaN };
 
 		await expect(saveChallengeToLibrary(invalid, indexedDbFactory)).rejects.toBeInstanceOf(
 			ChallengeLibraryValidationError
