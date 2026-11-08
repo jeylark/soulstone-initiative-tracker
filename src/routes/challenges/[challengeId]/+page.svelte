@@ -4,9 +4,9 @@
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
-		loadChallengeLibrary,
+		loadChallengeLibraryWithDiagnostics,
 		saveChallengeToLibrary,
-		validateChallengeSetup,
+		getChallengeSetupIssues,
 		type Challenge
 	} from '#lib/challenge';
 	import { ErrorDisplay, ViewPage } from '#lib/components';
@@ -23,10 +23,11 @@
 		run: 'Run'
 	};
 	let loadStatus = $state<LoadStatus>('loading');
+	let loadErrorDetails = $state('');
 	let challenge = $state<Challenge>();
 	let activeTab = $state<WorkflowTab>('setup');
 	let hasSaveError = $state(false);
-	let setupIssues = $derived(challenge ? validateChallengeSetup(challenge) : []);
+	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -34,10 +35,17 @@
 	onMount(() => {
 		void (async () => {
 			try {
-				const library = await loadChallengeLibrary();
+				const { library, unreadableChallenges } = await loadChallengeLibraryWithDiagnostics();
 				challenge = library.challenges.find((item) => item.id === page.params.challengeId);
-				loadStatus = challenge ? 'ready' : 'not-found';
-			} catch {
+				const unreadable = unreadableChallenges.find((item) => item.id === page.params.challengeId);
+				loadErrorDetails =
+					unreadable?.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n') ?? '';
+				loadStatus = challenge ? 'ready' : unreadable ? 'error' : 'not-found';
+			} catch (error) {
+				loadErrorDetails =
+					error instanceof Error
+						? `${error.name}: ${error.message}`
+						: 'An unexpected error occurred.';
 				loadStatus = 'error';
 			}
 		})();
@@ -133,7 +141,7 @@
 		{#if loadStatus === 'not-found'}
 			<ErrorDisplay message="The challenge was not found." />
 		{:else}
-			<ErrorDisplay message="The challenge could not be loaded." />
+			<ErrorDisplay message="The challenge could not be loaded." details={loadErrorDetails} />
 		{/if}
 		<a href={resolve('/challenges')}>Return to challenges</a>
 	</ViewPage>

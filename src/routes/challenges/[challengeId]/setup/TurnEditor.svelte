@@ -11,6 +11,7 @@
 		issuePath: string;
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
+		siblingCount: number;
 		onChange: (change: Readonly<TurnEditorChange>) => void;
 		onRemove: () => void;
 	}
@@ -22,12 +23,17 @@
 		issuePath,
 		creatureName,
 		targetTurns,
+		siblingCount,
 		onChange,
 		onRemove
 	}: Props = $props();
 	let positionError = $derived(issueMessage(setupIssues, `${issuePath}.position`));
-	let distanceError = $derived(issueMessage(setupIssues, `${issuePath}.distance`));
+	let indexError = $derived(issueMessage(setupIssues, `${issuePath}.index`));
 	let relativeError = $derived(issueMessage(setupIssues, issuePath));
+	let targetError = $derived(
+		issueMessage(setupIssues, `${issuePath}.targetTurnId`) ?? relativeError
+	);
+	let staticError = $derived(issueMessage(setupIssues, `${issuePath}.value`));
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
 		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
@@ -49,6 +55,7 @@
 >
 	<EntityListItem
 		class="turn-card"
+		data-entity-id={turn.id}
 		aria-label={`Turn ${turnNumber}`}
 		legend={`Turn ${turnNumber}`}
 		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
@@ -73,6 +80,8 @@
 			{#if turn.initiative.kind === 'static'}
 				<NumberInput
 					label="Static initiative"
+					isInvalid={staticError !== undefined}
+					invalidMessage={staticError}
 					value={turn.initiative.value}
 					step="1"
 					oninput={(event) => {
@@ -81,15 +90,6 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'fixed-position'}
-				<SelectInput
-					label="Count from"
-					value={turn.initiative.from}
-					onchange={(event) =>
-						onChange({ kind: 'fixed-from', from: event.currentTarget.value as 'top' | 'bottom' })}
-				>
-					<option value="top">Top</option>
-					<option value="bottom">Bottom</option>
-				</SelectInput>
 				<NumberInput
 					label="Position"
 					isInvalid={positionError !== undefined}
@@ -103,34 +103,27 @@
 					}}
 				/>
 			{:else if turn.initiative.kind === 'relative-position'}
-				<SelectInput
-					label="Relationship"
-					value={turn.initiative.relation}
-					onchange={(event) =>
-						onChange({
-							kind: 'relative-relation',
-							relation: event.currentTarget.value as 'before' | 'after'
-						})}
-				>
-					<option value="before">Before</option>
-					<option value="after">After</option>
-				</SelectInput>
-				<NumberInput
-					label="Distance"
-					isInvalid={distanceError !== undefined}
-					invalidMessage={distanceError}
-					value={turn.initiative.distance}
-					min="0"
-					step="1"
-					oninput={(event) => {
-						const distance = event.currentTarget.valueAsNumber;
-						if (Number.isFinite(distance)) onChange({ kind: 'relative-distance', distance });
-					}}
-				/>
+				{#if siblingCount > 1 || indexError !== undefined}
+					<NumberInput
+						label="Index"
+						isInvalid={indexError !== undefined}
+						invalidMessage={indexError}
+						value={turn.initiative.index ?? ''}
+						min="1"
+						step="1"
+						oninput={(event) => {
+							const index = event.currentTarget.valueAsNumber;
+							onChange({
+								kind: 'relative-index',
+								index: Number.isFinite(index) ? index : undefined
+							});
+						}}
+					/>
+				{/if}
 				<SelectInput
 					label="Target turn"
-					isInvalid={relativeError !== undefined}
-					invalidMessage={relativeError}
+					isInvalid={targetError !== undefined}
+					invalidMessage={targetError}
 					value={turn.initiative.targetTurnId}
 					onchange={(event) =>
 						onChange({
@@ -138,6 +131,9 @@
 							targetTurnId: event.currentTarget.value as TurnTarget['id']
 						})}
 				>
+					{#if !targetTurns.some((target) => turn.initiative.kind === 'relative-position' && target.id === turn.initiative.targetTurnId)}
+						<option value={turn.initiative.targetTurnId} disabled>Missing target turn</option>
+					{/if}
 					{#each targetTurns as target (target.id)}
 						<option value={target.id}>{target.name}</option>
 					{/each}

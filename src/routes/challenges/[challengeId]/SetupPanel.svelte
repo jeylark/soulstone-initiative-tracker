@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -10,7 +10,7 @@
 		getNextFactionColor,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
-		validateChallengeSetup,
+		getChallengeSetupIssues,
 		type Challenge,
 		type ChallengeCreature,
 		type Faction,
@@ -45,7 +45,7 @@
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
-	let setupIssues = $derived(loadStatus === 'ready' ? validateChallengeSetup(challenge) : []);
+	let setupIssues = $derived(loadStatus === 'ready' ? getChallengeSetupIssues(challenge) : []);
 
 	onMount(() => {
 		if (sharedChallenge) {
@@ -106,6 +106,22 @@
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
 	}
 
+	async function focusNewEntity(entityId: StableId) {
+		await tick();
+		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
+		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+		);
+		if (!field) return;
+		field.focus();
+		if (field instanceof HTMLSelectElement) return;
+		try {
+			field.select();
+		} catch {
+			// Some input types do not support text selection.
+		}
+	}
+
 	function discardAppRolledResults(creatures: readonly DeepReadonly<ChallengeCreature>[]): void {
 		const runState = challenge.runState;
 		if (!runState) return;
@@ -149,6 +165,25 @@
 		challenge.name = name;
 	}
 
+	function resetSavedProgress(): void {
+		if (
+			window.confirm(
+				'Reset saved initiative results, tie decisions, turn order and round progress?'
+			)
+		) {
+			delete challenge.runState;
+		}
+	}
+
+	function updateCreatureFaction(creatureId: StableId, factionId: StableId): void {
+		if (!challenge.factions.some((faction) => faction.id === factionId)) return;
+		const creature = challenge.creatures.find((item) => item.id === creatureId);
+		if (!creature) return;
+		creature.factionId = factionId;
+		if (challenge.runState) delete challenge.runState.tieDecisions;
+		invalidateGeneratedTurnOrder();
+	}
+
 	function updateFairnessWeight(weight: number) {
 		if (challenge.fairnessWeight === weight) return;
 		challenge.fairnessWeight = weight;
@@ -166,6 +201,7 @@
 			color: getNextFactionColor(challenge.factions)
 		} satisfies Faction;
 		challenge.factions.push(faction);
+		void focusNewEntity(faction.id);
 	}
 
 	function nextNumberedName(prefix: string, existingNames: readonly string[]): string {
@@ -218,6 +254,7 @@
 		} satisfies NpcType;
 		challenge.npcTypes.push(npcType);
 		newNpcTypeId ||= npcType.id;
+		void focusNewEntity(npcType.id);
 	}
 
 	function renameNpcType(npcTypeId: StableId, name: string) {
@@ -264,7 +301,9 @@
 	function addTurn(creatureId: StableId) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
-		creature.turns.push(createTurn(creature.kind === 'character' ? 'manual' : 'app'));
+		const turn = createTurn(creature.kind === 'character' ? 'manual' : 'app');
+		creature.turns.push(turn);
+		void focusNewEntity(turn.id);
 		invalidateGeneratedTurnOrder();
 	}
 
@@ -276,14 +315,16 @@
 			)
 		);
 
+		const id = createUuid();
 		challenge.creatures.push({
-			id: createUuid(),
+			id,
 			kind: 'character',
 			name,
 			factionId,
 			isHidden: false,
 			turns: [createTurn('manual')]
 		});
+		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
@@ -297,8 +338,9 @@
 		);
 		const identifier = nextNumberedIdentifier(existingIdentifiers);
 
+		const id = createUuid();
 		challenge.creatures.push({
-			id: createUuid(),
+			id,
 			kind: 'npc',
 			creatureTypeId: newNpcTypeId,
 			identifier,
@@ -306,6 +348,7 @@
 			isHidden: false,
 			turns: [createTurn('app')]
 		});
+		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
@@ -374,7 +417,6 @@
 			turn.initiative = {
 				kind: 'relative-position',
 				relation: choice === 'relative-before' ? 'before' : 'after',
-				distance: 1,
 				targetTurnId: otherTurn.id
 			};
 		} else hasChanged = false;
@@ -406,18 +448,13 @@
 		if (change.kind === 'static-value' && initiative.kind === 'static') {
 			hasChanged = initiative.value !== change.value;
 			initiative.value = change.value;
-		} else if (change.kind === 'fixed-from' && initiative.kind === 'fixed-position') {
-			hasChanged = initiative.from !== change.from;
-			initiative.from = change.from;
 		} else if (change.kind === 'fixed-position' && initiative.kind === 'fixed-position') {
 			hasChanged = initiative.position !== change.position;
 			initiative.position = change.position;
-		} else if (change.kind === 'relative-relation' && initiative.kind === 'relative-position') {
-			hasChanged = initiative.relation !== change.relation;
-			initiative.relation = change.relation;
-		} else if (change.kind === 'relative-distance' && initiative.kind === 'relative-position') {
-			hasChanged = initiative.distance !== change.distance;
-			initiative.distance = change.distance;
+		} else if (change.kind === 'relative-index' && initiative.kind === 'relative-position') {
+			hasChanged = initiative.index !== change.index;
+			if (change.index === undefined) delete initiative.index;
+			else initiative.index = change.index;
 		} else if (change.kind === 'relative-target' && initiative.kind === 'relative-position') {
 			hasChanged = initiative.targetTurnId !== change.targetTurnId;
 			initiative.targetTurnId = change.targetTurnId;
@@ -525,6 +562,21 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
+		{#if setupIssues.length > 0}
+			<section aria-label="Setup validation errors" class="setup-issue-summary">
+				<h2>Validation errors</h2>
+				<ul>
+					{#each setupIssues as issue (issue.path)}
+						<li>{issue.path}: {issue.message}</li>
+					{/each}
+				</ul>
+				{#if setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
+					<ActionButton variant="danger" onclick={resetSavedProgress}
+						>Reset saved progress</ActionButton
+					>
+				{/if}
+			</section>
+		{/if}
 		<div class="challenge-setup">
 			<ChallengeSettings
 				name={challenge.name}
@@ -556,6 +608,7 @@
 				onCreateCharacter={addCharacter}
 				onCreateNpc={addNpc}
 				onCreatureVisibilityChange={updateCreatureVisibility}
+				onCreatureFactionChange={updateCreatureFaction}
 				onNpcTypeChange={updateNpcType}
 				onCharacterNameChange={updateCharacterName}
 				onCharacterInitiativeStatChange={updateCharacterInitiativeStat}
@@ -582,3 +635,16 @@
 		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>
+
+<style>
+	.setup-issue-summary {
+		margin: 16px 0;
+		overflow-wrap: anywhere;
+	}
+	.setup-issue-summary h2 {
+		font-size: 18px;
+	}
+	.setup-issue-summary ul {
+		padding-left: 24px;
+	}
+</style>

@@ -44,7 +44,7 @@ const challenge: Challenge = {
 					initiative: {
 						kind: 'relative-position',
 						relation: 'before',
-						distance: 1,
+						index: 1,
 						targetTurnId: ids.staticTurn
 					}
 				}
@@ -93,12 +93,12 @@ describe('challenge sanitization', () => {
 
 		copy.createdAt.setTime(0);
 		if (copy.creatures[0]?.turns[3]?.initiative.kind === 'relative-position') {
-			copy.creatures[0].turns[3].initiative.distance = 5;
+			copy.creatures[0].turns[3].initiative.index = 2;
 		}
 		if (copy.runState) copy.runState.initiativeResults[ids.rolledTurn] = 20;
 
 		expect(challenge.createdAt.getTime()).toBe(new Date('2025-01-02T03:04:05.000Z').getTime());
-		expect(challenge.creatures[0]?.turns[3]?.initiative).toMatchObject({ distance: 1 });
+		expect(challenge.creatures[0]?.turns[3]?.initiative).toMatchObject({ index: 1 });
 		expect(challenge.runState?.initiativeResults[ids.rolledTurn]).toBe(13);
 	});
 

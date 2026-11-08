@@ -21,7 +21,7 @@ type RelativeTurn = {
 	readonly id: StableId;
 	readonly kind: 'relative-position';
 	readonly relation: 'before' | 'after';
-	readonly distance: number;
+	readonly index?: number;
 	readonly targetTurnId: StableId;
 };
 type HookedTurn = FixedTurn | RelativeTurn;
@@ -67,7 +67,14 @@ export function findInitiativeTies(
 	const ties: StableId[][] = [];
 	for (const factionTurns of turnsByFaction.values()) {
 		const groups = new Map<number, StableId[]>();
-		for (const turn of factionTurns) groups.getOrInsert(turn.initiative, []).push(turn.id);
+		for (const turn of factionTurns) {
+			let group = groups.get(turn.initiative);
+			if (!group) {
+				group = [];
+				groups.set(turn.initiative, group);
+			}
+			group.push(turn.id);
+		}
 		ties.push(...groups.values().filter((group) => group.length > 1));
 	}
 	return ties;
@@ -130,7 +137,11 @@ function filterFactionTurns(
 	const hookedTurns: HookedTurn[] = [];
 
 	for (const creature of challenge.creatures) {
-		const factionTurns = turnsByFaction.getOrInsert(creature.factionId, []);
+		let factionTurns = turnsByFaction.get(creature.factionId);
+		if (!factionTurns) {
+			factionTurns = [];
+			turnsByFaction.set(creature.factionId, factionTurns);
+		}
 
 		for (const turn of creature.turns) {
 			if (turn.initiative.kind === 'roll') {
@@ -153,7 +164,7 @@ function filterFactionTurns(
 					id: turn.id,
 					kind: 'relative-position',
 					relation: turn.initiative.relation,
-					distance: turn.initiative.distance,
+					...(turn.initiative.index === undefined ? {} : { index: turn.initiative.index }),
 					targetTurnId: turn.initiative.targetTurnId
 				});
 			}
@@ -175,7 +186,7 @@ function filterFactionTurns(
  * @param initiativeResults Initiative values collected for rolling turns.
  * @param tieDecisions Orders chosen by the DM for tied same-faction turns; tied turns without a decision keep setup order.
  * @returns Generated play order of turn entries followed by the Spawn entry.
- * @throws {TurnOrderError} If a relative placement targets a turn that is missing from the order or the placements form a cycle.
+ * @throws {TurnOrderError} If relative targets are missing, placements form a cycle, or sibling indices are invalid.
  */
 export function generateTurnOrder(
 	challenge: DeepReadonly<Challenge>,
@@ -196,6 +207,11 @@ function generateTurnOrderWithWarnings(
 		decision.forEach((id, index) => tieRank.set(id, index));
 	}
 	const [turnsByFaction, hookedTurns] = filterFactionTurns(challenge, initiativeResults);
+	const relativeTurns = hookedTurns.filter(
+		(hook): hook is RelativeTurn => hook.kind === 'relative-position'
+	);
+	const invalidSiblingTurnIds = getInvalidSiblingTurnIds(relativeTurns);
+	if (invalidSiblingTurnIds.length > 0) throw new TurnOrderError(invalidSiblingTurnIds);
 
 	const totalInitiativeTurnCount = turnsByFaction
 		.values()
@@ -249,45 +265,120 @@ function generateTurnOrderWithWarnings(
 		initiativeTurns.push(nextTurn.id);
 	}
 
-	let pendingHooks = hookedTurns;
-	while (pendingHooks.length > 0) {
-		const deferredHooks: HookedTurn[] = [];
-
-		for (const hook of pendingHooks) {
-			let index: number;
-			if (hook.kind === 'fixed-position') {
-				index =
-					hook.from === 'top' ? hook.position - 1 : initiativeTurns.length - hook.position + 1;
-			} else {
-				const targetIndex = initiativeTurns.indexOf(hook.targetTurnId);
-				if (targetIndex === -1) {
-					deferredHooks.push(hook);
-					continue;
-				}
-				index =
-					hook.relation === 'before'
-						? targetIndex - hook.distance
-						: targetIndex + 1 + hook.distance;
-			}
-
-			const clampedIndex = clamp(index, 0, initiativeTurns.length);
-			if (clampedIndex !== index) clampedTurnIds.push(hook.id);
-			initiativeTurns.splice(clampedIndex, 0, hook.id);
-		}
-
-		if (deferredHooks.length === pendingHooks.length) {
-			throw new TurnOrderError(deferredHooks.map((hook) => hook.id));
-		}
-		pendingHooks = deferredHooks;
+	const rootTurnIds = [...initiativeTurns];
+	const fixedTurns = hookedTurns.filter(
+		(hook): hook is FixedTurn => hook.kind === 'fixed-position'
+	);
+	for (const hook of fixedTurns) {
+		const index = hook.from === 'top' ? hook.position - 1 : rootTurnIds.length - hook.position + 1;
+		const clampedIndex = clamp(index, 0, rootTurnIds.length);
+		if (clampedIndex !== index) clampedTurnIds.push(hook.id);
+		rootTurnIds.splice(clampedIndex, 0, hook.id);
 	}
+
+	const unresolvedTurnIds = getUnresolvedRelativeTurnIds(relativeTurns, rootTurnIds);
+	if (unresolvedTurnIds.length > 0) throw new TurnOrderError(unresolvedTurnIds);
+
+	const hooksByTarget = new Map<StableId, { before: RelativeTurn[]; after: RelativeTurn[] }>();
+	for (const hook of relativeTurns) {
+		const group = hooksByTarget.get(hook.targetTurnId) ?? { before: [], after: [] };
+		group[hook.relation].push(hook);
+		hooksByTarget.set(hook.targetTurnId, group);
+	}
+
+	function orderedSiblings(siblings: readonly RelativeTurn[], relation: 'before' | 'after') {
+		const ordered = [...siblings].sort((a, b) => (a.index ?? 1) - (b.index ?? 1));
+		return relation === 'before' ? ordered.reverse() : ordered;
+	}
+
+	function expandTurn(turnId: StableId): StableId[] {
+		const hooks = hooksByTarget.get(turnId);
+		return [
+			...(hooks ? orderedSiblings(hooks.before, 'before').flatMap(({ id }) => expandTurn(id)) : []),
+			turnId,
+			...(hooks ? orderedSiblings(hooks.after, 'after').flatMap(({ id }) => expandTurn(id)) : [])
+		];
+	}
+
+	const orderedTurnIds = rootTurnIds.flatMap(expandTurn);
 
 	return {
 		order: [
-			...initiativeTurns.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
+			...orderedTurnIds.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
 			{ kind: 'spawn' }
 		],
 		clampedTurnIds
 	};
+}
+
+function getInvalidSiblingTurnIds(relativeTurns: readonly RelativeTurn[]): StableId[] {
+	const groups = new Map<string, RelativeTurn[]>();
+	for (const turn of relativeTurns) {
+		const key = JSON.stringify([turn.targetTurnId, turn.relation]);
+		const group = groups.get(key) ?? [];
+		group.push(turn);
+		groups.set(key, group);
+	}
+
+	const invalidTurnIds = new Set<StableId>();
+	for (const group of groups.values()) {
+		const indices = group.map(({ index }) => index);
+		const validIndices = indices.filter(
+			(index): index is number =>
+				typeof index === 'number' && Number.isSafeInteger(index) && index > 0
+		);
+		if (validIndices.length !== group.length) {
+			if (group.length > 1 || indices.some((index) => index !== undefined)) {
+				group.forEach(({ id }) => invalidTurnIds.add(id));
+			}
+			continue;
+		}
+		if (group.length > 1) {
+			const distinctIndices = new Set(validIndices);
+			if (
+				distinctIndices.size !== group.length ||
+				Math.min(...validIndices) !== 1 ||
+				Math.max(...validIndices) !== group.length
+			) {
+				group.forEach(({ id }) => invalidTurnIds.add(id));
+			}
+		}
+	}
+	return relativeTurns.filter(({ id }) => invalidTurnIds.has(id)).map(({ id }) => id);
+}
+
+function getUnresolvedRelativeTurnIds(
+	relativeTurns: readonly RelativeTurn[],
+	rootTurnIds: readonly StableId[]
+): StableId[] {
+	const relativeById = new Map(relativeTurns.map((turn) => [turn.id, turn]));
+	const rootIds = new Set(rootTurnIds);
+	const unresolvedTurnIds = new Set<StableId>();
+
+	for (const turn of relativeTurns) {
+		const path: StableId[] = [];
+		const visited = new Set<StableId>();
+		let current: RelativeTurn | undefined = turn;
+		while (current) {
+			if (visited.has(current.id)) {
+				path.forEach((id) => unresolvedTurnIds.add(id));
+				break;
+			}
+			visited.add(current.id);
+			path.push(current.id);
+			const target = relativeById.get(current.targetTurnId);
+			if (target) {
+				current = target;
+				continue;
+			}
+			if (!rootIds.has(current.targetTurnId)) {
+				path.forEach((id) => unresolvedTurnIds.add(id));
+			}
+			break;
+		}
+	}
+
+	return relativeTurns.filter(({ id }) => unresolvedTurnIds.has(id)).map(({ id }) => id);
 }
 
 /** Outcome of {@link prepareTurnOrder}. */
@@ -297,7 +388,7 @@ export type TurnOrderPreparation =
 			readonly status: 'generated';
 			/** Generated play order of turn entries followed by the Spawn entry. */
 			readonly order: GeneratedTurnOrder;
-			/** Turn IDs whose fixed or relative placement was clamped to the available order bounds. */
+			/** Turn IDs whose fixed placement was clamped to the available root-turn bounds. */
 			readonly clampedTurnIds: readonly StableId[];
 	  }
 	| {
@@ -313,7 +404,7 @@ export type TurnOrderPreparation =
 			readonly groups: readonly (readonly StableId[])[];
 	  }
 	| {
-			/** Generation failed because placement rules could not be resolved. */
+			/** Generation failed because targets, cycles, or sibling indices make placement invalid. */
 			readonly status: 'placement-error';
 			/** IDs of the turns whose placement could not be resolved, in setup order. */
 			readonly turnIds: readonly StableId[];

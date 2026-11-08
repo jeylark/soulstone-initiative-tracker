@@ -42,7 +42,7 @@ function createChallenge(id: StableId = challengeId, name = 'The Old Keep'): Cha
 						initiative: {
 							kind: 'relative-position',
 							relation: 'before',
-							distance: 1,
+							index: 1,
 							targetTurnId: secondTurnId
 						}
 					},
@@ -257,6 +257,7 @@ describe('challenge file workflows', () => {
 		});
 		expect(copiedChallenge.creatures[0]?.turns[0]?.initiative).toMatchObject({
 			kind: 'relative-position',
+			index: 1,
 			targetTurnId: copiedChallenge.creatures[0]?.turns[1]?.id
 		});
 		expect(copiedChallenge.runState?.tieDecisions).toEqual([

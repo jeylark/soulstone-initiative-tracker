@@ -29,7 +29,7 @@ export interface GeneratedSpawnEntry {
 /** One position in the generated play order: a creature turn or the Spawn step. */
 export type GeneratedTurnOrderEntry = GeneratedTurnEntry | GeneratedSpawnEntry;
 
-/** Entries in their generated play order; Spawn is the last entry. */
+/** Entries in play order, where the first entry is the current turn; Spawn is last when freshly generated and rotates as turns advance. */
 export type GeneratedTurnOrder = GeneratedTurnOrderEntry[];
 
 /** Saved progress from initiative collection and turn-order generation. */
@@ -38,6 +38,8 @@ export interface ChallengeRunState {
 	initiativeResults: InitiativeResults;
 	/** Generated order of turns, when one has been created. */
 	generatedTurnOrder?: GeneratedTurnOrder;
+	/** Number of Spawn steps completed while running; absent means none. */
+	spawnCount?: number;
 	/** Orders chosen by the DM for groups of tied same-faction turns; each entry lists a group's turn IDs in play order. */
 	tieDecisions?: StableId[][];
 }
@@ -105,12 +107,12 @@ export type TurnInitiative =
 			position: number;
 	  }
 	| {
-			/** Place the turn at an offset from another turn after the list is ordered. */
+			/** Place the turn immediately before or after its target within a sibling group. */
 			kind: 'relative-position';
 			/** Whether this turn is placed before or after its target. */
 			relation: 'before' | 'after';
-			/** Number of positions between this turn and its target. */
-			distance: number;
+			/** One-based order among hooks sharing this target and relation; index 1 is nearest the target. */
+			index?: number;
 			/** ID of the turn that determines this turn's relative placement. */
 			targetTurnId: StableId;
 	  };

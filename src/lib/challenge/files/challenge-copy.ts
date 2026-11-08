@@ -17,7 +17,7 @@ function copyInitiative(initiative: DeepReadonly<TurnInitiative>): TurnInitiativ
 			return {
 				kind: 'relative-position',
 				relation: initiative.relation,
-				distance: initiative.distance,
+				...(initiative.index === undefined ? {} : { index: initiative.index }),
 				targetTurnId: initiative.targetTurnId
 			};
 	}
@@ -79,6 +79,9 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 						...(challenge.runState.tieDecisions === undefined
 							? {}
 							: { tieDecisions: challenge.runState.tieDecisions.map((group) => [...group]) }),
+						...(challenge.runState.spawnCount === undefined
+							? {}
+							: { spawnCount: challenge.runState.spawnCount }),
 						...(challenge.runState.generatedTurnOrder === undefined
 							? {}
 							: {

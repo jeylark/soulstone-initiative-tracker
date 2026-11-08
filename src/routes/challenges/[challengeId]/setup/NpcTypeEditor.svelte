@@ -32,6 +32,7 @@
 				>
 					<EntityListItem
 						class="npc-type-card"
+						data-entity-id={npcType.id}
 						legend={npcType.name}
 						removeLabel={`Remove NPC type ${npcType.name}`}
 						removeText="Remove NPC type"
@@ -49,7 +50,7 @@
 							label="Initiative stat (d6)"
 							aria-label={`Initiative stat for ${npcType.name}`}
 							value={npcType.initiativeStat}
-							min="1"
+							min="0"
 							step="1"
 							isInvalid={statError !== undefined}
 							invalidMessage={statError}

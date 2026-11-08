@@ -9,6 +9,31 @@ import {
 	validateChallengeLibrary
 } from '#lib/challenge';
 import { createUuid } from './uuid';
+import { validateReadableChallengeLibrary } from './validation';
+
+describe('readable challenge-library validation', () => {
+	it('allows numerical and reference errors while strict validation rejects them', () => {
+		const value = structuredClone(library);
+		value.challenges[0].fairnessWeight = Number.NaN;
+		value.challenges[0].creatures[0].factionId = createUuid();
+		value.challenges[0].runState.initiativeResults[ids.turn] = -2;
+		expect(validateReadableChallengeLibrary(value).isValid).toBe(true);
+		expect(validateChallengeLibrary(value).isValid).toBe(false);
+	});
+
+	it('still rejects unsafe shapes and ambiguous identities', () => {
+		expect(validateReadableChallengeLibrary({ ...library, challenges: [null] }).isValid).toBe(
+			false
+		);
+		expect(
+			validateReadableChallengeLibrary({
+				...library,
+				challenges: [library.challenges[0], library.challenges[0]]
+			}).isValid
+		).toBe(false);
+		expect(validateReadableChallengeLibrary({ ...library, formatVersion: 9 }).isValid).toBe(false);
+	});
+});
 
 const ids = {
 	challenge: createUuid(),
@@ -40,13 +65,13 @@ const initiativeExamples = [
 	{
 		kind: 'relative-position',
 		relation: 'before',
-		distance: 0,
+		index: 1,
 		targetTurnId: ids.secondTurn
 	},
 	{
 		kind: 'relative-position',
 		relation: 'after',
-		distance: 2,
+		index: 2,
 		targetTurnId: ids.secondTurn
 	}
 ] satisfies TurnInitiative[];
@@ -404,22 +429,33 @@ const invalidFieldCases = [
 		value: {
 			kind: 'relative-position',
 			relation: 'alongside',
-			distance: 1,
 			targetTurnId: ids.secondTurn
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.relation',
 		message: 'Expected "before" or "after".'
 	},
 	{
-		field: 'non-finite relative initiative distance',
+		field: 'legacy relative initiative distance',
 		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
 		value: {
 			kind: 'relative-position',
 			relation: 'after',
-			distance: Infinity,
+			distance: 0,
 			targetTurnId: ids.secondTurn
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.distance',
+		message: 'Relative placement no longer supports distance.'
+	},
+	{
+		field: 'non-finite relative initiative index',
+		path: ['challenges', 0, 'creatures', 0, 'turns', 0, 'initiative'],
+		value: {
+			kind: 'relative-position',
+			relation: 'after',
+			index: Infinity,
+			targetTurnId: ids.secondTurn
+		},
+		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.index',
 		message: 'Expected a finite number.'
 	},
 	{
@@ -428,7 +464,7 @@ const invalidFieldCases = [
 		value: {
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 1,
+			index: 1,
 			targetTurnId: 'invalid'
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
@@ -592,7 +628,6 @@ const invalidReferenceCases = [
 		value: {
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 1,
 			targetTurnId: createUuid()
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
@@ -604,7 +639,6 @@ const invalidReferenceCases = [
 		value: {
 			kind: 'relative-position',
 			relation: 'after',
-			distance: 1,
 			targetTurnId: ids.turn
 		},
 		issuePath: '$.challenges[0].creatures[0].turns[0].initiative.targetTurnId',
@@ -837,7 +871,7 @@ describe('challenge domain models', () => {
 			character.turns[0]!.initiative = {
 				kind: 'relative-position',
 				relation: 'before',
-				distance: -1,
+				index: -1,
 				targetTurnId: ids.secondTurn
 			};
 			character.turns[1]!.initiative = {

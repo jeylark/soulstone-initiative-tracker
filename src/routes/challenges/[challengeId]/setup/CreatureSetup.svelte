@@ -24,6 +24,7 @@
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		onCreatureFactionChange?: (creatureId: StableId, factionId: StableId) => void;
 		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
 		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
@@ -54,6 +55,7 @@
 		onCreateCharacter,
 		onCreateNpc,
 		onCreatureVisibilityChange,
+		onCreatureFactionChange,
 		onNpcTypeChange,
 		onCharacterNameChange,
 		onCharacterInitiativeStatChange,
@@ -93,6 +95,31 @@
 					{onRemoveCreature}
 				/>
 			{/each}
+			{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
+				<FactionEditor
+					{factions}
+					{creatures}
+					{npcTypes}
+					{setupIssues}
+					{npcTypeId}
+					factionIndex={-1}
+					onRename={onRenameFaction}
+					onColorChange={onFactionColorChange}
+					onRemove={onRemoveFaction}
+					{onCreateCharacter}
+					{onCreateNpc}
+					{onCreatureVisibilityChange}
+					{onCreatureFactionChange}
+					{onNpcTypeChange}
+					{onCharacterNameChange}
+					{onCharacterInitiativeStatChange}
+					{onNpcIdentifierChange}
+					{onTurnChange}
+					{onAddTurn}
+					{onRemoveTurn}
+					{onRemoveCreature}
+				/>
+			{/if}
 		</EntityList>
 	</fieldset>
 </Card>

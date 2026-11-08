@@ -1,6 +1,28 @@
 import type { DeepReadonly } from '../../DeepReadonly';
-import type { Challenge } from './model';
-import type { ValidationIssue } from './validation';
+import { CHALLENGE_FORMAT_VERSION, type Challenge } from './model';
+import { validateChallengeLibrary, type ValidationIssue } from './validation';
+
+/**
+ * Collects all current setup and saved-data errors for an editable challenge.
+ * @param challenge Structurally readable challenge whose fields and references may be invalid.
+ * @returns Live blocking issues with challenge-relative paths, preferring existing inline Setup messages.
+ */
+export function getChallengeSetupIssues(
+	challenge: DeepReadonly<Challenge>
+): readonly ValidationIssue[] {
+	const issues = [...validateChallengeSetup(challenge)];
+	const result = validateChallengeLibrary({
+		formatVersion: CHALLENGE_FORMAT_VERSION,
+		challenges: [challenge]
+	});
+	if (!result.isValid) {
+		for (const issue of result.issues) {
+			const path = issue.path.replace('$.challenges[0]', '$');
+			if (!issues.some((existing) => existing.path === path)) issues.push({ ...issue, path });
+		}
+	}
+	return issues;
+}
 
 type NamedValue = {
 	readonly path: string;
@@ -10,6 +32,8 @@ type NamedValue = {
 type RelativeTurn = {
 	readonly id: string;
 	readonly path: string;
+	readonly relation: 'before' | 'after';
+	readonly index?: number;
 	readonly targetTurnId: string;
 };
 
@@ -71,6 +95,7 @@ function getCyclicTurns(turns: readonly RelativeTurn[]): ReadonlySet<string> {
 
 /**
  * Finds setup values that prevent a challenge from starting.
+ * An NPC identifier may be blank only when that NPC is the sole creature of its NPC type.
  * @param challenge Challenge setup whose names, initiative values, and placement rules are checked.
  * @returns Every blocking setup issue, with a data path and a message for the setup UI.
  */
@@ -79,7 +104,7 @@ export function validateChallengeSetup(
 ): readonly ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 	const validInitiativeStat = (value: number | undefined): value is number =>
-		typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+		typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 	const challengeName = [{ path: '$.name', value: challenge.name }];
 	const factionNames = challenge.factions.map((faction, index) => ({
 		path: `$.factions[${index}].name`,
@@ -110,7 +135,17 @@ export function validateChallengeSetup(
 	issues.push(...addBlankNameIssues(factionNames, 'Faction name'));
 	issues.push(...addBlankNameIssues(npcTypeNames, 'NPC type name'));
 	issues.push(...addBlankNameIssues(characterNames, 'Character name'));
-	issues.push(...addBlankNameIssues(npcIdentifiers, 'NPC identifier'));
+	const npcCountByType = new Map<string, number>();
+	for (const { creatureTypeId } of npcIdentifiers) {
+		npcCountByType.set(creatureTypeId, (npcCountByType.get(creatureTypeId) ?? 0) + 1);
+	}
+	// A sole NPC of its type may omit its identifier.
+	issues.push(
+		...addBlankNameIssues(
+			npcIdentifiers.filter(({ creatureTypeId }) => npcCountByType.get(creatureTypeId)! > 1),
+			'NPC identifier'
+		)
+	);
 	issues.push(
 		...addDuplicateNameIssues(
 			factionNames,
@@ -147,7 +182,7 @@ export function validateChallengeSetup(
 		if (!validInitiativeStat(npcType.initiativeStat)) {
 			issues.push({
 				path: `$.npcTypes[${index}].initiativeStat`,
-				message: 'Initiative stat must be a positive whole number.'
+				message: 'Initiative stat must be a non-negative whole number.'
 			});
 		}
 	});
@@ -163,7 +198,7 @@ export function validateChallengeSetup(
 					message:
 						creature.initiativeStat === undefined
 							? 'An initiative stat is required for characters with app-rolled turns.'
-							: 'Initiative stat must be a positive whole number.'
+							: 'Initiative stat must be a non-negative whole number.'
 				});
 			}
 		}
@@ -178,14 +213,6 @@ export function validateChallengeSetup(
 					path: `${path}.position`,
 					message: 'Position must be a positive whole number.'
 				});
-			} else if (
-				turn.initiative.kind === 'relative-position' &&
-				(!Number.isSafeInteger(turn.initiative.distance) || turn.initiative.distance < 0)
-			) {
-				issues.push({
-					path: `${path}.distance`,
-					message: 'Distance must be a non-negative whole number.'
-				});
 			}
 		});
 	});
@@ -197,12 +224,45 @@ export function validateChallengeSetup(
 						{
 							id: turn.id,
 							path: `$.creatures[${creatureIndex}].turns[${turnIndex}].initiative`,
+							relation: turn.initiative.relation,
+							...(turn.initiative.index === undefined ? {} : { index: turn.initiative.index }),
 							targetTurnId: turn.initiative.targetTurnId
 						}
 					]
 				: []
 		)
 	);
+	const indexIssuePaths = new Set<string>();
+	function addIndexIssue(path: string, message: string): void {
+		const indexPath = `${path}.index`;
+		if (indexIssuePaths.has(indexPath)) return;
+		indexIssuePaths.add(indexPath);
+		issues.push({ path: indexPath, message });
+	}
+	const relativeGroups = new Map<string, RelativeTurn[]>();
+	for (const turn of relativeTurns) {
+		if (turn.index !== undefined && (!Number.isSafeInteger(turn.index) || turn.index < 1)) {
+			addIndexIssue(turn.path, 'Index must be a positive whole number.');
+		}
+		const key = JSON.stringify([turn.targetTurnId, turn.relation]);
+		const group = relativeGroups.get(key) ?? [];
+		group.push(turn);
+		relativeGroups.set(key, group);
+	}
+	for (const group of relativeGroups.values()) {
+		if (group.length < 2) continue;
+		const indices = group.map(({ index }) => index);
+		const hasContiguousIndices =
+			indices.every((index): index is number => Number.isSafeInteger(index) && index! > 0) &&
+			new Set(indices).size === group.length &&
+			Math.min(...indices) === 1 &&
+			Math.max(...indices) === group.length;
+		if (!hasContiguousIndices) {
+			for (const turn of group) {
+				addIndexIssue(turn.path, 'Multiple hooks need unique, contiguous indices starting at 1.');
+			}
+		}
+	}
 	const relativeTurnPaths = new Map<string, string>(
 		relativeTurns.map(({ id, path }) => [id, path])
 	);

@@ -1,14 +1,14 @@
 /**
  * Rolls initiative using one six-sided die per point of initiative stat.
  *
- * @param diceCount Number of d6 to roll; must be a positive safe integer.
+ * @param diceCount Number of d6 to roll; must be a non-negative safe integer.
  * @param random Source of samples in the range [0, 1), defaulting to `Math.random`.
- * @returns The sum of every die when fewer than three are rolled, or the highest three otherwise.
- * @throws {RangeError} If `diceCount` is not a positive safe integer or the random source returns a value outside [0, 1).
+ * @returns 0 when no dice are rolled, the sum of every die when fewer than three are rolled, or the highest three otherwise.
+ * @throws {RangeError} If `diceCount` is not a non-negative safe integer or the random source returns a value outside [0, 1).
  */
 export function rollInitiative(diceCount: number, random: () => number = Math.random): number {
-	if (!Number.isSafeInteger(diceCount) || diceCount < 1) {
-		throw new RangeError('Dice count must be a positive safe integer.');
+	if (!Number.isSafeInteger(diceCount) || diceCount < 0) {
+		throw new RangeError('Dice count must be a non-negative safe integer.');
 	}
 
 	let total = 0;
