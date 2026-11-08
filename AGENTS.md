@@ -18,6 +18,9 @@ Follow these instructions for every task in this repository.
   If decisions are made concerning the app's behavior 
 - Try to split large changes into separate edits that are also commited
   individually.
+- Do not run app-wide `npm run check`, `npm run lint` or `npm test`. This will
+  be done later by the CI. If necessary, reconfirm with the user if the command
+  should be ran.
 
 ## Coding guidelines
 - Public API documentation is mandatory for every exported symbol, including
