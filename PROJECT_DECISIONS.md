@@ -97,6 +97,7 @@ Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[chal
 - Make the app usable on mobile devices, and use the available space on larger screens where practical.
 - Implement changes incrementally in small, reviewable steps; avoid large bulk changes.
 - Use a test-driven approach: clarify the expected behavior before implementation, then write or update tests for that behavior before writing or changing app code. Do not write app code while the expected behavior is unclear.
+- Every production module (excluding index/barrel files) and UI component must have its own colocated test file covering behavior owned by that unit. Integration tests supplement but do not replace module- or component-owned tests. Type-only modules should use compile-time assertions where runtime tests do not apply.
 - Run `npm test`, `npm run lint`, and `npm run check` before submitting pull requests; CI must pass.
 - Write comments to explain non-obvious intent, not to restate the code.
 
