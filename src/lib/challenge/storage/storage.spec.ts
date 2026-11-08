@@ -87,6 +87,42 @@ describe('challenge library storage', () => {
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(library);
 	});
 
+	it('saves and reloads unfinished Spawn editing state', async () => {
+		const factionId = createUuid();
+		const creatureId = createUuid();
+		const turnId = createUuid();
+		const editing: Challenge = {
+			...createChallenge('Editing'),
+			factions: [{ id: factionId, name: 'Players', color: 'blue' }],
+			creatures: [
+				{
+					id: creatureId,
+					kind: 'character',
+					name: 'Aria',
+					factionId,
+					isHidden: false,
+					turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+				}
+			],
+			runState: {
+				initiativeResults: { [turnId]: 9 },
+				generatedTurnOrder: [{ kind: 'spawn' }],
+				spawnCount: 1,
+				spawnEdit: {
+					newCreatureIds: [creatureId],
+					newNpcTypeIds: [],
+					newTurnIds: [turnId],
+					lockedInitiativeTurnIds: [turnId]
+				}
+			}
+		};
+		const editingLibrary = { ...emptyLibrary, challenges: [editing] };
+
+		await saveChallengeLibrary(editingLibrary, indexedDbFactory);
+
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(editingLibrary);
+	});
+
 	it('rejects invalid stored data and reports its validation issues', async () => {
 		await seedStoredLibrary({ ...library, formatVersion: 2 });
 

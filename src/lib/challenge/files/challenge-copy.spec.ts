@@ -124,3 +124,40 @@ describe('challenge sanitization', () => {
 		expect(sanitizeChallenge(challengeWithoutRunState)).not.toHaveProperty('runState');
 	});
 });
+
+describe('Spawn editing state copying', () => {
+	const editingChallenge: Challenge = {
+		...challenge,
+		runState: {
+			initiativeResults: { [ids.rolledTurn]: 13 },
+			generatedTurnOrder: [{ kind: 'spawn' }],
+			spawnEdit: {
+				newCreatureIds: [ids.npc],
+				newNpcTypeIds: [ids.npcType],
+				newTurnIds: [ids.npcTurn],
+				lockedInitiativeTurnIds: [ids.rolledTurn]
+			}
+		}
+	};
+
+	it('copies all editing arrays independently', () => {
+		const copy = sanitizeChallenge(editingChallenge);
+		const source = editingChallenge.runState?.spawnEdit;
+
+		expect(copy.runState?.spawnEdit).toEqual(source);
+		for (const key of [
+			'newCreatureIds',
+			'newNpcTypeIds',
+			'newTurnIds',
+			'lockedInitiativeTurnIds'
+		] as const) {
+			expect(copy.runState?.spawnEdit?.[key]).not.toBe(source?.[key]);
+		}
+		copy.runState?.spawnEdit?.newTurnIds.push(ids.fixedTurn);
+		expect(source?.newTurnIds).toEqual([ids.npcTurn]);
+	});
+
+	it('omits editing state when absent', () => {
+		expect(sanitizeChallenge(challenge).runState).not.toHaveProperty('spawnEdit');
+	});
+});
