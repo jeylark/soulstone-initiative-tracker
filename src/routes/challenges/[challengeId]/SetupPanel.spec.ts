@@ -1393,6 +1393,44 @@ describe('new challenge setup', () => {
 	});
 });
 
+describe('blank NPC identifiers', () => {
+	it('accepts saved blank sole NPCs and flags them when they share a type', async () => {
+		const challenge = createSetupChallenge();
+		const typeId = '00000000-0000-4000-8000-000000000004' as StableId;
+		const otherTypeId = '00000000-0000-4000-8000-000000000005' as StableId;
+		challenge.npcTypes = [
+			{ id: typeId, name: 'Ogre', initiativeStat: 2 },
+			{ id: otherTypeId, name: 'Imp', initiativeStat: 2 }
+		];
+		challenge.creatures = [typeId, otherTypeId].map((creatureTypeId, index) => ({
+			id: `00000000-0000-4000-8000-00000000001${index + 2}` as StableId,
+			kind: 'npc' as const,
+			creatureTypeId,
+			identifier: index === 0 ? '  ' : '',
+			factionId: challenge.factions[1]!.id,
+			isHidden: false,
+			turns: []
+		}));
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const inputs = screen.getAllByRole('textbox', { name: /NPC identifier/ });
+		expect(inputs).toHaveLength(2);
+		for (const input of inputs) expect(input.getAttribute('aria-invalid')).not.toBe('true');
+
+		const selector = screen.getByRole('combobox', { name: 'NPC type for Imp' });
+		await fireEvent.change(selector, { target: { value: typeId } });
+
+		for (const input of screen.getAllByRole('textbox', { name: /NPC identifier/ })) {
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			const errorId = input.getAttribute('aria-describedby') ?? '';
+			expect(document.getElementById(errorId)?.textContent).toContain(
+				'NPC identifier must not be blank.'
+			);
+		}
+	});
+});
+
 describe('initiative stat changes', () => {
 	const typeId = '00000000-0000-4000-8000-000000000021' as StableId;
 	const otherTypeId = '00000000-0000-4000-8000-000000000022' as StableId;

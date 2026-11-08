@@ -71,6 +71,7 @@ function getCyclicTurns(turns: readonly RelativeTurn[]): ReadonlySet<string> {
 
 /**
  * Finds setup values that prevent a challenge from starting.
+ * An NPC identifier may be blank only when that NPC is the sole creature of its NPC type.
  * @param challenge Challenge setup whose names, initiative values, and placement rules are checked.
  * @returns Every blocking setup issue, with a data path and a message for the setup UI.
  */
@@ -110,7 +111,17 @@ export function validateChallengeSetup(
 	issues.push(...addBlankNameIssues(factionNames, 'Faction name'));
 	issues.push(...addBlankNameIssues(npcTypeNames, 'NPC type name'));
 	issues.push(...addBlankNameIssues(characterNames, 'Character name'));
-	issues.push(...addBlankNameIssues(npcIdentifiers, 'NPC identifier'));
+	const npcCountByType = new Map<string, number>();
+	for (const { creatureTypeId } of npcIdentifiers) {
+		npcCountByType.set(creatureTypeId, (npcCountByType.get(creatureTypeId) ?? 0) + 1);
+	}
+	// A sole NPC of its type may omit its identifier.
+	issues.push(
+		...addBlankNameIssues(
+			npcIdentifiers.filter(({ creatureTypeId }) => npcCountByType.get(creatureTypeId)! > 1),
+			'NPC identifier'
+		)
+	);
 	issues.push(
 		...addDuplicateNameIssues(
 			factionNames,
