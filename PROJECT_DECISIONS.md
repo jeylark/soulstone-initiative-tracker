@@ -7,7 +7,7 @@ This document records the product and architecture decisions discussed so far. I
 - The app is a helper for **Soulstone**, a custom dungeon crawler.
 - A **challenge** may take one play session or span several sessions.
 - A **creature** belongs to a faction and has a name. A player-controlled **character** is a creature. Other creatures are **NPCs**.
-- Each NPC has a **creature type**. Multiple NPCs can share a type; an NPC's name combines its type with a custom identifier.
+- Each NPC has a **creature type**. Multiple NPCs can share a type; an NPC's name combines its type with a custom identifier. The identifier may be blank only when that NPC is the sole creature of its type across all factions; otherwise identifiers must be nonblank and unique within the type.
 - The DM can change an NPC's creature type individually. That selection becomes the default for subsequently added NPCs across factions; before any creature type is selected, the first type in the list is the default. Changing type preserves the identifier unless it would duplicate an NPC of the destination type, in which case the next unused number is assigned.
 - A challenge has configurable factions. "Player" and "Monster" are common examples, not required faction names or a fixed limit.
 - A creature may have zero or multiple turns; each newly created creature starts with one turn. A creature with no turns has no initiative. Additional turns use the hard-coded initiative mode for their creature kind: manual for characters and app-calculated for NPCs.

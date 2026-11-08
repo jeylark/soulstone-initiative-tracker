@@ -89,15 +89,6 @@ describe('validateChallengeSetup', () => {
 		challenge.npcTypes[0]!.name = '';
 		const character = challenge.creatures[0];
 		if (character?.kind === 'character') character.name = '  ';
-		challenge.creatures.push({
-			id: createUuid(),
-			kind: 'npc',
-			creatureTypeId: ids.npcType,
-			identifier: '  ',
-			factionId: ids.faction,
-			isHidden: false,
-			turns: []
-		});
 
 		const issues = validateChallengeSetup(challenge);
 
@@ -105,9 +96,89 @@ describe('validateChallengeSetup', () => {
 			'$.name',
 			'$.factions[0].name',
 			'$.npcTypes[0].name',
-			'$.creatures[0].name',
-			'$.creatures[1].identifier'
+			'$.creatures[0].name'
 		]);
+	});
+
+	describe('blank NPC identifiers', () => {
+		function npc(
+			identifier: string,
+			creatureTypeId: StableId = ids.npcType,
+			factionId = ids.faction
+		) {
+			return {
+				id: createUuid(),
+				kind: 'npc' as const,
+				creatureTypeId,
+				identifier,
+				factionId,
+				isHidden: false,
+				turns: []
+			};
+		}
+		const blankIssue = (index: number) => ({
+			path: `$.creatures[${index}].identifier`,
+			message: 'NPC identifier must not be blank.'
+		});
+
+		it.each(['', '   ', '\t'])('allows a sole NPC of its type to be blank (%j)', (identifier) => {
+			const challenge = createChallenge();
+			challenge.creatures.push(npc(identifier));
+
+			expect(validateChallengeSetup(challenge)).toEqual([]);
+		});
+
+		it('rejects a blank identifier alongside a named one of the same type', () => {
+			const challenge = createChallenge();
+			challenge.creatures.push(npc(' '), npc('A'));
+
+			expect(validateChallengeSetup(challenge)).toEqual([blankIssue(1)]);
+		});
+
+		it('rejects every blank identifier when two NPCs of a type are blank', () => {
+			const challenge = createChallenge();
+			challenge.creatures.push(npc(''), npc('  '));
+
+			expect(validateChallengeSetup(challenge)).toEqual([blankIssue(1), blankIssue(2)]);
+		});
+
+		it('allows one blank identifier per distinct type', () => {
+			const challenge = createChallenge();
+			const otherType = createUuid();
+			challenge.npcTypes.push({ id: otherType, name: 'Guard', initiativeStat: 2 });
+			challenge.creatures.push(npc(''), npc('', otherType));
+
+			expect(validateChallengeSetup(challenge)).toEqual([]);
+		});
+
+		it('counts NPCs of a type across factions', () => {
+			const challenge = createChallenge();
+			const otherFaction = createUuid();
+			challenge.factions.push({ id: otherFaction, name: 'Enemies', color: 'red' });
+			challenge.creatures.push(npc(''), npc('A', ids.npcType, otherFaction));
+
+			expect(validateChallengeSetup(challenge)).toEqual([blankIssue(1)]);
+		});
+
+		it('revalidates when NPCs are added, removed, or change type', () => {
+			const challenge = createChallenge();
+			const otherType = createUuid();
+			challenge.npcTypes.push({ id: otherType, name: 'Guard', initiativeStat: 2 });
+			const blank = npc('');
+			const second = npc('B');
+			challenge.creatures.push(blank);
+			expect(validateChallengeSetup(challenge)).toEqual([]);
+
+			challenge.creatures.push(second);
+			expect(validateChallengeSetup(challenge)).toEqual([blankIssue(1)]);
+
+			challenge.creatures.pop();
+			expect(validateChallengeSetup(challenge)).toEqual([]);
+
+			challenge.creatures.push(second);
+			second.creatureTypeId = otherType;
+			expect(validateChallengeSetup(challenge)).toEqual([]);
+		});
 	});
 
 	it('checks names case-insensitively after trimming within the configured groups', () => {

@@ -52,7 +52,16 @@ reset workflows, or new navigation controls as part of these items.
 
 ### PR51-01: Blank NPC Identifiers
 
-- [ ] Allow blank NPC identifiers.
+- [x] Allow blank NPC identifiers.
+
+  - 2026-11-08 (Copilot session, branch `literate-goggles`). Changed:
+    `setup-validation.ts`, `setup-validation.spec.ts`, `SetupPanel.spec.ts`,
+    `PROJECT_DECISIONS.md`.
+  - Checks: `npx vitest run src/routes/challenges src/lib/challenge` and prettier
+    on edited files (results below).
+  - Main TODO entries moved to Done: none. Remaining overlap: none. Blockers: none.
+  - Note: existing `createTurnDisplayLookup` already trims combined names; the add
+    handler is unchanged, so a saved blank is never auto-renamed.
 
 **Behavior:** Accept an empty or whitespace-only identifier only when that NPC
 is the sole creature of its NPC type in the entire challenge, across factions.
