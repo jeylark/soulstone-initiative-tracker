@@ -33,7 +33,7 @@ beforeEach(async () => {
 });
 
 describe('turn-order run route', () => {
-	it('restores a saved order and recalculates without changing initiative results', async () => {
+	it('restores a saved order without offering generation again', async () => {
 		const challenge = createRunChallenge();
 		await saveChallengeToLibrary(challenge);
 
@@ -49,23 +49,13 @@ describe('turn-order run route', () => {
 				.map((item) => item.querySelector('h2')?.textContent)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
-		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
-
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toEqual([
-				{ kind: 'turn', turnId: rookTurnId },
-				{ kind: 'turn', turnId: ariaTurnId },
-				{ kind: 'spawn' }
-			]);
-			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
-		});
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
-	it('groups challenge controls and errors before the turn cards', async () => {
+	it('groups challenge details and controls before the turn cards', async () => {
 		const challenge = createRunChallenge();
-		delete challenge.runState?.initiativeResults[ariaTurnId];
 		render(turnOrderPage, { sharedChallenge: challenge });
 
 		const controls = await screen.findByRole('region', {
@@ -73,16 +63,12 @@ describe('turn-order run route', () => {
 		});
 		const turnCards = screen.getByRole('region', { name: 'Turn cards' });
 		expect(within(controls).getByText('Ashen Company')).toBeTruthy();
-		expect(within(controls).getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(within(controls).getByRole('button', { name: 'Next turn' })).toBeTruthy();
+		expect(within(controls).queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBeTruthy();
 		expect(
 			controls.compareDocumentPosition(turnCards) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
-
-		await fireEvent.click(within(controls).getByRole('button', { name: 'Recalculate' }));
-		expect(within(controls).getByRole('alert').textContent).toContain(
-			'every rolling turn has a result'
-		);
 	});
 
 	it('advances to the next turn, counts spawns, and saves the rotated order', async () => {
@@ -177,7 +163,13 @@ describe('turn-order run route', () => {
 			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
-		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
+
+		cleanup();
+		render(turnOrderPage);
+		expect(await screen.findByRole('list', { name: 'Generated turn order' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
 	});
 
 	it('shows a non-blocking warning when placement values are clamped', async () => {
@@ -197,17 +189,18 @@ describe('turn-order run route', () => {
 		expect(
 			await screen.findByText('Some placement values exceed the available order and were clamped.')
 		).toBeTruthy();
-		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
 		expect(screen.getByRole('list', { name: 'Turns with clamped placement' })).toBeTruthy();
 	});
 
 	it('lists missing results and preserves the saved order without navigating away', async () => {
 		const challenge = createRunChallenge();
 		delete challenge.runState?.initiativeResults[ariaTurnId];
+		delete challenge.runState?.generatedTurnOrder;
 		await saveChallengeToLibrary(challenge);
 
 		render(turnOrderPage);
-		await fireEvent.click(await screen.findByRole('button', { name: 'Recalculate' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
@@ -215,11 +208,26 @@ describe('turn-order run route', () => {
 		expectPageError('Turn order cannot be generated until every rolling turn has a result.');
 		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
-			{ kind: 'turn', turnId: ariaTurnId },
-			{ kind: 'turn', turnId: rookTurnId },
-			{ kind: 'spawn' }
-		]);
+		expect(
+			(await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder
+		).toBeUndefined();
+	});
+
+	it('explains that unknown saved turns are omitted', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState!.generatedTurnOrder!.unshift({
+			kind: 'turn',
+			turnId: '00000000-0000-4000-8000-000000000099' as StableId
+		});
+
+		render(turnOrderPage, { props: { sharedChallenge: challenge } });
+
+		expect(
+			await screen.findByText(
+				'Some saved turns are no longer in this challenge and are omitted from the turn order.'
+			)
+		).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
 	});
 
 	it('blocks generation while same-faction turns are tied', async () => {
@@ -328,6 +336,7 @@ describe('turn-order run route', () => {
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
+		expect(screen.getByRole('button', { name: 'Generate turn order' })).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 });
@@ -503,7 +512,7 @@ describe('turn-order run route', () => {
 		}
 	});
 
-	it('restores a saved order and recalculates without changing initiative results', async () => {
+	it('restores a saved order without offering generation again', async () => {
 		const challenge = createRunChallenge();
 		await saveChallengeToLibrary(challenge);
 
@@ -519,17 +528,8 @@ describe('turn-order run route', () => {
 				.map((item) => item.querySelector('h2')?.textContent)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
-		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
-
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toEqual([
-				{ kind: 'turn', turnId: rookTurnId },
-				{ kind: 'turn', turnId: ariaTurnId },
-				{ kind: 'spawn' }
-			]);
-			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
-		});
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
@@ -556,16 +556,18 @@ describe('turn-order run route', () => {
 			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
-		expect(screen.getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 	});
 
 	it('lists missing results and preserves the saved order without navigating away', async () => {
 		const challenge = createRunChallenge();
 		delete challenge.runState?.initiativeResults[ariaTurnId];
+		delete challenge.runState?.generatedTurnOrder;
 		await saveChallengeToLibrary(challenge);
 
 		render(turnOrderPage);
-		await fireEvent.click(await screen.findByRole('button', { name: 'Recalculate' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
@@ -573,11 +575,9 @@ describe('turn-order run route', () => {
 		expectPageError('Turn order cannot be generated until every rolling turn has a result.');
 		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder).toEqual([
-			{ kind: 'turn', turnId: ariaTurnId },
-			{ kind: 'turn', turnId: rookTurnId },
-			{ kind: 'spawn' }
-		]);
+		expect(
+			(await loadChallengeLibrary()).challenges[0]?.runState?.generatedTurnOrder
+		).toBeUndefined();
 	});
 
 	it('lists turns with unresolved placement rules', async () => {

@@ -385,22 +385,20 @@ message height, while this item reserves one line by request.
 
 ### PR51-08: Recalculate Action
 
-- [ ] Remove the Recalculate button in Run view.
+- [x] Remove the Recalculate button in Run view.
 
-**Implementation:** [RunPanel.svelte](src/routes/challenges/%5BchallengeId%5D/RunPanel.svelte)
-currently always renders generation, changing its label when saved order exists.
-Hide generation while a generated order exists, including restored runs; preserve
-initial generation and Next turn. Update the unknown-turn warning that currently
-directs users to recalculate, without inventing a reset workflow. Do not change the
-separate per-turn Calculate roll action.
+**Completion (2026-11-08):** `RunPanel.svelte` hides order generation after a
+generated order is saved, including after reload, while preserving the Next turn
+action. The unknown-turn warning explains that removed turns are omitted, and a
+failed generation save restores the prior run state. Updated `RunPanel.spec.ts`
+to cover the behavior.
 
-**Tests:** [RunPanel.spec.ts](src/routes/challenges/%5BchallengeId%5D/RunPanel.spec.ts):
-initial action present, absent after generation/reload, advancement/persistence
-intact, and generation/save failures handled.
+Checks: focused `RunPanel.spec.ts` on Node 26 (22 passed); `npm run check`;
+focused ESLint; Prettier; secret scan. A Node 22 test attempt failed because the
+existing turn-order implementation uses `Map.getOrInsert`; CI uses Node 26.
 
-**Main TODO:** Partial overlap with 2.21, which also renames initial generation to
-Start challenge. Completing that existing rename in this session would allow
-moving 2.21 to Done; if it is not included, record the remainder and leave it Open.
+**Main TODO:** 2.21 remains Open because its **Start challenge** label change was
+not part of this task.
 
 ### PR51-09: Two-Column Run Layout
 
