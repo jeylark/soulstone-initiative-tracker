@@ -73,9 +73,9 @@ describe('ChallengeCard', () => {
 			'Ogre'
 		]);
 
-		expect(time?.parentElement?.contains(screen.getByRole('link', { name: 'Load Ashen Company' }))).toBe(
-			true
-		);
+		expect(
+			time?.parentElement?.contains(screen.getByRole('link', { name: 'Load Ashen Company' }))
+		).toBe(true);
 		expect(characters.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
 		expect(npcTypes.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
 	});

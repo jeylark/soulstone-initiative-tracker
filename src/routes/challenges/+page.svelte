@@ -138,6 +138,7 @@
 
 	.challenge-cards {
 		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 360px));
 		gap: 12px;
 		margin: 0 0 24px;
 	}
