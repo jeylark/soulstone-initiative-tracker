@@ -40,6 +40,7 @@
 	let tieGroups = $derived(
 		challenge ? findInitiativeTies(challenge, challenge.runState?.initiativeResults ?? {}) : []
 	);
+	let isChallengeRunning = $derived(challenge?.runState?.generatedTurnOrder !== undefined);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -52,7 +53,7 @@
 	}
 
 	function decideTie(order: readonly StableId[]): void {
-		if (!challenge) return;
+		if (!challenge || isChallengeRunning) return;
 		const decisions = (challenge.runState?.tieDecisions ?? []).filter(
 			(decision) =>
 				decision.length !== order.length || !decision.every((turnId) => order.includes(turnId))
@@ -66,8 +67,8 @@
 	}
 
 	function updateInitiative(turnId: StableId, value: string): void {
+		if (!challenge || isChallengeRunning) return;
 		initiativeInputs[turnId] = value;
-		if (!challenge) return;
 
 		const previousInitiative = challenge.runState?.initiativeResults[turnId];
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
@@ -98,7 +99,7 @@
 		creature: DeepReadonly<ChallengeCreature>,
 		turnId: StableId
 	): void {
-		if (!challenge) return;
+		if (!challenge || isChallengeRunning) return;
 		const turn = creature.turns.find((item) => item.id === turnId);
 		if (!turn || turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'app') {
 			return;
@@ -127,7 +128,7 @@
 	}
 
 	function rollAll(): void {
-		if (!challenge) return;
+		if (!challenge || isChallengeRunning) return;
 
 		const initiativeResults = { ...(challenge.runState?.initiativeResults ?? {}) };
 		let hasResultChanged = false;
@@ -281,30 +282,32 @@
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
 		<p>{challenge.name}</p>
-		<div class="faction-board">
-			{#each challenge.factions as faction (faction.id)}
-				<InitiativeFactionSection
-					{faction}
-					creatures={challenge.creatures}
-					{turnDisplayLookup}
-					initiativeResults={challenge.runState?.initiativeResults ?? {}}
-					{initiativeInputs}
-					isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}
-					canRoll={(creature) => initiativeStat(creature) !== undefined}
-					onInput={updateInitiative}
-					onRoll={rollInitiativeForTurn}
-				/>
-			{/each}
-		</div>
-		<TieResolution
-			groups={tieGroups}
-			decisions={challenge.runState?.tieDecisions ?? []}
-			{turnDisplayLookup}
-			onDecide={decideTie}
-		/>
-		{#if hasRollableAppTurns()}
-			<ActionButton onclick={rollAll}>Roll all</ActionButton>
-		{/if}
+		<fieldset disabled={isChallengeRunning} aria-label="Initiative editing" class="roll-editing">
+			<div class="faction-board">
+				{#each challenge.factions as faction (faction.id)}
+					<InitiativeFactionSection
+						{faction}
+						creatures={challenge.creatures}
+						{turnDisplayLookup}
+						initiativeResults={challenge.runState?.initiativeResults ?? {}}
+						{initiativeInputs}
+						isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}
+						canRoll={(creature) => initiativeStat(creature) !== undefined}
+						onInput={updateInitiative}
+						onRoll={rollInitiativeForTurn}
+					/>
+				{/each}
+			</div>
+			<TieResolution
+				groups={tieGroups}
+				decisions={challenge.runState?.tieDecisions ?? []}
+				{turnDisplayLookup}
+				onDecide={decideTie}
+			/>
+			{#if hasRollableAppTurns()}
+				<ActionButton onclick={rollAll}>Roll all</ActionButton>
+			{/if}
+		</fieldset>
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
@@ -323,6 +326,13 @@
 </ViewPage>
 
 <style>
+	.roll-editing {
+		min-width: 0;
+		margin: 0;
+		border: 0;
+		padding: 0;
+	}
+
 	.faction-board {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));

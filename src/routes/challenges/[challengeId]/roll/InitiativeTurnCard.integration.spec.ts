@@ -1,11 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import {
-	saveChallengeToLibrary,
-	loadChallengeLibrary,
-	type GeneratedTurnOrder,
-	type StableId
-} from '#lib/challenge';
+import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import rollChallengePage from '../RollPanel.svelte';
 import { createSetupChallenge } from '../../../view-test-support';
@@ -40,11 +35,6 @@ describe('initiative turn card', () => {
 		const manualTurnId = '00000000-0000-4000-8000-000000000008' as StableId;
 		const firstNpcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
 		const secondNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
-		const generatedTurnOrder: GeneratedTurnOrder = [
-			{ kind: 'turn', turnId: savedCharacterTurnId },
-			{ kind: 'turn', turnId: manualTurnId },
-			{ kind: 'spawn' }
-		];
 		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 3 }];
 		challenge.creatures = [
 			{
@@ -74,8 +64,7 @@ describe('initiative turn card', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [savedCharacterTurnId]: 16, [manualTurnId]: 8 },
-			generatedTurnOrder
+			initiativeResults: { [savedCharacterTurnId]: 16, [manualTurnId]: 8 }
 		};
 		await saveChallengeToLibrary(challenge);
 		vi.spyOn(Math, 'random')
