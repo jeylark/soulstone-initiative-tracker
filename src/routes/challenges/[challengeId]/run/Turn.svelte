@@ -52,15 +52,13 @@
 			</div>
 			<div class="turn-order-visibility">
 				<CheckboxInput
-					label={`Hidden from viewers: ${item.display.creatureName}`}
+					label="Hidden"
+					aria-label={`Hidden from viewers: ${item.display.creatureName}`}
 					checked={item.display.isHidden}
 					onchange={(event) =>
 						onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
 				/>
 			</div>
-			{#if item.display.isHidden}
-				<p class="turn-order-hidden">Hidden</p>
-			{/if}
 		</Card>
 	</div>
 {/if}
@@ -98,10 +96,5 @@
 	.turn-order-position {
 		font-variant-numeric: tabular-nums;
 		font-weight: 700;
-	}
-
-	.turn-order-hidden {
-		margin-block: 8px 0;
-		font-weight: 600;
 	}
 </style>

@@ -440,6 +440,8 @@ describe('turn-order run route', () => {
 		);
 		for (const item of ariaItems) {
 			expect(item.textContent).toContain('Hidden');
+			expect(within(item).getByText('Hidden', { selector: 'span' })).toBeTruthy();
+			expect(item.querySelector('.turn-order-hidden')).toBeNull();
 			expect(item.querySelector('.turn-order-card-tone')?.classList.contains('is-hidden')).toBe(
 				true
 			);

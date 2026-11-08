@@ -269,7 +269,13 @@ and prominent creature name requirements are satisfied; otherwise leave it Open.
 
 ### PR51-10: Hidden Label
 
-- [ ] Rename the hidden control's visible label to Hidden.
+- [x] Rename the hidden control's visible label to Hidden.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    and `RunPanel.spec.ts`.
+  - Checks: focused Vitest run (2 files, 27 tests passed).
+  - Manual checks: none. Main TODO unchanged; 2.18 was already Done.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Turn currently labels CheckboxInput
 `Hidden from viewers: {creatureName}`. Change visible text to `Hidden`, retaining

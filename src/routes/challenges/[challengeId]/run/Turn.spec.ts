@@ -5,14 +5,17 @@ import Turn from './Turn.svelte';
 
 afterEach(cleanup);
 
-function createTurnItem(initiative: number | undefined): TurnOrderTurnDisplayItem {
+function createTurnItem(
+	initiative: number | undefined,
+	isHidden = false
+): TurnOrderTurnDisplayItem {
 	const turnId = createUuid();
 	const creature: ChallengeCreature = {
 		id: createUuid(),
 		kind: 'character',
 		name: 'Aria',
 		factionId: createUuid(),
-		isHidden: false,
+		isHidden,
 		turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'app' } }]
 	};
 
@@ -26,7 +29,7 @@ function createTurnItem(initiative: number | undefined): TurnOrderTurnDisplayIte
 			creatureName: 'Aria',
 			label: 'Aria',
 			initiative: { kind: 'roll', mode: 'app' },
-			isHidden: false
+			isHidden
 		},
 		initiative
 	};
@@ -47,6 +50,18 @@ describe('Turn', () => {
 		});
 
 		expect(screen.queryByText(/^Initiative:/)).toBeNull();
+	});
+
+	it('shows a short visible hidden label with a contextual accessible name', () => {
+		const item = createTurnItem(undefined, true);
+		render(Turn, { props: { item, onVisibilityChange: vi.fn() } });
+
+		const checkbox = screen.getByRole('checkbox', {
+			name: 'Hidden from viewers: Aria'
+		}) as HTMLInputElement;
+		expect(checkbox.checked).toBe(true);
+		expect(checkbox.closest('label')?.textContent?.trim()).toBe('Hidden');
+		expect(screen.queryByText('Hidden', { selector: 'p' })).toBeNull();
 	});
 
 	it('does not show an initiative for Spawn', () => {
