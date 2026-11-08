@@ -127,7 +127,7 @@
 			else await enqueueSave(challengeToSave);
 			hasSaveError = false;
 		} catch {
-			if (sharedChallenge) challenge.runState = previousRunState;
+			challenge.runState = previousRunState;
 			hasSaveError = true;
 		} finally {
 			isSaving = false;
@@ -179,7 +179,7 @@
 		{#if generatedOrderDisplay}
 			{#if generatedOrderDisplay.hasUnknownTurnIds}
 				<p role="status">
-					Some saved turns are no longer in this challenge. Recalculate the turn order to update it.
+					Some saved turns are no longer in this challenge and are omitted from the turn order.
 				</p>
 			{/if}
 		{/if}
@@ -230,9 +230,11 @@
 		{#if generatedOrderDisplay}
 			<ActionButton disabled={isSaving} onclick={advanceToNextTurn}>Next turn</ActionButton>
 		{/if}
-		<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
-			{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
-		</ActionButton>
+		{#if !challenge.runState?.generatedTurnOrder}
+			<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
+				Generate turn order
+			</ActionButton>
+		{/if}
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
