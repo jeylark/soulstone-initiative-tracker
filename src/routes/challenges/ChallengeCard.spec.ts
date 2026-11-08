@@ -76,8 +76,12 @@ describe('ChallengeCard', () => {
 		expect(
 			time?.parentElement?.contains(screen.getByRole('link', { name: 'Load Ashen Company' }))
 		).toBe(true);
-		expect(characters.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
-		expect(npcTypes.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
+		expect(screen.getByRole('list', { name: 'PCs' }).parentElement?.parentElement?.tagName).toBe(
+			'DIV'
+		);
+		expect(screen.getByRole('list', { name: 'NPCs' }).parentElement?.parentElement?.tagName).toBe(
+			'DIV'
+		);
 	});
 
 	it('falls back for an unnamed challenge without characters or NPC types', () => {
