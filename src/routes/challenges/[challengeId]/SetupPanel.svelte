@@ -6,11 +6,13 @@
 	import type { DeepReadonly } from '#lib';
 	import {
 		createUuid,
+		discardTieDecisionsForTurn,
 		getNextFactionColor,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
 		validateChallengeSetup,
 		type Challenge,
+		type ChallengeCreature,
 		type Faction,
 		type FactionColor,
 		type InitiativeRollMode,
@@ -102,6 +104,22 @@
 
 	function invalidateGeneratedTurnOrder(): void {
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
+	}
+
+	function discardAppRolledResults(creatures: readonly DeepReadonly<ChallengeCreature>[]): void {
+		const runState = challenge.runState;
+		if (!runState) return;
+
+		for (const creature of creatures) {
+			for (const turn of creature.turns) {
+				if (turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'app') continue;
+				delete runState.initiativeResults[turn.id];
+				if (runState.tieDecisions) {
+					runState.tieDecisions = discardTieDecisionsForTurn(runState.tieDecisions, turn.id);
+				}
+			}
+		}
+		invalidateGeneratedTurnOrder();
 	}
 
 	async function startChallenge(event?: Readonly<{ preventDefault: () => void }>) {
@@ -209,7 +227,14 @@
 
 	function updateNpcTypeInitiativeStat(npcTypeId: StableId, initiativeStat: number) {
 		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
-		if (npcType) npcType.initiativeStat = initiativeStat;
+		if (!npcType || npcType.initiativeStat === initiativeStat) return;
+
+		npcType.initiativeStat = initiativeStat;
+		discardAppRolledResults(
+			challenge.creatures.filter(
+				(creature) => creature.kind === 'npc' && creature.creatureTypeId === npcTypeId
+			)
+		);
 	}
 
 	function removeNpcType(npcTypeId: StableId) {
@@ -321,8 +346,11 @@
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature?.kind !== 'character') return;
 
+		if (creature.initiativeStat === initiativeStat) return;
+
 		if (initiativeStat === undefined) delete creature.initiativeStat;
 		else creature.initiativeStat = initiativeStat;
+		discardAppRolledResults([creature]);
 	}
 
 	function setTurnInitiative(creatureId: StableId, turnId: StableId, choice: InitiativeChoice) {

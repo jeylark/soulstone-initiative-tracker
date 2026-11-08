@@ -6,8 +6,8 @@ challenge file processing, and turn-order generation; the remaining work is to
 connect and complete the user-facing and server workflows around those
 foundations.
 
-When a task is complete, move it from `Open` to `Done` under the same category,
-keeping its task number and wording.
+Never delete a completed task from this backlog. Move it from `Open` to `Done`
+under the same category, keeping its task number and wording.
 
 ## Open
 
@@ -16,8 +16,6 @@ keeping its task number and wording.
 #### Setup
 
 - 2.35: Validate setup values.
-- 2.28: When an initiative stat changes, discard affected app-rolled results
-  and invalidate the generated order; preserve manual/static values.
 - 2.33: Remove the Setup, Roll, and Run navigation buttons from their
   respective tabs.
 
@@ -224,6 +222,8 @@ keeping its task number and wording.
 - 2.20: Keep input dimensions stable when warnings or errors appear or
   disappear.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
+- 2.28: When an initiative stat changes, discard affected app-rolled results
+  and invalidate the generated order; preserve manual/static values.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
 - 2.34: Add a separate disable option for each input control and button.
