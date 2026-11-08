@@ -76,6 +76,35 @@ describe('challenge workflow tabs', () => {
 		expect(screen.getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe('true');
 	});
 
+	it('keeps workflow navigation available after the challenge starts', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Running challenge';
+		challenge.runState = {
+			initiativeResults: {},
+			generatedTurnOrder: [{ kind: 'spawn' }]
+		};
+		await saveChallengeToLibrary(challenge);
+
+		render(challengePage);
+
+		const challengeName = (await screen.findByRole('textbox', {
+			name: 'Challenge name'
+		})) as HTMLInputElement;
+		expect(challengeName.matches(':disabled')).toBe(true);
+		for (const tabName of ['Roll', 'Run']) {
+			expect(screen.getByRole('tab', { name: tabName }).getAttribute('aria-disabled')).toBe(
+				'false'
+			);
+		}
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		expect(
+			await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' })
+		).toBeTruthy();
+		await fireEvent.click(screen.getByRole('tab', { name: 'Run' }));
+		expect(await screen.findByRole('heading', { level: 1, name: 'Turn order' })).toBeTruthy();
+	});
+
 	it('saves Setup edits before switching tabs and restores them on return', async () => {
 		render(challengePage);
 		await screen.findByRole('textbox', { name: 'Challenge name' });

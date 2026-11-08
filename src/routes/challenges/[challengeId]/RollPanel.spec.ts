@@ -2,12 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import rollChallengePage from './RollPanel.svelte';
-import {
-	saveChallengeToLibrary,
-	loadChallengeLibrary,
-	type GeneratedTurnOrder,
-	type StableId
-} from '#lib/challenge';
+import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
 import { createSetupChallenge, expectPageError } from '../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
@@ -52,6 +47,76 @@ describe('running challenge storage', () => {
 		expect(document.title).toBe('Initiative rolling | Soulstone Initiative Tracker');
 	});
 
+	it('disables initiative edits and tie decisions while the challenge is running', async () => {
+		const challenge = createSetupChallenge();
+		const [manualOne, manualTwo, appResult, appPending] = [6, 7, 8, 9].map(
+			(id) => `00000000-0000-4000-8000-00000000000${id}` as StableId
+		);
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 2,
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [
+					{ id: manualOne, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: manualTwo, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: appResult, initiative: { kind: 'roll', mode: 'app' } },
+					{ id: appPending, initiative: { kind: 'roll', mode: 'app' } }
+				]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [manualOne]: 5, [manualTwo]: 5, [appResult]: 9 },
+			generatedTurnOrder: [
+				{ kind: 'turn', turnId: manualOne },
+				{ kind: 'turn', turnId: manualTwo },
+				{ kind: 'turn', turnId: appResult },
+				{ kind: 'turn', turnId: appPending },
+				{ kind: 'spawn' }
+			]
+		};
+		await saveChallengeToLibrary(challenge);
+
+		render(rollChallengePage);
+
+		const manualInput = (await screen.findByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 1'
+		})) as HTMLInputElement;
+		expect(manualInput.matches(':disabled')).toBe(true);
+		expect(
+			(
+				screen.getByRole('button', {
+					name: 'Reroll initiative for Aria - Turn 3'
+				}) as HTMLButtonElement
+			).matches(':disabled')
+		).toBe(true);
+		expect(
+			(
+				screen.getByRole('button', {
+					name: 'Roll initiative for Aria - Turn 4'
+				}) as HTMLButtonElement
+			).matches(':disabled')
+		).toBe(true);
+		expect(
+			(screen.getByRole('button', { name: 'Roll all' }) as HTMLButtonElement).matches(':disabled')
+		).toBe(true);
+		expect(
+			(
+				screen.getByRole('button', { name: 'Move Aria - Turn 2 earlier' }) as HTMLButtonElement
+			).matches(':disabled')
+		).toBe(true);
+		await fireEvent.input(manualInput, { target: { value: '14' } });
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults[manualOne]).toBe(5);
+			expect(saved?.runState?.generatedTurnOrder).toHaveLength(5);
+		});
+	});
+
 	it('persists initiative edits, restores them on reload, and saves cleared results', async () => {
 		const challenge = createSetupChallenge();
 		const firstTurnId = '00000000-0000-4000-8000-000000000006' as StableId;
@@ -70,12 +135,7 @@ describe('running challenge storage', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [secondTurnId]: 8 },
-			generatedTurnOrder: [
-				{ kind: 'turn', turnId: secondTurnId },
-				{ kind: 'turn', turnId: firstTurnId },
-				{ kind: 'spawn' }
-			]
+			initiativeResults: { [secondTurnId]: 8 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -284,12 +344,7 @@ describe('running challenge storage', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [secondTurnId]: 8 },
-			generatedTurnOrder: [
-				{ kind: 'turn', turnId: secondTurnId },
-				{ kind: 'turn', turnId: firstTurnId },
-				{ kind: 'spawn' }
-			]
+			initiativeResults: { [secondTurnId]: 8 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -609,11 +664,6 @@ describe('running challenge storage', () => {
 		const manualTurnId = '00000000-0000-4000-8000-000000000008' as StableId;
 		const firstNpcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
 		const secondNpcTurnId = '00000000-0000-4000-8000-000000000010' as StableId;
-		const generatedTurnOrder: GeneratedTurnOrder = [
-			{ kind: 'turn', turnId: savedCharacterTurnId },
-			{ kind: 'turn', turnId: manualTurnId },
-			{ kind: 'spawn' }
-		];
 		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 3 }];
 		challenge.creatures = [
 			{
@@ -643,8 +693,7 @@ describe('running challenge storage', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [savedCharacterTurnId]: 16, [manualTurnId]: 8 },
-			generatedTurnOrder
+			initiativeResults: { [savedCharacterTurnId]: 16, [manualTurnId]: 8 }
 		};
 		await saveChallengeToLibrary(challenge);
 		vi.spyOn(Math, 'random')
@@ -762,12 +811,7 @@ describe('running challenge storage', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [a]: 5, [b]: 5 },
-			generatedTurnOrder: [
-				{ kind: 'turn', turnId: a },
-				{ kind: 'turn', turnId: b },
-				{ kind: 'spawn' }
-			]
+			initiativeResults: { [a]: 5, [b]: 5 }
 		};
 		await saveChallengeToLibrary(challenge);
 

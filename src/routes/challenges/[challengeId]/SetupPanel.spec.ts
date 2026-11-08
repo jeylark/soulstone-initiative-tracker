@@ -145,6 +145,52 @@ describe('challenge setup persistence', () => {
 		});
 	});
 
+	it('disables setup edits while the challenge is running', async () => {
+		const challenge = createSetupChallenge();
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.name = 'Running challenge';
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: { [turnId]: 12 },
+			generatedTurnOrder: [{ kind: 'turn', turnId }, { kind: 'spawn' }]
+		};
+		await saveChallengeToLibrary(challenge);
+
+		await renderSetup();
+
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' }) as HTMLInputElement;
+		expect(nameInput.matches(':disabled')).toBe(true);
+		expect(
+			(screen.getByRole('slider', { name: 'Fairness weight slider' }) as HTMLInputElement).matches(
+				':disabled'
+			)
+		).toBe(true);
+		expect(
+			(screen.getByRole('button', { name: 'Add NPC Type' }) as HTMLButtonElement).matches(
+				':disabled'
+			)
+		).toBe(true);
+		await fireEvent.input(nameInput, { target: { value: 'Changed while running' } });
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Running challenge');
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId },
+				{ kind: 'spawn' }
+			]);
+		});
+	});
+
 	it('autosaves finite invalid values and blocks rolling until corrected', async () => {
 		await renderSetup();
 		const fairnessInput = screen.getByRole('spinbutton', { name: 'Fairness weight value' });
@@ -439,7 +485,7 @@ describe('challenge setup persistence', () => {
 			target: { value: 'Ready to roll' }
 		});
 		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startButton);
+		expect(startButton.closest('fieldset[disabled]')).toBeNull();
 		await fireEvent.click(startButton);
 
 		expect(mockedGoto).not.toHaveBeenCalled();
@@ -490,7 +536,7 @@ describe('challenge setup persistence', () => {
 });
 
 describe('new challenge setup', () => {
-	it('clears the generated order when fairness weight changes', async () => {
+	it('allows fairness edits before start and preserves collected initiatives', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -504,8 +550,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -516,11 +561,12 @@ describe('new challenge setup', () => {
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
+			expect(saved?.fairnessWeight).toBe(4.25);
+			expect(saved?.runState?.initiativeResults[turnId]).toBe(12);
 		});
 	});
 
-	it('clears the generated order when turn placement changes', async () => {
+	it('clears a roll result when turn placement changes before start', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -534,8 +580,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -554,7 +599,7 @@ describe('new challenge setup', () => {
 		});
 	});
 
-	it('preserves the generated order when only the challenge name changes', async () => {
+	it('preserves initiative results when the challenge name changes before start', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -568,8 +613,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -581,10 +625,7 @@ describe('new challenge setup', () => {
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.name).toBe('Ashen Company');
-			expect(saved?.runState?.generatedTurnOrder).toEqual([
-				{ kind: 'turn', turnId: turnId },
-				{ kind: 'spawn' }
-			]);
+			expect(saved?.runState?.initiativeResults[turnId]).toBe(12);
 		});
 	});
 
@@ -811,7 +852,7 @@ describe('challenge setup persistence', () => {
 			target: { value: 'Ready to roll' }
 		});
 		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(document.querySelector('.challenge-setup')?.nextElementSibling).toBe(startButton);
+		expect(startButton.closest('fieldset[disabled]')).toBeNull();
 		await fireEvent.click(startButton);
 
 		expect(mockedGoto).not.toHaveBeenCalled();
@@ -862,7 +903,7 @@ describe('challenge setup persistence', () => {
 });
 
 describe('new challenge setup', () => {
-	it('clears the generated order when fairness weight changes', async () => {
+	it('allows fairness edits before start and preserves collected initiatives', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -876,8 +917,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -888,11 +928,12 @@ describe('new challenge setup', () => {
 
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
+			expect(saved?.fairnessWeight).toBe(4.25);
+			expect(saved?.runState?.initiativeResults[turnId]).toBe(12);
 		});
 	});
 
-	it('clears the generated order when turn placement changes', async () => {
+	it('clears a roll result when turn placement changes before start', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -906,8 +947,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -926,7 +966,7 @@ describe('new challenge setup', () => {
 		});
 	});
 
-	it('preserves the generated order when only the challenge name changes', async () => {
+	it('preserves initiative results when the challenge name changes before start', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -940,8 +980,7 @@ describe('new challenge setup', () => {
 			}
 		];
 		challenge.runState = {
-			initiativeResults: { [turnId]: 12 },
-			generatedTurnOrder: [{ kind: 'turn', turnId: turnId }, { kind: 'spawn' }]
+			initiativeResults: { [turnId]: 12 }
 		};
 		await saveChallengeToLibrary(challenge);
 
@@ -953,10 +992,7 @@ describe('new challenge setup', () => {
 		await waitFor(async () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.name).toBe('Ashen Company');
-			expect(saved?.runState?.generatedTurnOrder).toEqual([
-				{ kind: 'turn', turnId: turnId },
-				{ kind: 'spawn' }
-			]);
+			expect(saved?.runState?.initiativeResults[turnId]).toBe(12);
 		});
 	});
 
@@ -1564,7 +1600,6 @@ describe('initiative stat changes', () => {
 				[npcApp!]: 6,
 				[otherNpcApp!]: 4
 			},
-			generatedTurnOrder: [{ kind: 'turn', turnId: heroApp! }, { kind: 'spawn' }],
 			tieDecisions: [
 				[heroApp!, heroManual!],
 				[npcApp!, otherNpcApp!]
@@ -1574,7 +1609,7 @@ describe('initiative stat changes', () => {
 		await renderSetup();
 	}
 
-	it('discards a character’s app-rolled results and the generated order', async () => {
+	it('discards a character’s app-rolled results before start', async () => {
 		await saveChallengeWithResults();
 		await fireEvent.input(
 			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
@@ -1595,7 +1630,7 @@ describe('initiative stat changes', () => {
 		});
 	});
 
-	it('discards app-rolled results only for NPCs of the changed type', async () => {
+	it('discards app-rolled results only for NPCs of the changed type before start', async () => {
 		await saveChallengeWithResults();
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
 			target: { value: '4' }
@@ -1612,7 +1647,7 @@ describe('initiative stat changes', () => {
 		});
 	});
 
-	it('keeps results when a stat input is set to its current value', async () => {
+	it('keeps results when a stat input is set to its current value before start', async () => {
 		await saveChallengeWithResults();
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
 			target: { value: '2' }
@@ -1631,7 +1666,7 @@ describe('initiative stat changes', () => {
 			const saved = (await loadChallengeLibrary()).challenges[0];
 			expect(saved?.name).toBe('Renamed');
 			expect(Object.keys(saved?.runState?.initiativeResults ?? {})).toHaveLength(4);
-			expect(saved?.runState?.generatedTurnOrder).toBeDefined();
+			expect(saved?.runState?.generatedTurnOrder).toBeUndefined();
 		});
 	});
 });
