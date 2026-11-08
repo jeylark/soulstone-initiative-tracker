@@ -30,4 +30,25 @@ describe('TextInput', () => {
 		await fireEvent.input(input, { target: { value: 'New encounter' } });
 		expect(oninput).toHaveBeenCalledOnce();
 	});
+
+	it('shows warning and invalid messages accessibly', () => {
+		render(TextInput, {
+			label: 'Name',
+			['aria-describedby']: 'help',
+			hasWarning: true,
+			warningMessage: 'Careful.',
+			isInvalid: true,
+			invalidMessage: 'Not allowed.'
+		});
+
+		const control = screen.getByRole('textbox', { name: 'Name' });
+		const warning = screen.getByRole('status');
+		const invalid = screen.getByRole('alert');
+		expect(warning.textContent).toBe('Careful.');
+		expect(invalid.textContent).toBe('Not allowed.');
+		expect(control.classList.contains('form-control--warning')).toBe(true);
+		expect(control.classList.contains('form-control--invalid')).toBe(true);
+		expect(control.getAttribute('aria-invalid')).toBe('true');
+		expect(control.getAttribute('aria-describedby')).toBe(`help ${invalid.id} ${warning.id}`);
+	});
 });
