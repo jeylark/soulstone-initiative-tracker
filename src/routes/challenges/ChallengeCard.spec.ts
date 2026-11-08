@@ -51,25 +51,33 @@ function createDetailedChallenge(): Challenge {
 }
 
 describe('ChallengeCard', () => {
-	it('shows the name, last modified date, character names, and NPC type names', () => {
+	it('shows the name, modified date, PCs, and NPCs in separate rows', () => {
 		const challenge = createDetailedChallenge();
 		render(ChallengeCard, { challenge });
 
 		expect(screen.getByRole('heading', { level: 3, name: 'Ashen Company' })).toBeTruthy();
 		const time = document.querySelector('time');
 		expect(time?.getAttribute('datetime')).toBe('2026-03-04T12:30:00.000Z');
-		expect(time?.textContent).toBe(challenge.updatedAt.toLocaleString());
+		expect(time?.textContent).toBe(challenge.updatedAt.toLocaleDateString());
+		expect(screen.queryByText('Last modified')).toBeNull();
+		expect(screen.getByRole('link', { name: 'Load Ashen Company' })).toBeTruthy();
 
-		const characters = within(screen.getByRole('list', { name: 'Player characters' }));
+		const characters = within(screen.getByRole('list', { name: 'PCs' }));
 		expect(characters.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
 			'Mira',
 			'Tobin'
 		]);
-		const npcTypes = within(screen.getByRole('list', { name: 'NPC types' }));
+		const npcTypes = within(screen.getByRole('list', { name: 'NPCs' }));
 		expect(npcTypes.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
 			'Goblin',
 			'Ogre'
 		]);
+
+		expect(time?.parentElement?.contains(screen.getByRole('link', { name: 'Load Ashen Company' }))).toBe(
+			true
+		);
+		expect(characters.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
+		expect(npcTypes.getByRole('list').parentElement?.parentElement?.tagName).toBe('DIV');
 	});
 
 	it('falls back for an unnamed challenge without characters or NPC types', () => {
