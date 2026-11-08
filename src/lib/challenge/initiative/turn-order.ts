@@ -67,7 +67,14 @@ export function findInitiativeTies(
 	const ties: StableId[][] = [];
 	for (const factionTurns of turnsByFaction.values()) {
 		const groups = new Map<number, StableId[]>();
-		for (const turn of factionTurns) groups.getOrInsert(turn.initiative, []).push(turn.id);
+		for (const turn of factionTurns) {
+			let group = groups.get(turn.initiative);
+			if (!group) {
+				group = [];
+				groups.set(turn.initiative, group);
+			}
+			group.push(turn.id);
+		}
 		ties.push(...groups.values().filter((group) => group.length > 1));
 	}
 	return ties;
@@ -130,7 +137,11 @@ function filterFactionTurns(
 	const hookedTurns: HookedTurn[] = [];
 
 	for (const creature of challenge.creatures) {
-		const factionTurns = turnsByFaction.getOrInsert(creature.factionId, []);
+		let factionTurns = turnsByFaction.get(creature.factionId);
+		if (!factionTurns) {
+			factionTurns = [];
+			turnsByFaction.set(creature.factionId, factionTurns);
+		}
 
 		for (const turn of creature.turns) {
 			if (turn.initiative.kind === 'roll') {

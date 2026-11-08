@@ -9,7 +9,8 @@ detailed coding guidelines.
 - Check the current branch and worktree before editing.
 - Do implementation work on a task-specific branch; never merge into or push to
   `main`. If the current branch is unsuitable, create or switch to the task
-  branch before editing, but only after confirming with the user.
+  branch before editing, but only after confirming with the user. Use descriptive
+  names when creating branches.
 - Preserve existing work. Do not switch branches if doing so could move,
   overwrite, or obscure uncommitted changes; ask the user how to proceed if the
   work cannot be safely isolated.

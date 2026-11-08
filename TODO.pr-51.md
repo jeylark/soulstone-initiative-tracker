@@ -253,7 +253,17 @@ already-Done 2.5 and 2.6 without reopening or duplicating them.
 
 ### PR51-05: Initiative Values
 
-- [ ] Display rolled initiatives in turn cards.
+- [x] Display rolled initiatives in turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `turn-display.ts`,
+    `turn-display.spec.ts`, `Turn.svelte`, new `Turn.spec.ts`,
+    `RunPanel.svelte`, `RunPanel.spec.ts`, and `turn-order.ts`.
+  - Checks: focused Vitest run (3 files, 30 tests passed); turn-list integration
+    test (1 passed). Replaced unsupported `Map.getOrInsert` usage found while
+    exercising the Run view under Node 22 with equivalent standard Map access.
+  - Manual checks: none. Main TODO 2.24 moved to Done because turn names are
+    already prominent card headings and numeric initiatives now display.
+  - Remaining overlap/blockers: none.
 
 **Implementation:** Reuse the display pipeline in
 [turn-display.ts](src/lib/challenge/initiative/turn-display.ts) and pass initiative
@@ -273,7 +283,13 @@ and prominent creature name requirements are satisfied; otherwise leave it Open.
 
 ### PR51-10: Hidden Label
 
-- [ ] Rename the hidden control's visible label to Hidden.
+- [x] Rename the hidden control's visible label to Hidden.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    and `RunPanel.spec.ts`.
+  - Checks: focused Vitest run (2 files, 27 tests passed).
+  - Manual checks: none. Main TODO unchanged; 2.18 was already Done.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Turn currently labels CheckboxInput
 `Hidden from viewers: {creatureName}`. Change visible text to `Hidden`, retaining
@@ -288,7 +304,14 @@ accessible names, multiple creatures/turns, saved visibility, and save-failure r
 
 ### PR51-11: Order Indices
 
-- [ ] Remove index from turn cards.
+- [x] Remove index from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
+  - Checks: focused Vitest run (2 files, 28 tests passed).
+  - Manual checks: none. Main TODO 2.25 remains Open because multi-turn title
+    suffixes are intentionally unchanged.
+  - Remaining scope/blockers: no order-index labels remain on turn or Spawn cards.
 
 **Implementation:** Remove visible position spans for creature turns and Spawn,
 and their unused CSS in Turn. Retain position metadata if other callers need it.
@@ -304,7 +327,14 @@ authorized and completed; otherwise record the index subset and leave it Open.
 
 ### PR51-12: Faction Text
 
-- [ ] Remove faction from turn cards.
+- [x] Remove faction from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
+  - Checks: focused Vitest run (2 files, 29 tests passed).
+  - Manual checks: none. Main TODO unchanged; faction tint and hidden styling
+    remain, and faction membership data is untouched.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Remove faction name text from Turn; retain faction color tint,
 hidden styling, stored membership, and fairness behavior. Do not delete faction data.
@@ -317,28 +347,39 @@ requirement to strengthen faction colors.
 
 ### PR51-07: Bottom Whitespace
 
-- [ ] Remove empty space at the bottom of turn cards.
+- [x] Reduce reserved validation-message space to one line and tighten gaps for all inputs.
 
-**Current evidence:** [CheckboxInput.svelte](src/lib/components/forms/CheckboxInput.svelte)
-always renders two `.form-control-message-slot` elements;
-[form-controls.css](src/lib/components/forms/form-controls.css) gives each
-`min-height: 1.3em` plus wrapper gaps. Confirm the rendered cause before editing.
+  - 2026-11-08, branch `copilot/pr51-07`. Changed all six custom form controls
+    and their specs, `form-controls.css`, and this checklist.
+  - Checks: `npm run test:unit -- --run src/lib/components/forms` (6 files, 15
+    tests passed); `npm run check` (0 errors, 0 warnings).
+  - Browser: inspected challenge setup and Run at desktop/mobile sizes in light
+    and dark themes. Verified one-line empty/error areas, no horizontal overflow,
+    and the hidden turn and Spawn cards. Main TODO entries moved to Done: none.
+    Remaining overlap: TODO 6.19 still requests removing empty reserved height.
+    The supplementary Run integration specs were attempted but fail before
+    rendering because this Node runtime lacks `Map.prototype.getOrInsert`.
+
+**Behavior:** Every custom input reserves one line for warning/error feedback;
+warning and error messages render together and expand the area when both are
+present. Use smaller field/message gaps without changing control width or
+accessible associations.
+
+**Implementation:** Replace the separate warning/error slots with one shared
+message area in the checkbox, color picker, number, range, select, and text
+controls. Set one line of minimum height on that area, reduce shared field and
+message gaps, and keep extra message lines and their gap when both are displayed.
 Turn's hidden-status paragraph has zero bottom margin; do not change shared page
 padding as a shortcut.
 
-**Implementation:** Render message space only when messages exist, preserving
-control width stability, real feedback, accessible associations, and focus/target
-sizes. Checkbox-only changes must not accidentally regress other custom controls.
-Completing full TODO 6.19 requires an explicitly scoped shared-control pass.
+**Tests:** Owning specs for all six controls cover simultaneous warning/error
+messages within the shared area and preserve accessible associations. Real-browser
+inspection verifies message-area height and card appearance because jsdom cannot
+validate visual spacing. Check hidden/nonhidden/Spawn cards, light/dark, and
+desktop/mobile.
 
-**Tests:** [CheckboxInput.spec.ts](src/lib/components/forms/CheckboxInput.spec.ts),
-Turn's tests, and every changed control's owning tests. Check absent/present feedback,
-width stability, hidden/nonhidden/Spawn cards, light/dark and desktop/mobile.
-Real-browser height measurement is necessary; jsdom cannot validate visual spacing.
-
-**Main TODO:** Direct overlap with 6.19. After finishing, move it to Done only if
-all custom-input height reservations/empty slots in its full scope are removed and
-tests updated. For a checkbox-only fix, list remaining controls and leave it Open.
+**Main TODO:** 6.19 remains open because it calls for removing all reserved empty
+message height, while this item reserves one line by request.
 
 ## Run View
 

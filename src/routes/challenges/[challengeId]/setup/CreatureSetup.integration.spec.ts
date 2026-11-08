@@ -36,7 +36,10 @@ describe('new challenge setup', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		expect(screen.getByRole('group', { name: 'NPC Type 1' })).toBeTruthy();
 		expect(screen.getByRole('textbox', { name: 'NPC type name: NPC Type 1' })).toBeTruthy();
-		expect(screen.getByRole('spinbutton', { name: 'Initiative stat for NPC Type 1' })).toBeTruthy();
+		const statInput = screen.getByRole('spinbutton', { name: 'Initiative stat for NPC Type 1' });
+		expect(statInput.getAttribute('min')).toBe('0');
+		await fireEvent.input(statInput, { target: { value: '0' } });
+		expect((statInput as HTMLInputElement).value).toBe('0');
 		expect(screen.queryByRole('button', { name: /Use NPC type|Selected/ })).toBeNull();
 		expect(screen.queryByRole('textbox', { name: 'New NPC type name' })).toBeNull();
 	});

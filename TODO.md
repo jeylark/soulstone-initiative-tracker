@@ -35,8 +35,6 @@ under the same category, keeping its task number and wording.
 - 2.22: After turn-order generation starts the challenge, lock setup and
   rolling until the challenge is reset.
 - 2.23: Show the challenge name in the run view.
-- 2.24: Make the creature name prominent inside each turn card and show its
-  numeric initiative when one exists.
 - 2.25: Remove turn numbers from card titles and order indices from run-view
   cards.
 - 2.27: Make faction colors stand out more clearly from the background.
@@ -229,6 +227,11 @@ under the same category, keeping its task number and wording.
 - 2.34: Add a separate disable option for each input control and button.
 - 2.36: Extract a reusable input component that combines a slider with its
   associated input field.
+- 2.37: Add a **Next turn** button to running challenges that rotates the
+  turn order, saves it, and shows the number of completed Spawn steps above
+  the list.
+- 2.24: Make the creature name prominent inside each turn card and show its
+  numeric initiative when one exists.
 
 ### 6. Quality and release readiness
 

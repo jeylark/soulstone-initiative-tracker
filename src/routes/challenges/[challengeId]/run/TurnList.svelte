@@ -11,8 +11,8 @@
 </script>
 
 <ol aria-label="Generated turn order" class="turn-order-list">
-	{#each items as item (item.kind === 'turn' ? item.turnId : 'spawn')}
-		<li>
+	{#each items as item, index (item.kind === 'turn' ? item.turnId : 'spawn')}
+		<li aria-current={index === 0 ? 'step' : undefined}>
 			<Turn {item} {onVisibilityChange} />
 		</li>
 	{/each}
