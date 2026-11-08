@@ -14,7 +14,19 @@ describe('rollInitiative', () => {
 		expect(nextDie).toBe(dice.length);
 	});
 
-	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, Number.POSITIVE_INFINITY])(
+	it('returns 0 for zero dice without calling the random source', () => {
+		let calls = 0;
+
+		expect(
+			rollInitiative(0, () => {
+				calls += 1;
+				return 0;
+			})
+		).toBe(0);
+		expect(calls).toBe(0);
+	});
+
+	it.each([-1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1, Number.POSITIVE_INFINITY])(
 		'rejects invalid dice counts: %s',
 		(diceCount) => {
 			expect(() => rollInitiative(diceCount, () => 0)).toThrow(RangeError);

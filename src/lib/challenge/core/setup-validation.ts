@@ -79,7 +79,7 @@ export function validateChallengeSetup(
 ): readonly ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 	const validInitiativeStat = (value: number | undefined): value is number =>
-		typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+		typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 	const challengeName = [{ path: '$.name', value: challenge.name }];
 	const factionNames = challenge.factions.map((faction, index) => ({
 		path: `$.factions[${index}].name`,
@@ -147,7 +147,7 @@ export function validateChallengeSetup(
 		if (!validInitiativeStat(npcType.initiativeStat)) {
 			issues.push({
 				path: `$.npcTypes[${index}].initiativeStat`,
-				message: 'Initiative stat must be a positive whole number.'
+				message: 'Initiative stat must be a non-negative whole number.'
 			});
 		}
 	});
@@ -163,7 +163,7 @@ export function validateChallengeSetup(
 					message:
 						creature.initiativeStat === undefined
 							? 'An initiative stat is required for characters with app-rolled turns.'
-							: 'Initiative stat must be a positive whole number.'
+							: 'Initiative stat must be a non-negative whole number.'
 				});
 			}
 		}

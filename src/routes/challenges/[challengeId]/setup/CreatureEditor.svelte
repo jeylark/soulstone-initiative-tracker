@@ -92,7 +92,7 @@
 					label="Initiative stat (d6)"
 					aria-label={`Initiative stat (d6) for ${characterName}`}
 					value={characterInitiativeStat ?? ''}
-					min="1"
+					min="0"
 					step="1"
 					isInvalid={initiativeStatError !== undefined}
 					invalidMessage={initiativeStatError}
