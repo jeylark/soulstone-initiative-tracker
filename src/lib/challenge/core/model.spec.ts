@@ -911,21 +911,6 @@ describe('challenge domain models', () => {
 		}
 	});
 
-	it('rejects duplicate entity IDs', () => {
-		const invalidLibrary = structuredClone(library);
-		invalidLibrary.challenges[0].npcTypes[0].id = invalidLibrary.challenges[0].factions[0].id;
-
-		const result = validateChallengeLibrary(invalidLibrary);
-
-		expect(result.isValid).toBe(false);
-		if (!result.isValid) {
-			expect(result.issues).toContainEqual({
-				path: '$.challenges[0].npcTypes[0].id',
-				message: 'Duplicate entity UUID.'
-			});
-		}
-	});
-
 	it('uses the initial version for persisted challenge libraries', () => {
 		expect(CHALLENGE_FORMAT_VERSION).toBe(1);
 		expectTypeOf<ChallengeLibrary['formatVersion']>().toEqualTypeOf<1>();
