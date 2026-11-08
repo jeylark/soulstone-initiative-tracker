@@ -141,7 +141,7 @@ Distinguish disabled editing from invalid initiative stats in status messages.
 
 ### SPAWN-01: Persist Editing Permissions
 
-- [ ] Complete and commit `feat: persist spawn editing state`.
+- [x] Complete and commit `feat: persist spawn editing state`.
 
 **Dependencies:** None. Do not unlock UI controls in this step.
 
@@ -166,7 +166,16 @@ without metadata must still load unchanged.
 **Gate:** Focused core, file, and storage tests; format edited files;
 `npm run check`; inspect the step diff before committing.
 
-**Completion:** Not started.
+**Completion:** 2026-11-08, Copilot session on branch `feat/spawn-edit-state`
+(the named `feat/spawn-challenge-editing` was checked out in another worktree).
+Commit `32d5316`. Changed: `model.ts` (`SpawnEditState`, `runState.spawnEdit`),
+`validation.ts` (shape, duplicate/missing/wrong-kind references, Spawn-only order;
+reference and order problems stay readable), `raw-sanitizer.ts`, `challenge-copy.ts`,
+`challenge-files.ts` (fresh-ID remap), and colocated core/files/storage specs.
+Checks: `npx vitest run src/lib/challenge` (15 files, 299 tests passed);
+`npm run check` (0 errors); `npx prettier --check` on edited files passed.
+Manual checks: none (no UI). Skipped: `npm test`/`npm run lint`/`npm run build`
+(pre-PR only). Blockers: none.
 
 ### SPAWN-02: Run Editing Transitions
 
