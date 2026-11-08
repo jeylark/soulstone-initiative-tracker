@@ -371,8 +371,8 @@ describe('turn-order run route', () => {
 		expect(items[0]?.textContent).toContain('Initiative: 12');
 		expect(items[1]?.textContent).toContain('Initiative: 6');
 		expect(items[2]?.textContent).not.toContain('Initiative:');
-		expect(items[0]?.textContent).toContain('Enemies');
-		expect(items[1]?.textContent).toContain('Players');
+		expect(items[0]?.textContent).not.toContain('Enemies');
+		expect(items[1]?.textContent).not.toContain('Players');
 		expect(
 			items.map((item) =>
 				item

@@ -313,7 +313,14 @@ authorized and completed; otherwise record the index subset and leave it Open.
 
 ### PR51-12: Faction Text
 
-- [ ] Remove faction from turn cards.
+- [x] Remove faction from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    and `RunPanel.spec.ts`.
+  - Checks: focused Vitest run (2 files, 29 tests passed).
+  - Manual checks: none. Main TODO unchanged; faction tint and hidden styling
+    remain, and faction membership data is untouched.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Remove faction name text from Turn; retain faction color tint,
 hidden styling, stored membership, and fairness behavior. Do not delete faction data.

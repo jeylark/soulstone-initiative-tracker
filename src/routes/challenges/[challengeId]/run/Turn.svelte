@@ -43,9 +43,6 @@
 				{#if item.initiative !== undefined}
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
-				{#if item.display.faction}
-					<span>{item.display.faction.name}</span>
-				{/if}
 			</div>
 			<div class="turn-order-visibility">
 				<CheckboxInput

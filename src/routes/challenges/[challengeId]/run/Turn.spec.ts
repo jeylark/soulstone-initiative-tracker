@@ -7,14 +7,18 @@ afterEach(cleanup);
 
 function createTurnItem(
 	initiative: number | undefined,
-	isHidden = false
+	isHidden = false,
+	hasFaction = false
 ): TurnOrderTurnDisplayItem {
 	const turnId = createUuid();
+	const faction = hasFaction
+		? { id: createUuid(), name: 'Players', color: 'blue' as const }
+		: undefined;
 	const creature: ChallengeCreature = {
 		id: createUuid(),
 		kind: 'character',
 		name: 'Aria',
-		factionId: createUuid(),
+		factionId: faction?.id ?? createUuid(),
 		isHidden,
 		turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'app' } }]
 	};
@@ -25,7 +29,7 @@ function createTurnItem(
 		position: 1,
 		display: {
 			creature,
-			faction: undefined,
+			faction,
 			creatureName: 'Aria',
 			label: 'Aria',
 			initiative: { kind: 'roll', mode: 'app' },
@@ -89,5 +93,19 @@ describe('Turn', () => {
 			}
 		});
 		expect(screen.queryByText('2')).toBeNull();
+	});
+
+	it('keeps faction color styling without displaying faction names', () => {
+		const { container } = render(Turn, {
+			props: { item: createTurnItem(6, false, true), onVisibilityChange: vi.fn() }
+		});
+
+		expect(screen.queryByText('Players')).toBeNull();
+		expect(screen.getByRole('heading', { name: 'Aria' })).toBeTruthy();
+		expect(
+			container
+				.querySelector<HTMLElement>('.turn-order-card-tone')
+				?.style.getPropertyValue('--faction-color')
+		).toBe('#5687c8');
 	});
 });
