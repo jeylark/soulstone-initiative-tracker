@@ -229,6 +229,9 @@ under the same category, keeping its task number and wording.
 - 2.34: Add a separate disable option for each input control and button.
 - 2.36: Extract a reusable input component that combines a slider with its
   associated input field.
+- 2.37: Add a **Next turn** button to running challenges that rotates the
+  turn order, saves it, and shows the number of completed Spawn steps above
+  the list.
 
 ### 6. Quality and release readiness
 

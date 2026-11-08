@@ -63,6 +63,50 @@ describe('turn-order run route', () => {
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
+	it('advances to the next turn, counts spawns, and saves the rotated order', async () => {
+		await saveChallengeToLibrary(createRunChallenge());
+
+		render(turnOrderPage);
+		expect(await screen.findByText('Spawns: 0')).toBeTruthy();
+		const titles = () =>
+			within(screen.getByRole('list', { name: 'Generated turn order' }))
+				.getAllByRole('listitem')
+				.map((item) => item.querySelector('h2')?.textContent);
+
+		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
+
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Rook', 'Spawn', 'Aria']));
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook']));
+		expect(screen.getByText('Spawns: 0')).toBeTruthy();
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.spawnCount).toBe(1);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([
+				{ kind: 'turn', turnId: ariaTurnId },
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'spawn' }
+			]);
+		});
+		expect(screen.getByText('Spawns: 1')).toBeTruthy();
+	});
+
+	it('hides the next-turn button until an order exists', async () => {
+		const challenge = createRunChallenge();
+		delete challenge.runState?.generatedTurnOrder;
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		await screen.findByRole('button', { name: 'Generate turn order' });
+
+		expect(screen.queryByRole('button', { name: 'Next turn' })).toBeNull();
+	});
+
 	it('shows a loading state while the challenge library is being read', () => {
 		render(turnOrderPage);
 

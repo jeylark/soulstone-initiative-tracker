@@ -217,6 +217,9 @@ function importChallengeEntities(
 									group.map((turnId) => mapTurnId(turnId))
 								)
 							}),
+					...(challenge.runState.spawnCount === undefined
+						? {}
+						: { spawnCount: challenge.runState.spawnCount }),
 					...(challenge.runState.generatedTurnOrder === undefined
 						? {}
 						: {
