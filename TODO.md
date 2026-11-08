@@ -142,8 +142,6 @@ under the same category, keeping its task number and wording.
   for import/export and viewer workflows.
 - 6.3: Verify mobile layouts and efficient use of larger screens for challenge
   setup.
-- 6.4: Verify mobile layouts and efficient use of larger screens for the
-  turn-order views.
 - 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
   and `npm run build`; ensure CI passes.
 
@@ -253,3 +251,5 @@ under the same category, keeping its task number and wording.
 - 6.16: Extract a reusable color-picker component and use it throughout the
   app wherever color-picking controls are needed.
 - 6.18: Speed up reading and applying the saved dark/light mode on page load.
+- 6.4: Verify mobile layouts and efficient use of larger screens for the
+  turn-order views.
