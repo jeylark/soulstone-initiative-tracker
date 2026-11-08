@@ -88,7 +88,13 @@ saved/reopened valid blank identifiers. Update display-owned tests if needed.
 
 ### PR51-02: Focus After Addition
 
-- [ ] Upon adding an entity, focus/select its first field after the Remove button.
+- [x] Upon adding an entity, focus/select its first field after the Remove button.
+
+**Completion (2026-11-08):** Changed `SetupPanel.svelte` (`focusNewEntity` after each add), `data-entity-id` on the
+faction, NPC type, creature, and turn editors, and `SetupPanel.spec.ts`. Checks: `npx vitest run src/routes/challenges`
+(17 files, 141 tests passed); `npm run check` (0 errors). Not manually checked. Main TODO 6.1 stays Open; this
+covers only its focus-after-add subset. Remaining: full keyboard, screen-reader, visible-focus, and WCAG checks.
+No blockers.
 
 **Behavior:** Focus the new entity's first enabled editable field and select its
 text when native selection is supported. Apply to factions, NPC types, characters,

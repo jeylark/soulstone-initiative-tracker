@@ -49,6 +49,7 @@
 >
 	<EntityListItem
 		class="turn-card"
+		data-entity-id={turn.id}
 		aria-label={`Turn ${turnNumber}`}
 		legend={`Turn ${turnNumber}`}
 		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
