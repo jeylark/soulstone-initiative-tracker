@@ -40,10 +40,17 @@ describe('validateChallengeSetup', () => {
 	});
 
 	it('ignores a hidden invalid stat when no turn is app-rolled', () => {
-		expect(validateChallengeSetup(createChallenge('manual', 0))).toEqual([]);
+		expect(validateChallengeSetup(createChallenge('manual', -1))).toEqual([]);
 	});
 
-	it('requires a positive safe-integer stat for app-mode character turns', () => {
+	it('accepts a zero stat for characters and NPC types', () => {
+		const challenge = createChallenge('app', 0);
+		challenge.npcTypes[0]!.initiativeStat = 0;
+
+		expect(validateChallengeSetup(challenge)).toEqual([]);
+	});
+
+	it('requires a non-negative safe-integer stat for app-mode character turns', () => {
 		const issues = validateChallengeSetup(createChallenge('app'));
 
 		expect(issues).toEqual([
@@ -54,26 +61,26 @@ describe('validateChallengeSetup', () => {
 		]);
 	});
 
-	it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+	it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
 		'rejects invalid character stats (%s)',
 		(initiativeStat) => {
 			const issues = validateChallengeSetup(createChallenge('app', initiativeStat));
 
 			expect(issues).toContainEqual({
 				path: '$.creatures[0].initiativeStat',
-				message: 'Initiative stat must be a positive whole number.'
+				message: 'Initiative stat must be a non-negative whole number.'
 			});
 		}
 	);
 
 	it('returns multiple issues for independent initiative-stat problems', () => {
 		const challenge = createChallenge('app');
-		challenge.npcTypes[0]!.initiativeStat = 0;
+		challenge.npcTypes[0]!.initiativeStat = -1;
 
 		expect(validateChallengeSetup(challenge)).toEqual([
 			{
 				path: '$.npcTypes[0].initiativeStat',
-				message: 'Initiative stat must be a positive whole number.'
+				message: 'Initiative stat must be a non-negative whole number.'
 			},
 			{
 				path: '$.creatures[0].initiativeStat',
@@ -219,7 +226,7 @@ describe('validateChallengeSetup', () => {
 	it('rejects invalid finite setup numbers while accepting finite static values', () => {
 		const challenge = createChallenge();
 		challenge.fairnessWeight = -1;
-		challenge.npcTypes[0]!.initiativeStat = 0;
+		challenge.npcTypes[0]!.initiativeStat = -1;
 		challenge.creatures[0]!.turns = [
 			{ id: ids.turn, initiative: { kind: 'static', value: 1.5 } },
 			{ id: createUuid(), initiative: { kind: 'fixed-position', from: 'top', position: 0 } },

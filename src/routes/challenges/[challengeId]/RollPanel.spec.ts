@@ -697,6 +697,52 @@ describe('running challenge storage', () => {
 		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
 	});
 
+	it('rolls zero-stat creatures as 0 without randomness and surfaces the tie', async () => {
+		const challenge = createSetupChallenge();
+		const npcTypeId = '00000000-0000-4000-8000-000000000005' as StableId;
+		const characterTurnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		const npcTurnId = '00000000-0000-4000-8000-000000000009' as StableId;
+		const faction = '00000000-0000-4000-8000-000000000002' as StableId;
+		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 0 }];
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 0,
+				factionId: faction,
+				isHidden: false,
+				turns: [{ id: characterTurnId, initiative: { kind: 'roll', mode: 'app' } }]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000012' as StableId,
+				kind: 'npc',
+				creatureTypeId: npcTypeId,
+				identifier: 'A',
+				factionId: faction,
+				isHidden: false,
+				turns: [{ id: npcTurnId, initiative: { kind: 'roll', mode: 'app' } }]
+			}
+		];
+		await saveChallengeToLibrary(challenge);
+		const random = vi.spyOn(Math, 'random');
+
+		render(rollChallengePage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Roll initiative for Aria' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
+
+		expect(screen.getAllByText('Initiative result: 0')).toHaveLength(2);
+		expect(screen.getByText('Needs ordering')).toBeTruthy();
+		expect(random).not.toHaveBeenCalled();
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults).toEqual({
+				[characterTurnId]: 0,
+				[npcTurnId]: 0
+			});
+		});
+	});
+
 	it('lets the DM order a tie and saves the decision', async () => {
 		const challenge = createSetupChallenge();
 		const faction = '00000000-0000-4000-8000-000000000002' as StableId;

@@ -144,7 +144,15 @@ direction correctly, and saved/imported selections still render correctly.
 
 ### PR51-04: Zero Initiative Stat
 
-- [ ] Allow 0 as initiative stat.
+- [x] Allow 0 as initiative stat.
+
+  - 2026-11-08, branch `reimagined-succotash`. Changed: `initiative-roll.ts`,
+    `setup-validation.ts`, `RollPanel.svelte`, `CreatureEditor.svelte`,
+    `NpcTypeEditor.svelte`, and their specs (`initiative-roll`, `setup-validation`,
+    `RollPanel`, `CreatureSetup.integration`).
+  - Checks: `npx vitest run src/lib src/routes` — 448 passed. Not run: lint, check, build.
+  - Structural validation (`validation.ts`) only requires finite numbers; unchanged.
+  - Main TODO entries moved to Done: none. Remaining scope/blockers: none.
 
 **Behavior:** Accept zero for NPC types and optional character stats. Rolling zero
 dice returns 0 without calling the random source. Negative, fractional, nonfinite,
