@@ -28,18 +28,16 @@ function addBlankNameIssues(values: readonly NamedValue[], label: string): Valid
 }
 
 function addDuplicateNameIssues(values: readonly NamedValue[], message: string): ValidationIssue[] {
-	const issues: ValidationIssue[] = [];
-	const seen = new Set<string>();
+	const counts = new Map<string, number>();
 	for (const { path, value } of values) {
 		const name = normalizedName(value);
 		if (name.length === 0) continue;
-		if (seen.has(name)) {
-			issues.push({ path, message });
-		} else {
-			seen.add(name);
-		}
+		counts.set(name, (counts.get(name) ?? 0) + 1);
 	}
-	return issues;
+	return values.flatMap(({ path, value }) => {
+		const name = normalizedName(value);
+		return name.length > 0 && counts.get(name)! > 1 ? [{ path, message }] : [];
+	});
 }
 
 function getCyclicTurns(turns: readonly RelativeTurn[]): ReadonlySet<string> {

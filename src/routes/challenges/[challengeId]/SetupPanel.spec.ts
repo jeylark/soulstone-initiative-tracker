@@ -102,6 +102,85 @@ describe('challenge setup persistence', () => {
 		expect(document.querySelector('.setup-validation-issues')).toBeNull();
 	});
 
+	it('marks every input in duplicate-name groups as invalid', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Duplicate names';
+		challenge.factions[1]!.name = ' players ';
+		challenge.npcTypes = [
+			{
+				id: '00000000-0000-4000-8000-000000000004' as StableId,
+				name: 'Sentinel',
+				initiativeStat: 1
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000005' as StableId,
+				name: ' sentinel ',
+				initiativeStat: 1
+			}
+		];
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'SENTINEL',
+				factionId: challenge.factions[0]!.id,
+				isHidden: false,
+				turns: []
+			},
+			...['A', 'a'].map((identifier, index) => ({
+				id: `00000000-0000-4000-8000-00000000001${index + 2}` as StableId,
+				kind: 'npc' as const,
+				creatureTypeId: '00000000-0000-4000-8000-000000000004' as StableId,
+				identifier,
+				factionId: challenge.factions[1]!.id,
+				isHidden: false,
+				turns: []
+			}))
+		];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const factionNameInputs = screen
+			.getAllByRole('textbox')
+			.filter((input) => input.getAttribute('aria-label')?.startsWith('Faction name:'));
+		const npcTypeNameInputs = screen
+			.getAllByRole('textbox')
+			.filter((input) => input.getAttribute('aria-label')?.startsWith('NPC type name:'));
+		const characterNameInput = screen.getByRole('textbox', { name: 'Character name: SENTINEL' });
+		const npcIdentifierInputs = screen.getAllByRole('textbox', { name: 'NPC identifier' });
+		const duplicateInputs = [
+			...factionNameInputs.map((input) => ({
+				input,
+				message: 'Faction names must be unique, ignoring case and surrounding whitespace.'
+			})),
+			...npcTypeNameInputs.map((input) => ({
+				input,
+				message:
+					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			})),
+			{
+				input: characterNameInput,
+				message:
+					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			},
+			...npcIdentifierInputs.map((input) => ({
+				input,
+				message:
+					'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+			}))
+		];
+
+		expect(factionNameInputs).toHaveLength(2);
+		expect(npcTypeNameInputs).toHaveLength(2);
+		expect(npcIdentifierInputs).toHaveLength(2);
+		for (const { input, message } of duplicateInputs) {
+			expect(input.getAttribute('aria-invalid')).toBe('true');
+			const errorId = input.getAttribute('aria-describedby');
+			expect(errorId).toBeTruthy();
+			expect(document.getElementById(errorId ?? '')?.textContent).toContain(message);
+		}
+	});
+
 	it('persists invalid finite placement values in editable drafts', async () => {
 		const challenge = createSetupChallenge();
 		challenge.name = 'Draft';

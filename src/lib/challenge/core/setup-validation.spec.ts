@@ -136,8 +136,11 @@ describe('validateChallengeSetup', () => {
 		const issues = validateChallengeSetup(challenge);
 
 		expect(issues.map(({ path }) => path)).toEqual([
+			'$.factions[0].name',
 			'$.factions[1].name',
+			'$.creatures[0].name',
 			'$.npcTypes[0].name',
+			'$.creatures[1].identifier',
 			'$.creatures[2].identifier'
 		]);
 	});
