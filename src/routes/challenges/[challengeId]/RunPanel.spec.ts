@@ -140,6 +140,34 @@ describe('turn-order run route', () => {
 		expect(screen.queryByRole('button', { name: 'Next turn' })).toBeNull();
 	});
 
+	it('skips hidden turns while keeping them visible and stopping at Spawn', async () => {
+		const challenge = createRunChallenge();
+		challenge.creatures[1]!.isHidden = true;
+		await saveChallengeToLibrary(challenge);
+
+		render(turnOrderPage);
+		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
+		const titles = () =>
+			within(screen.getByRole('list', { name: 'Generated turn order' }))
+				.getAllByRole('listitem')
+				.map((item) => item.querySelector('h2')?.textContent);
+
+		expect(await screen.findByText('Spawns: 0')).toBeTruthy();
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook']));
+		expect(screen.getByText('Spawns: 0')).toBeTruthy();
+		const order = screen.getByRole('list', { name: 'Generated turn order' });
+		const hiddenRook = within(order)
+			.getAllByRole('listitem')
+			.find((item) => item.querySelector('h2')?.textContent === 'Rook');
+		expect(hiddenRook?.textContent).toContain('Hidden');
+
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Aria', 'Rook', 'Spawn']));
+		await waitFor(() => expect(screen.getByText('Spawns: 1')).toBeTruthy());
+	});
+
 	it('shows a loading state while the challenge library is being read', () => {
 		render(turnOrderPage);
 

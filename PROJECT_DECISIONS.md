@@ -21,7 +21,7 @@ This document records the product and architecture decisions discussed so far. I
 - New player-character turns default to manual initiative entry; new NPC turns default to app-calculated initiative. These defaults are hard-coded at creation time, while every turn stores its own mode and can be changed independently.
 - Existing rolled initiative results remain unchanged when the order is recalculated. The DM must explicitly reroll to change them.
 - A tie is two or more turns in the same faction with equal initiative, whether rolled or static. After initiatives are collected, the DM decides the order of each tied group, and the decisions are saved in the challenge's run state. Turn-order generation is blocked until every tie is resolved, and the unresolved groups are shown to the DM. Rerolling a turn discards the decisions for tie groups it belonged to; recalculating the order keeps the remaining decisions. Ties between turns in different factions are not decided by the DM; the fairness weight handles them.
-- The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out. In read-only view, hidden turns are omitted.
+- The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out and are skipped by **Next turn**. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
 
 ## Challenge workflow
@@ -31,7 +31,7 @@ This document records the product and architecture decisions discussed so far. I
 3. **Resolve ties.** If turns in the same faction have equal initiative, the DM chooses their order. The decisions are saved with the challenge.
 4. **Generate the turn order.** The app combines the initiative results and tie decisions with static initiatives and placement hooks to produce the ordered turns. The generated order is also saved with the challenge so the running setup can be restored.
 
-A challenge with a generated turn order is running. The first entry is the current turn; the DM's **Next turn** button moves it to the end of the order, and the run state saves how many Spawn steps have been completed (`spawnCount`), shown above the list. The DM can then run the encounter. At the end of each round, the DM handles the Spawn step; if that changes the challenge, initiatives are collected again as needed and the order is regenerated.
+A challenge with a generated turn order is running. The first entry is the current turn; the DM's **Next turn** button moves it to the end of the order and continues past hidden turns until a visible turn or Spawn is current. The run state saves how many Spawn steps have been completed (`spawnCount`), shown above the list. The DM can then run the encounter. At the end of each round, the DM handles the Spawn step; if that changes the challenge, initiatives are collected again as needed and the order is regenerated.
 
 Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`. Tab selection is local page state and returns to Setup after a reload.
 
