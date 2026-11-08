@@ -76,6 +76,7 @@ describe('ChallengeCard', () => {
 		expect(
 			time?.parentElement?.contains(screen.getByRole('link', { name: 'Load Ashen Company' }))
 		).toBe(true);
+		expect(time?.parentElement?.firstElementChild).toBe(time);
 		expect(screen.getByRole('list', { name: 'PCs' }).parentElement?.parentElement?.tagName).toBe(
 			'DIV'
 		);
