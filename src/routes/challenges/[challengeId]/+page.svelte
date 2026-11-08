@@ -27,6 +27,7 @@
 	let challenge = $state<Challenge>();
 	let activeTab = $state<WorkflowTab>('setup');
 	let hasSaveError = $state(false);
+	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -100,7 +101,7 @@
 	}
 
 	async function selectTab(tab: WorkflowTab): Promise<void> {
-		if (tab === activeTab) return;
+		if (tab === activeTab || isTransitioning) return;
 		if (tab !== 'setup' && setupIssues.length > 0) return;
 		try {
 			await saveNow();
@@ -177,7 +178,12 @@
 			{:else if activeTab === 'roll'}
 				<RollPanel sharedChallenge={challenge} onTabChange={selectTab} />
 			{:else}
-				<RunPanel sharedChallenge={challenge} onSave={saveNow} />
+				<RunPanel
+					sharedChallenge={challenge}
+					onSave={saveNow}
+					onTabChange={selectTab}
+					onTransitionChange={(value) => (isTransitioning = value)}
+				/>
 			{/if}
 		</div>
 	</div>

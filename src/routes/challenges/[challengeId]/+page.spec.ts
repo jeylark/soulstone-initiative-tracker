@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import challengePage from './+page.svelte';
 import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
+import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 import { createSetupChallenge, seedStoredChallengeLibrary } from '../../view-test-support';
 
 const { mockedPage } = vi.hoisted(() => ({
@@ -161,5 +162,27 @@ describe('challenge workflow tabs', () => {
 		expect(screen.getByRole('link', { name: 'Return to challenges' }).getAttribute('href')).toBe(
 			'/challenges'
 		);
+	});
+
+	it('opens Setup after Edit Challenge saves the editing state', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState!.generatedTurnOrder = [{ kind: 'spawn' }];
+		await saveChallengeToLibrary(challenge);
+		mockedPage.params = { challengeId: challenge.id };
+		render(challengePage);
+
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Edit Challenge' }));
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		const saved = (await loadChallengeLibrary()).challenges.find(
+			(item) => item.id === challenge.id
+		);
+		expect(saved?.runState?.spawnEdit).toEqual({
+			newCreatureIds: [],
+			newNpcTypeIds: [],
+			newTurnIds: [],
+			lockedInitiativeTurnIds: [ariaTurnId, rookTurnId]
+		});
 	});
 });

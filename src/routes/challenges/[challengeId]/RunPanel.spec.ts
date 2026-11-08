@@ -664,3 +664,125 @@ describe('turn-order run route', () => {
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 });
+
+describe('Spawn editing transitions', () => {
+	const spawnOnly = () => [{ kind: 'spawn' as const }];
+
+	async function seedSpawnChallenge(): Promise<void> {
+		const challenge = createRunChallenge();
+		challenge.runState!.generatedTurnOrder = [
+			{ kind: 'spawn' },
+			{ kind: 'turn', turnId: ariaTurnId },
+			{ kind: 'turn', turnId: rookTurnId }
+		];
+		challenge.runState!.spawnCount = 2;
+		await saveChallengeToLibrary(challenge);
+		mockedPage.params = { challengeId: challenge.id };
+	}
+
+	const savedRunState = async () => (await loadChallengeLibrary()).challenges[0]?.runState;
+	const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
+
+	async function startEditing(onTabChange = vi.fn()): Promise<void> {
+		render(turnOrderPage, { onTabChange });
+		await fireEvent.click(await screen.findByRole('button', { name: 'Edit Challenge' }));
+		await waitFor(() => expect(onTabChange).toHaveBeenCalledWith('setup'));
+	}
+
+	it('disables Edit Challenge unless Spawn is current', async () => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge);
+		mockedPage.params = { challengeId: challenge.id };
+		render(turnOrderPage);
+
+		await screen.findByRole('button', { name: 'Edit Challenge' });
+		expect(button('Edit Challenge').disabled).toBe(true);
+		expect(button('Next turn').disabled).toBe(false);
+	});
+
+	it('saves entry state before opening Setup and locks Next turn', async () => {
+		await seedSpawnChallenge();
+		const onTabChange = vi.fn(async () => {
+			expect((await savedRunState())?.spawnEdit).toBeDefined();
+		});
+		await startEditing(onTabChange);
+
+		expect(await savedRunState()).toMatchObject({
+			generatedTurnOrder: spawnOnly(),
+			spawnCount: 2,
+			initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
+			spawnEdit: {
+				newCreatureIds: [],
+				newNpcTypeIds: [],
+				newTurnIds: [],
+				lockedInitiativeTurnIds: [ariaTurnId, rookTurnId]
+			}
+		});
+		expect(button('Next turn').disabled).toBe(true);
+		expect(button('Edit Challenge').disabled).toBe(true);
+	});
+
+	it('stays on Run and keeps the prior state when entry cannot be saved', async () => {
+		await seedSpawnChallenge();
+		const onTabChange = vi.fn();
+		render(turnOrderPage, { onTabChange });
+		const edit = await screen.findByRole('button', { name: 'Edit Challenge' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.click(edit);
+
+		await screen.findByRole('alert');
+		expect(onTabChange).not.toHaveBeenCalled();
+		expect(button('Next turn').disabled).toBe(false);
+		expect(screen.queryByRole('button', { name: 'Calculate Turn Order' })).toBeNull();
+	});
+
+	it('reports missing results and keeps editing active', async () => {
+		await seedSpawnChallenge();
+		const challenge = (await loadChallengeLibrary()).challenges[0]!;
+		delete challenge.runState!.initiativeResults[ariaTurnId];
+		await saveChallengeToLibrary(challenge);
+		await startEditing();
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Calculate Turn Order' }));
+
+		expect(
+			await screen.findByRole('list', { name: 'Turns missing initiative results' })
+		).toBeTruthy();
+		const runState = await savedRunState();
+		expect(runState?.spawnEdit).toBeDefined();
+		expect(runState?.generatedTurnOrder).toEqual(spawnOnly());
+	});
+
+	it('calculates with Spawn first, relocks, and counts Spawn once on Next turn', async () => {
+		await seedSpawnChallenge();
+		await startEditing();
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Calculate Turn Order' }));
+
+		await waitFor(async () => expect((await savedRunState())?.spawnEdit).toBeUndefined());
+		expect(await savedRunState()).toMatchObject({
+			spawnCount: 2,
+			initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
+			generatedTurnOrder: [
+				{ kind: 'spawn' },
+				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: ariaTurnId }
+			]
+		});
+		expect(screen.queryByRole('button', { name: 'Calculate Turn Order' })).toBeNull();
+		await fireEvent.click(button('Next turn'));
+		await waitFor(async () => expect((await savedRunState())?.spawnCount).toBe(3));
+	});
+
+	it('restores editing when calculation cannot be saved', async () => {
+		await seedSpawnChallenge();
+		await startEditing();
+		const calculate = await screen.findByRole('button', { name: 'Calculate Turn Order' });
+		vi.stubGlobal('indexedDB', undefined);
+		await fireEvent.click(calculate);
+
+		await screen.findByRole('alert');
+		expect(screen.getByRole('button', { name: 'Calculate Turn Order' })).toBeTruthy();
+		expect(button('Next turn').disabled).toBe(true);
+	});
+});
