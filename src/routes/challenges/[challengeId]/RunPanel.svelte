@@ -46,7 +46,11 @@
 	let generatedOrderDisplay = $derived.by(() => {
 		const generatedTurnOrder = challenge?.runState?.generatedTurnOrder;
 		return generatedTurnOrder
-			? createTurnOrderDisplay(generatedTurnOrder, turnDisplayLookup)
+			? createTurnOrderDisplay(
+					generatedTurnOrder,
+					turnDisplayLookup,
+					challenge?.runState?.initiativeResults
+				)
 			: undefined;
 	});
 

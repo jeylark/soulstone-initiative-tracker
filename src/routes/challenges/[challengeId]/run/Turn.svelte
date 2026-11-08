@@ -24,9 +24,7 @@
 		spacing="compact"
 		class="turn-order-card"
 	>
-		<div class="turn-order-card-details">
-			<span class="turn-order-position">{item.position}</span>
-		</div>
+		<div class="turn-order-card-details" aria-hidden="true"></div>
 	</Card>
 {:else}
 	<div
@@ -42,22 +40,19 @@
 			class="turn-order-card"
 		>
 			<div class="turn-order-card-details">
-				<span class="turn-order-position">{item.position}</span>
-				{#if item.display.faction}
-					<span>{item.display.faction.name}</span>
+				{#if item.initiative !== undefined}
+					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
 			</div>
 			<div class="turn-order-visibility">
 				<CheckboxInput
-					label={`Hidden from viewers: ${item.display.creatureName}`}
+					label="Hidden"
+					aria-label={`Hidden from viewers: ${item.display.creatureName}`}
 					checked={item.display.isHidden}
 					onchange={(event) =>
 						onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
 				/>
 			</div>
-			{#if item.display.isHidden}
-				<p class="turn-order-hidden">Hidden</p>
-			{/if}
 		</Card>
 	</div>
 {/if}
@@ -90,15 +85,5 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-	}
-
-	.turn-order-position {
-		font-variant-numeric: tabular-nums;
-		font-weight: 700;
-	}
-
-	.turn-order-hidden {
-		margin-block: 8px 0;
-		font-weight: 600;
 	}
 </style>

@@ -239,7 +239,17 @@ already-Done 2.5 and 2.6 without reopening or duplicating them.
 
 ### PR51-05: Initiative Values
 
-- [ ] Display rolled initiatives in turn cards.
+- [x] Display rolled initiatives in turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `turn-display.ts`,
+    `turn-display.spec.ts`, `Turn.svelte`, new `Turn.spec.ts`,
+    `RunPanel.svelte`, `RunPanel.spec.ts`, and `turn-order.ts`.
+  - Checks: focused Vitest run (3 files, 30 tests passed); turn-list integration
+    test (1 passed). Replaced unsupported `Map.getOrInsert` usage found while
+    exercising the Run view under Node 22 with equivalent standard Map access.
+  - Manual checks: none. Main TODO 2.24 moved to Done because turn names are
+    already prominent card headings and numeric initiatives now display.
+  - Remaining overlap/blockers: none.
 
 **Implementation:** Reuse the display pipeline in
 [turn-display.ts](src/lib/challenge/initiative/turn-display.ts) and pass initiative
@@ -259,7 +269,13 @@ and prominent creature name requirements are satisfied; otherwise leave it Open.
 
 ### PR51-10: Hidden Label
 
-- [ ] Rename the hidden control's visible label to Hidden.
+- [x] Rename the hidden control's visible label to Hidden.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    and `RunPanel.spec.ts`.
+  - Checks: focused Vitest run (2 files, 27 tests passed).
+  - Manual checks: none. Main TODO unchanged; 2.18 was already Done.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Turn currently labels CheckboxInput
 `Hidden from viewers: {creatureName}`. Change visible text to `Hidden`, retaining
@@ -274,7 +290,14 @@ accessible names, multiple creatures/turns, saved visibility, and save-failure r
 
 ### PR51-11: Order Indices
 
-- [ ] Remove index from turn cards.
+- [x] Remove index from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
+  - Checks: focused Vitest run (2 files, 28 tests passed).
+  - Manual checks: none. Main TODO 2.25 remains Open because multi-turn title
+    suffixes are intentionally unchanged.
+  - Remaining scope/blockers: no order-index labels remain on turn or Spawn cards.
 
 **Implementation:** Remove visible position spans for creature turns and Spawn,
 and their unused CSS in Turn. Retain position metadata if other callers need it.
@@ -290,7 +313,14 @@ authorized and completed; otherwise record the index subset and leave it Open.
 
 ### PR51-12: Faction Text
 
-- [ ] Remove faction from turn cards.
+- [x] Remove faction from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
+  - Checks: focused Vitest run (2 files, 29 tests passed).
+  - Manual checks: none. Main TODO unchanged; faction tint and hidden styling
+    remain, and faction membership data is untouched.
+  - Remaining scope/blockers: none.
 
 **Implementation:** Remove faction name text from Turn; retain faction color tint,
 hidden styling, stored membership, and fairness behavior. Do not delete faction data.

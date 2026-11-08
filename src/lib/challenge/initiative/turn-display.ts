@@ -4,7 +4,9 @@ import type {
 	ChallengeCreature,
 	Faction,
 	GeneratedTurnOrder,
-	StableId
+	InitiativeResults,
+	StableId,
+	Turn
 } from '../core/model';
 
 /** Display metadata associated with one configured challenge turn. */
@@ -17,6 +19,8 @@ export interface TurnDisplay {
 	readonly creatureName: string;
 	/** Creature name, with a turn number when the creature has multiple turns. */
 	readonly label: string;
+	/** Initiative configuration for this creature turn. */
+	readonly initiative: Readonly<Turn['initiative']>;
 	/** Whether the creature's turns are hidden from read-only viewers. */
 	readonly isHidden: boolean;
 }
@@ -31,6 +35,8 @@ export interface TurnOrderTurnDisplayItem {
 	readonly position: number;
 	/** Creature and faction display metadata for the turn. */
 	readonly display: TurnDisplay;
+	/** Resolved numeric initiative, or undefined when a rolling result is missing. */
+	readonly initiative: number | undefined;
 }
 
 /** Position of the Spawn step in the generated order. */
@@ -79,6 +85,7 @@ export function createTurnDisplayLookup(
 				faction,
 				creatureName,
 				label: creature.turns.length > 1 ? `${creatureName} - Turn ${index + 1}` : creatureName,
+				initiative: turn.initiative,
 				isHidden: creature.isHidden
 			});
 		}
@@ -91,11 +98,13 @@ export function createTurnDisplayLookup(
  * Filters an order to turns with display metadata while retaining saved positions.
  * @param generatedTurnOrder Entries in their persisted generated order.
  * @param displayLookup Display metadata keyed by configured turn ID.
+ * @param initiativeResults Saved roll results keyed by configured turn ID.
  * @returns Known turn and Spawn display items, and whether any turn IDs were unknown.
  */
 export function createTurnOrderDisplay(
 	generatedTurnOrder: DeepReadonly<GeneratedTurnOrder>,
-	displayLookup: ReadonlyMap<StableId, TurnDisplay>
+	displayLookup: ReadonlyMap<StableId, TurnDisplay>,
+	initiativeResults: Readonly<InitiativeResults> = {}
 ): TurnOrderDisplay {
 	let hasUnknownTurnIds = false;
 	const items = generatedTurnOrder.flatMap((entry, index): TurnOrderDisplayItem[] => {
@@ -107,7 +116,18 @@ export function createTurnOrderDisplay(
 			hasUnknownTurnIds = true;
 			return [];
 		}
-		return [{ kind: 'turn', turnId: entry.turnId, position, display }];
+		return [
+			{
+				kind: 'turn',
+				turnId: entry.turnId,
+				position,
+				display,
+				initiative:
+					display.initiative.kind === 'static'
+						? display.initiative.value
+						: initiativeResults[entry.turnId]
+			}
+		];
 	});
 
 	return { items, hasUnknownTurnIds };
