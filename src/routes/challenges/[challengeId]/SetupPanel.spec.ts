@@ -1518,3 +1518,58 @@ describe('initiative stat changes', () => {
 		});
 	});
 });
+
+describe('focus after adding entities', () => {
+	it('focuses the first field of each added entity without stealing focus on load', async () => {
+		await renderSetup();
+		expect(document.body.contains(document.activeElement)).toBe(true);
+		expect(document.activeElement?.tagName).toBe('BODY');
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add Faction' }));
+		await waitFor(() => {
+			const active = document.activeElement as HTMLInputElement;
+			expect(active.getAttribute('aria-label')).toMatch(/^Faction name: Faction/);
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		await waitFor(() => {
+			const active = document.activeElement as HTMLInputElement;
+			expect(active.getAttribute('aria-label')).toBe('NPC type name: NPC Type 1');
+			expect(active.selectionStart).toBe(0);
+			expect(active.selectionEnd).toBe('NPC Type 1'.length);
+		});
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		await waitFor(() => {
+			const active = document.activeElement as HTMLInputElement;
+			expect(active.getAttribute('aria-label')).toBe('Character name: Player 1');
+		});
+
+		const enemiesPanel = screen.getByRole('group', { name: 'Enemies' });
+		await fireEvent.click(within(enemiesPanel).getByRole('button', { name: 'Add NPC' }));
+		const npc = within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' });
+		await waitFor(() => {
+			expect(document.activeElement).toBe(within(npc).getByRole('combobox', { name: /NPC type/ }));
+		});
+
+		await fireEvent.click(within(npc).getByRole('button', { name: 'Add turn for NPC Type 1 1' }));
+		await waitFor(() => {
+			const turn = within(npc).getByRole('group', { name: 'Turn 2' });
+			expect(document.activeElement).toBe(
+				within(turn).getByRole('combobox', { name: 'Turn initiative' })
+			);
+		});
+	});
+
+	it('does not move focus on unrelated rerenders', async () => {
+		await renderSetup();
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' });
+		nameInput.focus();
+
+		await fireEvent.input(nameInput, { target: { value: 'Renamed' } });
+
+		expect(document.activeElement).toBe(nameInput);
+	});
+});

@@ -72,6 +72,7 @@
 <Card title={name} headingLevel="h4" headerSize="medium" spacing="compact">
 	<EntityListItem
 		class="creature"
+		data-entity-id={creature.id}
 		aria-label={name}
 		legend={name}
 		removeLabel={`Remove ${name}`}

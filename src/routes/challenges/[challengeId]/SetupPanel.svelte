@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -155,6 +155,22 @@
 		invalidateGeneratedTurnOrder();
 	}
 
+	async function focusNewEntity(entityId: StableId) {
+		await tick();
+		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
+		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+		);
+		if (!field) return;
+		field.focus();
+		if (field instanceof HTMLSelectElement) return;
+		try {
+			field.select();
+		} catch {
+			// Some input types do not support text selection.
+		}
+	}
+
 	function addFaction() {
 		const name = nextNumberedName(
 			'Faction',
@@ -166,6 +182,7 @@
 			color: getNextFactionColor(challenge.factions)
 		} satisfies Faction;
 		challenge.factions.push(faction);
+		void focusNewEntity(faction.id);
 	}
 
 	function nextNumberedName(prefix: string, existingNames: readonly string[]): string {
@@ -218,6 +235,7 @@
 		} satisfies NpcType;
 		challenge.npcTypes.push(npcType);
 		newNpcTypeId ||= npcType.id;
+		void focusNewEntity(npcType.id);
 	}
 
 	function renameNpcType(npcTypeId: StableId, name: string) {
@@ -264,7 +282,9 @@
 	function addTurn(creatureId: StableId) {
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
-		creature.turns.push(createTurn(creature.kind === 'character' ? 'manual' : 'app'));
+		const turn = createTurn(creature.kind === 'character' ? 'manual' : 'app');
+		creature.turns.push(turn);
+		void focusNewEntity(turn.id);
 		invalidateGeneratedTurnOrder();
 	}
 
@@ -276,14 +296,16 @@
 			)
 		);
 
+		const id = createUuid();
 		challenge.creatures.push({
-			id: createUuid(),
+			id,
 			kind: 'character',
 			name,
 			factionId,
 			isHidden: false,
 			turns: [createTurn('manual')]
 		});
+		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
@@ -297,8 +319,9 @@
 		);
 		const identifier = nextNumberedIdentifier(existingIdentifiers);
 
+		const id = createUuid();
 		challenge.creatures.push({
-			id: createUuid(),
+			id,
 			kind: 'npc',
 			creatureTypeId: newNpcTypeId,
 			identifier,
@@ -306,6 +329,7 @@
 			isHidden: false,
 			turns: [createTurn('app')]
 		});
+		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
