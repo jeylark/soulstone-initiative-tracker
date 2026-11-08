@@ -29,7 +29,7 @@ function addBlankNameIssues(values: readonly NamedValue[], label: string): Valid
 
 function addDuplicateNameIssues(values: readonly NamedValue[], message: string): ValidationIssue[] {
 	const counts = new Map<string, number>();
-	for (const { path, value } of values) {
+	for (const { value } of values) {
 		const name = normalizedName(value);
 		if (name.length === 0) continue;
 		counts.set(name, (counts.get(name) ?? 0) + 1);
