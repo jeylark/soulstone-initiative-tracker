@@ -293,7 +293,7 @@ accessible names, multiple creatures/turns, saved visibility, and save-failure r
 - [x] Remove index from turn cards.
 
   - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
-    and `RunPanel.spec.ts`.
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
   - Checks: focused Vitest run (2 files, 28 tests passed).
   - Manual checks: none. Main TODO 2.25 remains Open because multi-turn title
     suffixes are intentionally unchanged.
@@ -316,7 +316,7 @@ authorized and completed; otherwise record the index subset and leave it Open.
 - [x] Remove faction from turn cards.
 
   - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
-    and `RunPanel.spec.ts`.
+    `RunPanel.spec.ts`, and `TurnList.integration.spec.ts`.
   - Checks: focused Vitest run (2 files, 29 tests passed).
   - Manual checks: none. Main TODO unchanged; faction tint and hidden styling
     remain, and faction membership data is untouched.
