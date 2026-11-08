@@ -81,6 +81,27 @@ describe('challenge setup persistence', () => {
 		expect(screen.getByText('Fairness weight must be a non-negative number.')).toBeTruthy();
 	});
 
+	it('shows validation messages on the inputs they belong to', async () => {
+		await renderSetup();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: ' ' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
+		await fireEvent.input(screen.getByRole('textbox', { name: /^NPC type name/ }), {
+			target: { value: '' }
+		});
+
+		const challengeName = screen.getByRole('textbox', { name: 'Challenge name' });
+		expect(challengeName.getAttribute('aria-invalid')).toBe('true');
+		expect(challengeName.getAttribute('aria-describedby')).toBeTruthy();
+		expect(screen.getByText('Challenge name must not be blank.')).toBeTruthy();
+		const npcTypeName = screen.getByRole('textbox', { name: /^NPC type name/ });
+		expect(npcTypeName.getAttribute('aria-invalid')).toBe('true');
+		expect(screen.getByText('NPC type name must not be blank.')).toBeTruthy();
+		expect(document.querySelector('.setup-validation-issues')).toBeNull();
+	});
+
 	it('persists invalid finite placement values in editable drafts', async () => {
 		const challenge = createSetupChallenge();
 		challenge.name = 'Draft';
@@ -237,7 +258,7 @@ describe('challenge setup persistence', () => {
 			await screen.findAllByText(
 				'An initiative stat is required for characters with app-rolled turns.'
 			)
-		).toHaveLength(2);
+		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 
@@ -609,7 +630,7 @@ describe('challenge setup persistence', () => {
 			await screen.findAllByText(
 				'An initiative stat is required for characters with app-rolled turns.'
 			)
-		).toHaveLength(2);
+		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 

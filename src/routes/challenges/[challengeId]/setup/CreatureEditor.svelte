@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { ChallengeCreature, NpcType, StableId } from '#lib/challenge';
+	import type { ChallengeCreature, NpcType, StableId, ValidationIssue } from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
+	import { issueMessage } from './issue-messages';
 	import TurnEditor from './TurnEditor.svelte';
 	import {
 		Card,
@@ -17,7 +18,8 @@
 		name: string;
 		characterName: string;
 		characterInitiativeStat?: number;
-		characterInitiativeStatError?: string;
+		setupIssues: readonly ValidationIssue[];
+		issuePath: string;
 		npcTypes: readonly NpcType[];
 		targetTurns: readonly TurnTarget[];
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
@@ -43,7 +45,8 @@
 		name,
 		characterName,
 		characterInitiativeStat,
-		characterInitiativeStatError,
+		setupIssues,
+		issuePath,
 		npcTypes,
 		targetTurns,
 		onVisibilityChange,
@@ -56,6 +59,10 @@
 		onRemoveTurn,
 		onRemove
 	}: Props = $props();
+
+	let nameError = $derived(issueMessage(setupIssues, `${issuePath}.name`));
+	let identifierError = $derived(issueMessage(setupIssues, `${issuePath}.identifier`));
+	let initiativeStatError = $derived(issueMessage(setupIssues, `${issuePath}.initiativeStat`));
 
 	const hasAppRollTurn = $derived(
 		creature.turns.some((turn) => turn.initiative.kind === 'roll' && turn.initiative.mode === 'app')
@@ -76,6 +83,8 @@
 				label="Character name"
 				aria-label={`Character name: ${characterName}`}
 				value={characterName}
+				isInvalid={nameError !== undefined}
+				invalidMessage={nameError}
 				oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
 			/>
 			{#if hasAppRollTurn}
@@ -85,8 +94,8 @@
 					value={characterInitiativeStat ?? ''}
 					min="1"
 					step="1"
-					isInvalid={characterInitiativeStatError !== undefined}
-					invalidMessage={characterInitiativeStatError}
+					isInvalid={initiativeStatError !== undefined}
+					invalidMessage={initiativeStatError}
 					oninput={(event) => {
 						const value = event.currentTarget.valueAsNumber;
 						onCharacterInitiativeStatChange(
@@ -110,6 +119,8 @@
 			<TextInput
 				label="NPC identifier"
 				value={creature.identifier}
+				isInvalid={identifierError !== undefined}
+				invalidMessage={identifierError}
 				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
 			/>
 		{/if}
@@ -129,6 +140,8 @@
 				<TurnEditor
 					{turn}
 					turnNumber={index + 1}
+					{setupIssues}
+					issuePath={`${issuePath}.turns[${index}].initiative`}
 					creatureName={name}
 					targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
 					onChange={(change) => onTurnChange(creature.id, turn.id, change)}
