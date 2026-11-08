@@ -54,6 +54,23 @@ describe('turn-order run route', () => {
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
+	it('groups challenge details and controls before the turn cards', async () => {
+		const challenge = createRunChallenge();
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		const controls = await screen.findByRole('region', {
+			name: 'Challenge controls and status'
+		});
+		const turnCards = screen.getByRole('region', { name: 'Turn cards' });
+		expect(within(controls).getByText('Ashen Company')).toBeTruthy();
+		expect(within(controls).getByRole('button', { name: 'Next turn' })).toBeTruthy();
+		expect(within(controls).queryByRole('button', { name: 'Recalculate' })).toBeNull();
+		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBeTruthy();
+		expect(
+			controls.compareDocumentPosition(turnCards) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+	});
+
 	it('advances to the next turn, counts spawns, and saves the rotated order', async () => {
 		const challenge = createRunChallenge();
 		const staticTurnId = '00000000-0000-4000-8000-000000000028' as StableId;
@@ -120,7 +137,6 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage);
 		await screen.findByRole('button', { name: 'Generate turn order' });
-
 		expect(screen.queryByRole('button', { name: 'Next turn' })).toBeNull();
 	});
 
