@@ -290,7 +290,14 @@ accessible names, multiple creatures/turns, saved visibility, and save-failure r
 
 ### PR51-11: Order Indices
 
-- [ ] Remove index from turn cards.
+- [x] Remove index from turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `Turn.svelte`, `Turn.spec.ts`,
+    and `RunPanel.spec.ts`.
+  - Checks: focused Vitest run (2 files, 28 tests passed).
+  - Manual checks: none. Main TODO 2.25 remains Open because multi-turn title
+    suffixes are intentionally unchanged.
+  - Remaining scope/blockers: no order-index labels remain on turn or Spawn cards.
 
 **Implementation:** Remove visible position spans for creature turns and Spawn,
 and their unused CSS in Turn. Retain position metadata if other callers need it.

@@ -24,9 +24,7 @@
 		spacing="compact"
 		class="turn-order-card"
 	>
-		<div class="turn-order-card-details">
-			<span class="turn-order-position">{item.position}</span>
-		</div>
+		<div class="turn-order-card-details" aria-hidden="true"></div>
 	</Card>
 {:else}
 	<div
@@ -42,7 +40,6 @@
 			class="turn-order-card"
 		>
 			<div class="turn-order-card-details">
-				<span class="turn-order-position">{item.position}</span>
 				{#if item.initiative !== undefined}
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
@@ -91,10 +88,5 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-	}
-
-	.turn-order-position {
-		font-variant-numeric: tabular-nums;
-		font-weight: 700;
 	}
 </style>

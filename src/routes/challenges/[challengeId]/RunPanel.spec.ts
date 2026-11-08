@@ -348,7 +348,7 @@ describe('turn-order run route', () => {
 		return challenge;
 	}
 
-	it('renders the saved order as numbered faction-colored cards', async () => {
+	it('renders the saved order as faction-colored cards without position indices', async () => {
 		const challenge = createRunChallenge();
 		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
 		challenge.runState!.generatedTurnOrder = [
@@ -367,9 +367,10 @@ describe('turn-order run route', () => {
 			'Aria',
 			'Spawn'
 		]);
-		expect(
-			items.map((item) => item.querySelector('.turn-order-position')?.textContent?.trim())
-		).toEqual(['1', '2', '3']);
+		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
+		expect(items[0]?.textContent).toContain('Initiative: 12');
+		expect(items[1]?.textContent).toContain('Initiative: 6');
+		expect(items[2]?.textContent).not.toContain('Initiative:');
 		expect(items[0]?.textContent).toContain('Enemies');
 		expect(items[1]?.textContent).toContain('Players');
 		expect(

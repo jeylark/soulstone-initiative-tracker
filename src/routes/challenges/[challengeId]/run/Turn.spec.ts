@@ -74,4 +74,20 @@ describe('Turn', () => {
 
 		expect(screen.queryByText(/^Initiative:/)).toBeNull();
 	});
+
+	it('does not render order positions for turns or Spawn', () => {
+		const { container, unmount } = render(Turn, {
+			props: { item: createTurnItem(6), onVisibilityChange: vi.fn() }
+		});
+		expect(container.querySelector('.turn-order-position')).toBeNull();
+
+		unmount();
+		render(Turn, {
+			props: {
+				item: { kind: 'spawn', position: 2 },
+				onVisibilityChange: vi.fn()
+			}
+		});
+		expect(screen.queryByText('2')).toBeNull();
+	});
 });
