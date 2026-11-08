@@ -38,6 +38,14 @@
 	let turnDisplayLookup = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
+	let hiddenTurnIds = $derived.by(
+		() =>
+			new Set(
+				[...turnDisplayLookup.entries()]
+					.filter(([, display]) => display.isHidden)
+					.map(([turnId]) => turnId)
+			)
+	);
 	let clampedTurnIds = $derived.by(() => {
 		if (!challenge?.runState?.generatedTurnOrder) return [];
 		const preparation = prepareTurnOrder(challenge, challenge.runState.initiativeResults);
@@ -138,7 +146,7 @@
 		if (!challenge?.runState?.generatedTurnOrder || isSaving) return;
 
 		const previousRunState = challenge.runState;
-		const nextRunState = advanceTurn($state.snapshot(previousRunState));
+		const nextRunState = advanceTurn($state.snapshot(previousRunState), hiddenTurnIds);
 		const challengeToSave = { ...$state.snapshot(challenge), runState: nextRunState };
 		isSaving = true;
 		try {
