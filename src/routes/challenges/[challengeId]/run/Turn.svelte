@@ -43,6 +43,9 @@
 		>
 			<div class="turn-order-card-details">
 				<span class="turn-order-position">{item.position}</span>
+				{#if item.initiative !== undefined}
+					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
+				{/if}
 				{#if item.display.faction}
 					<span>{item.display.faction.name}</span>
 				{/if}

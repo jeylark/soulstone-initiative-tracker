@@ -58,6 +58,7 @@ describe('createTurnDisplayLookup', () => {
 			faction,
 			creatureName: 'Aria',
 			label: 'Aria - Turn 1',
+			initiative: { kind: 'static', value: 8 },
 			isHidden: true
 		});
 		expect(lookup.get(characterSecondTurn.id)?.creatureName).toBe('Aria');
@@ -67,6 +68,7 @@ describe('createTurnDisplayLookup', () => {
 			faction: npcFaction,
 			creatureName: 'Sentinel B',
 			label: 'Sentinel B',
+			initiative: { kind: 'roll', mode: 'manual' },
 			isHidden: false
 		});
 	});
@@ -126,10 +128,48 @@ describe('createTurnOrderDisplay', () => {
 
 		expect(orderDisplay).toEqual({
 			items: [
-				{ kind: 'turn', turnId: turn.id, position: 2, display: lookup.get(turn.id) },
+				{
+					kind: 'turn',
+					turnId: turn.id,
+					position: 2,
+					display: lookup.get(turn.id),
+					initiative: 8
+				},
 				{ kind: 'spawn', position: 3 }
 			],
 			hasUnknownTurnIds: true
 		});
+	});
+
+	it('resolves saved roll results and static initiatives without fabricating missing values', () => {
+		const manualTurn = createTurn({ kind: 'roll', mode: 'manual' });
+		const appTurn = createTurn({ kind: 'roll', mode: 'app' });
+		const staticTurn = createTurn({ kind: 'static', value: 4 });
+		const missingTurn = createTurn({ kind: 'roll', mode: 'manual' });
+		const creature: ChallengeCreature = {
+			id: createUuid(),
+			kind: 'character',
+			name: 'Aria',
+			factionId: createUuid(),
+			isHidden: false,
+			turns: [manualTurn, appTurn, staticTurn, missingTurn]
+		};
+		const lookup = createTurnDisplayLookup(createChallenge([creature]));
+
+		const orderDisplay = createTurnOrderDisplay(
+			[
+				{ kind: 'turn', turnId: manualTurn.id },
+				{ kind: 'turn', turnId: appTurn.id },
+				{ kind: 'turn', turnId: staticTurn.id },
+				{ kind: 'turn', turnId: missingTurn.id },
+				{ kind: 'spawn' }
+			],
+			lookup,
+			{ [manualTurn.id]: 0, [appTurn.id]: 16 }
+		);
+
+		expect(
+			orderDisplay.items.map((item) => (item.kind === 'turn' ? item.initiative : 'spawn'))
+		).toEqual([0, 16, 4, undefined, 'spawn']);
 	});
 });

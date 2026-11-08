@@ -64,10 +64,28 @@ describe('turn-order run route', () => {
 	});
 
 	it('advances to the next turn, counts spawns, and saves the rotated order', async () => {
-		await saveChallengeToLibrary(createRunChallenge());
+		const challenge = createRunChallenge();
+		const staticTurnId = '00000000-0000-4000-8000-000000000028' as StableId;
+		challenge.creatures.push({
+			id: '00000000-0000-4000-8000-000000000029' as StableId,
+			kind: 'character',
+			name: 'Mira',
+			factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+			isHidden: false,
+			turns: [{ id: staticTurnId, initiative: { kind: 'static', value: 3 } }]
+		});
+		challenge.runState!.initiativeResults[ariaTurnId] = 0;
+		challenge.runState!.generatedTurnOrder!.splice(2, 0, {
+			kind: 'turn',
+			turnId: staticTurnId
+		});
+		await saveChallengeToLibrary(challenge);
 
 		render(turnOrderPage);
 		expect(await screen.findByText('Spawns: 0')).toBeTruthy();
+		expect(screen.getByText('Initiative: 0')).toBeTruthy();
+		expect(screen.getByText('Initiative: 12')).toBeTruthy();
+		expect(screen.getByText('Initiative: 3')).toBeTruthy();
 		const titles = () =>
 			within(screen.getByRole('list', { name: 'Generated turn order' }))
 				.getAllByRole('listitem')
@@ -76,11 +94,18 @@ describe('turn-order run route', () => {
 		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
 
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Rook', 'Spawn', 'Aria']));
+		await waitFor(() => expect(titles()).toEqual(['Rook', 'Mira', 'Spawn', 'Aria']));
+		const rotatedOrder = screen.getByRole('list', { name: 'Generated turn order' });
+		expect(within(rotatedOrder).getByText('Initiative: 12')).toBeTruthy();
+		expect(within(rotatedOrder).getByText('Initiative: 3')).toBeTruthy();
+		expect(within(rotatedOrder).getByText('Initiative: 0')).toBeTruthy();
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook']));
+		await waitFor(() => expect(titles()).toEqual(['Mira', 'Spawn', 'Aria', 'Rook']));
 		expect(screen.getByText('Spawns: 0')).toBeTruthy();
+		await waitFor(() => expect(next().disabled).toBe(false));
+		await fireEvent.click(next());
+		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook', 'Mira']));
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
 
@@ -90,6 +115,7 @@ describe('turn-order run route', () => {
 			expect(saved?.runState?.generatedTurnOrder).toEqual([
 				{ kind: 'turn', turnId: ariaTurnId },
 				{ kind: 'turn', turnId: rookTurnId },
+				{ kind: 'turn', turnId: staticTurnId },
 				{ kind: 'spawn' }
 			]);
 		});

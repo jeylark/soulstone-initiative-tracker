@@ -239,7 +239,17 @@ already-Done 2.5 and 2.6 without reopening or duplicating them.
 
 ### PR51-05: Initiative Values
 
-- [ ] Display rolled initiatives in turn cards.
+- [x] Display rolled initiatives in turn cards.
+
+  - 2026-11-08, PR51 session order 4. Changed: `turn-display.ts`,
+    `turn-display.spec.ts`, `Turn.svelte`, new `Turn.spec.ts`,
+    `RunPanel.svelte`, `RunPanel.spec.ts`, and `turn-order.ts`.
+  - Checks: focused Vitest run (3 files, 30 tests passed); turn-list integration
+    test (1 passed). Replaced unsupported `Map.getOrInsert` usage found while
+    exercising the Run view under Node 22 with equivalent standard Map access.
+  - Manual checks: none. Main TODO 2.24 moved to Done because turn names are
+    already prominent card headings and numeric initiatives now display.
+  - Remaining overlap/blockers: none.
 
 **Implementation:** Reuse the display pipeline in
 [turn-display.ts](src/lib/challenge/initiative/turn-display.ts) and pass initiative
