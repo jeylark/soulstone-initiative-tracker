@@ -106,6 +106,22 @@
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
 	}
 
+	async function focusNewEntity(entityId: StableId) {
+		await tick();
+		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
+		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+		);
+		if (!field) return;
+		field.focus();
+		if (field instanceof HTMLSelectElement) return;
+		try {
+			field.select();
+		} catch {
+			// Some input types do not support text selection.
+		}
+	}
+
 	function discardAppRolledResults(creatures: readonly DeepReadonly<ChallengeCreature>[]): void {
 		const runState = challenge.runState;
 		if (!runState) return;
@@ -153,22 +169,6 @@
 		if (challenge.fairnessWeight === weight) return;
 		challenge.fairnessWeight = weight;
 		invalidateGeneratedTurnOrder();
-	}
-
-	async function focusNewEntity(entityId: StableId) {
-		await tick();
-		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
-		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
-		);
-		if (!field) return;
-		field.focus();
-		if (field instanceof HTMLSelectElement) return;
-		try {
-			field.select();
-		} catch {
-			// Some input types do not support text selection.
-		}
 	}
 
 	function addFaction() {
@@ -430,15 +430,9 @@
 		if (change.kind === 'static-value' && initiative.kind === 'static') {
 			hasChanged = initiative.value !== change.value;
 			initiative.value = change.value;
-		} else if (change.kind === 'fixed-from' && initiative.kind === 'fixed-position') {
-			hasChanged = initiative.from !== change.from;
-			initiative.from = change.from;
 		} else if (change.kind === 'fixed-position' && initiative.kind === 'fixed-position') {
 			hasChanged = initiative.position !== change.position;
 			initiative.position = change.position;
-		} else if (change.kind === 'relative-relation' && initiative.kind === 'relative-position') {
-			hasChanged = initiative.relation !== change.relation;
-			initiative.relation = change.relation;
 		} else if (change.kind === 'relative-distance' && initiative.kind === 'relative-position') {
 			hasChanged = initiative.distance !== change.distance;
 			initiative.distance = change.distance;

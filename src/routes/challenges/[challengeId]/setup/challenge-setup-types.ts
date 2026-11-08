@@ -32,22 +32,10 @@ export type TurnEditorChange =
 			value: number;
 	  }
 	| {
-			/** Discriminant selecting a fixed-position origin update. */
-			kind: 'fixed-from';
-			/** End of the order from which the position is counted. */
-			from: 'top' | 'bottom';
-	  }
-	| {
 			/** Discriminant selecting a fixed-position update. */
 			kind: 'fixed-position';
 			/** New one-based position from the selected end. */
 			position: number;
-	  }
-	| {
-			/** Discriminant selecting a relative-placement relation update. */
-			kind: 'relative-relation';
-			/** Whether this turn is placed before or after its target. */
-			relation: 'before' | 'after';
 	  }
 	| {
 			/** Discriminant selecting a relative-placement distance update. */

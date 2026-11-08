@@ -2,7 +2,7 @@
 
 Implementation handoff for [PR #51](https://github.com/jeylark/soulstone-initiative-tracker/pull/51),
 whose head branch was verified as `laughing-goggles` on 2026-11-08.
-This file tracks the requested changes, not completed implementation.
+This file tracks the requested changes and their implementation status.
 
 ## Session Instructions
 
@@ -122,7 +122,21 @@ otherwise record this subset and leave it Open.
 
 ### PR51-03: Redundant Direction Inputs
 
-- [ ] Remove Relationship and Count from inputs.
+- [x] Remove Relationship and Count from inputs.
+
+  - 2026-11-08 (Copilot session, branch `copilot/pr51-03`). Changed:
+    `TurnEditor.svelte`, `challenge-setup-types.ts`, `SetupPanel.svelte`,
+    `TurnEditor.integration.spec.ts`, `SetupPanel.spec.ts`, and the faction,
+    NPC type, and creature editor `data-entity-id` attributes to preserve the
+    latest PR branch's focus-after-add implementation.
+  - Checks: `npm run test:unit -- --run 'src/routes/challenges/[challengeId]/SetupPanel.spec.ts' 'src/routes/challenges/[challengeId]/setup/TurnEditor.integration.spec.ts'`
+    (2 files, 60 tests passed); `npm run check` (0 errors, 0 warnings);
+    `npx eslint` and `npx prettier --check` on the eight changed setup source/spec
+    files (`SetupPanel.spec.ts`, `SetupPanel.svelte`, `CreatureEditor.svelte`,
+    `FactionEditor.svelte`, `NpcTypeEditor.svelte`, `TurnEditor.integration.spec.ts`,
+    `TurnEditor.svelte`, and `challenge-setup-types.ts`); `git diff --check`.
+  - Secret scan: no secrets detected. CodeQL reported 0 alerts but analysis failed.
+  - Main TODO entries moved to Done: none. Manual checks: none. Blockers: CodeQL analysis failure.
 
 **Confirmed behavior:** Keep the Turn initiative choices Fixed position from top,
 Fixed position from bottom, Before another turn, and After another turn. Remove
