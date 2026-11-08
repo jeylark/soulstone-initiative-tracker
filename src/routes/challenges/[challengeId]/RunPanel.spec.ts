@@ -48,6 +48,14 @@ describe('turn-order run route', () => {
 				.getAllByRole('listitem')
 				.map((item) => item.querySelector('h2')?.textContent)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
+		const controls = screen.getByRole('region', { name: 'Challenge controls and status' });
+		const turnCards = screen.getByRole('region', { name: 'Turn cards' });
+		expect(within(controls).getByText('Ashen Company')).toBeTruthy();
+		expect(within(controls).getByRole('button', { name: 'Recalculate' })).toBeTruthy();
+		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBe(savedOrder);
+		expect(
+			controls.compareDocumentPosition(turnCards) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
 		await fireEvent.click(screen.getByRole('button', { name: 'Recalculate' }));
 
@@ -121,6 +129,10 @@ describe('turn-order run route', () => {
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
 		});
+		const controls = screen.getByRole('region', { name: 'Challenge controls and status' });
+		expect(within(controls).getByRole('alert').textContent).toContain(
+			'every rolling turn has a result'
+		);
 		expectPageError('Turn order cannot be generated until every rolling turn has a result.');
 		expect(within(missingTurns).getByText('Aria')).toBeTruthy();
 		expect(mockedGoto).not.toHaveBeenCalled();
