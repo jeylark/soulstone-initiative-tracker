@@ -150,63 +150,72 @@
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
-		<p>{challenge.name}</p>
-		{#if generatedOrderDisplay}
-			{#if generatedOrderDisplay.hasUnknownTurnIds}
-				<p role="status">
-					Some saved turns are no longer in this challenge. Recalculate the turn order to update it.
-				</p>
+		<div class="run-layout">
+			<section aria-label="Challenge controls and status">
+				<p>{challenge.name}</p>
+				{#if generatedOrderDisplay?.hasUnknownTurnIds}
+					<p role="status">
+						Some saved turns are no longer in this challenge. Recalculate the turn order to update
+						it.
+					</p>
+				{/if}
+				{#if clampedTurnIds.length > 0}
+					<p role="status">Some placement values exceed the available order and were clamped.</p>
+					<ul aria-label="Turns with clamped placement">
+						{#each clampedTurnIds as turnId (turnId)}
+							<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+						{/each}
+					</ul>
+				{/if}
+
+				{#if generationIssue?.status === 'missing-results'}
+					<ErrorDisplay
+						message="Turn order cannot be generated until every rolling turn has a result."
+					/>
+					<ul aria-label="Turns missing initiative results">
+						{#each generationIssue.turnIds as turnId (turnId)}
+							<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+						{/each}
+					</ul>
+				{:else if generationIssue?.status === 'unresolved-ties'}
+					<ErrorDisplay
+						message="Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab."
+					/>
+					<ul aria-label="Unresolved initiative ties">
+						{#each generationIssue.groups as group (group.join())}
+							<li>
+								{group
+									.map((turnId) => turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn')
+									.join(', ')}
+							</li>
+						{/each}
+					</ul>
+				{:else if generationIssue?.status === 'placement-error'}
+					<ErrorDisplay message="Turn placement could not be resolved." />
+					<ul aria-label="Turns with invalid placement">
+						{#each generationIssue.turnIds as turnId (turnId)}
+							<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
+						{/each}
+					</ul>
+				{/if}
+
+				<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
+					{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
+				</ActionButton>
+				{#if hasSaveError}
+					<ErrorDisplay message="Changes could not be saved." />
+				{/if}
+			</section>
+
+			{#if generatedOrderDisplay}
+				<section aria-label="Turn cards">
+					<TurnList
+						items={generatedOrderDisplay.items}
+						onVisibilityChange={updateCreatureVisibility}
+					/>
+				</section>
 			{/if}
-		{/if}
-		{#if generatedOrderDisplay}
-			<TurnList items={generatedOrderDisplay.items} onVisibilityChange={updateCreatureVisibility} />
-		{/if}
-		{#if clampedTurnIds.length > 0}
-			<p role="status">Some placement values exceed the available order and were clamped.</p>
-			<ul aria-label="Turns with clamped placement">
-				{#each clampedTurnIds as turnId (turnId)}
-					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
-				{/each}
-			</ul>
-		{/if}
-
-		{#if generationIssue?.status === 'missing-results'}
-			<ErrorDisplay
-				message="Turn order cannot be generated until every rolling turn has a result."
-			/>
-			<ul aria-label="Turns missing initiative results">
-				{#each generationIssue.turnIds as turnId (turnId)}
-					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
-				{/each}
-			</ul>
-		{:else if generationIssue?.status === 'unresolved-ties'}
-			<ErrorDisplay
-				message="Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab."
-			/>
-			<ul aria-label="Unresolved initiative ties">
-				{#each generationIssue.groups as group (group.join())}
-					<li>
-						{group
-							.map((turnId) => turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn')
-							.join(', ')}
-					</li>
-				{/each}
-			</ul>
-		{:else if generationIssue?.status === 'placement-error'}
-			<ErrorDisplay message="Turn placement could not be resolved." />
-			<ul aria-label="Turns with invalid placement">
-				{#each generationIssue.turnIds as turnId (turnId)}
-					<li>{turnDisplayLookup.get(turnId)?.label ?? 'Unknown turn'}</li>
-				{/each}
-			</ul>
-		{/if}
-
-		<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
-			{challenge.runState?.generatedTurnOrder ? 'Recalculate' : 'Generate turn order'}
-		</ActionButton>
-		{#if hasSaveError}
-			<ErrorDisplay message="Changes could not be saved." />
-		{/if}
+		</div>
 	{:else}
 		{#if loadStatus === 'not-found'}
 			<ErrorDisplay message="The challenge was not found." />
@@ -216,3 +225,22 @@
 		<a href={resolve('/challenges')}>Return to challenges</a>
 	{/if}
 </ViewPage>
+
+<style>
+	.run-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+		align-items: start;
+		gap: clamp(24px, 4vw, 48px);
+	}
+
+	.run-layout > * {
+		min-width: 0;
+	}
+
+	@media (max-width: 759px) {
+		.run-layout {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+</style>
