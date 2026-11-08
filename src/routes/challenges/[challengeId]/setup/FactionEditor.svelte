@@ -10,6 +10,7 @@
 	} from '#lib/challenge';
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
+	import { issueMessage } from './issue-messages';
 	import {
 		ActionButton,
 		Card,
@@ -24,6 +25,7 @@
 		creatures: readonly ChallengeCreature[];
 		npcTypes: readonly NpcType[];
 		setupIssues: readonly ValidationIssue[];
+		factionIndex: number;
 		npcTypeId: StableId | '';
 		onRename: (factionId: StableId, name: string) => void;
 		onColorChange: (factionId: StableId, color: FactionColor) => void;
@@ -53,6 +55,7 @@
 		creatures,
 		npcTypes,
 		setupIssues,
+		factionIndex,
 		npcTypeId,
 		onRename,
 		onColorChange,
@@ -73,12 +76,7 @@
 		creatures.filter((creature) => creature.factionId === faction.id)
 	);
 
-	function characterInitiativeStatError(creatureId: StableId): string | undefined {
-		const creatureIndex = creatures.findIndex((creature) => creature.id === creatureId);
-		return setupIssues.find(
-			(issue) => issue.path === `$.creatures[${creatureIndex}].initiativeStat`
-		)?.message;
-	}
+	let factionNameError = $derived(issueMessage(setupIssues, `$.factions[${factionIndex}].name`));
 
 	function npcName(creatureTypeId: StableId, identifier: string): string {
 		const typeName = npcTypes.find((npcType) => npcType.id === creatureTypeId)?.name ?? 'NPC';
@@ -111,6 +109,8 @@
 			label="Faction name"
 			aria-label={`Faction name: ${faction.name}`}
 			value={faction.name}
+			isInvalid={factionNameError !== undefined}
+			invalidMessage={factionNameError}
 			oninput={(event) => onRename(faction.id, event.currentTarget.value)}
 		/>
 		<ColorPickerInput
@@ -140,9 +140,8 @@
 					characterInitiativeStat={creature.kind === 'character'
 						? creature.initiativeStat
 						: undefined}
-					characterInitiativeStatError={creature.kind === 'character'
-						? characterInitiativeStatError(creature.id)
-						: undefined}
+					{setupIssues}
+					issuePath={`$.creatures[${creatures.indexOf(creature)}]`}
 					{npcTypes}
 					targetTurns={targetTurns()}
 					onVisibilityChange={onCreatureVisibilityChange}

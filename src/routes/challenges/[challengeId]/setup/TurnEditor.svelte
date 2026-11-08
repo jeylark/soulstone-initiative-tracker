@@ -1,18 +1,33 @@
 <script lang="ts">
-	import type { Turn, TurnInitiative } from '#lib/challenge';
+	import type { Turn, TurnInitiative, ValidationIssue } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
+	import { issueMessage } from './issue-messages';
 	import { Card, EntityListItem, NumberInput, SelectInput } from '#lib/components';
 
 	interface Props {
 		turn: Readonly<Turn>;
 		turnNumber: number;
+		setupIssues: readonly ValidationIssue[];
+		issuePath: string;
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
 		onChange: (change: Readonly<TurnEditorChange>) => void;
 		onRemove: () => void;
 	}
 
-	let { turn, turnNumber, creatureName, targetTurns, onChange, onRemove }: Props = $props();
+	let {
+		turn,
+		turnNumber,
+		setupIssues,
+		issuePath,
+		creatureName,
+		targetTurns,
+		onChange,
+		onRemove
+	}: Props = $props();
+	let positionError = $derived(issueMessage(setupIssues, `${issuePath}.position`));
+	let distanceError = $derived(issueMessage(setupIssues, `${issuePath}.distance`));
+	let relativeError = $derived(issueMessage(setupIssues, issuePath));
 
 	function initiativeChoice(initiative: Readonly<TurnInitiative>): InitiativeChoice {
 		if (initiative.kind === 'roll') return initiative.mode === 'app' ? 'roll-app' : 'roll-manual';
@@ -77,6 +92,8 @@
 				</SelectInput>
 				<NumberInput
 					label="Position"
+					isInvalid={positionError !== undefined}
+					invalidMessage={positionError}
 					value={turn.initiative.position}
 					min="1"
 					step="1"
@@ -100,6 +117,8 @@
 				</SelectInput>
 				<NumberInput
 					label="Distance"
+					isInvalid={distanceError !== undefined}
+					invalidMessage={distanceError}
 					value={turn.initiative.distance}
 					min="0"
 					step="1"
@@ -110,6 +129,8 @@
 				/>
 				<SelectInput
 					label="Target turn"
+					isInvalid={relativeError !== undefined}
+					invalidMessage={relativeError}
 					value={turn.initiative.targetTurnId}
 					onchange={(event) =>
 						onChange({
