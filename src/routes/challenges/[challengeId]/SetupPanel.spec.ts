@@ -1392,3 +1392,129 @@ describe('new challenge setup', () => {
 		expect(within(enemiesPanel).getByRole('group', { name: 'NPC Type 1 1' })).toBeTruthy();
 	});
 });
+
+describe('initiative stat changes', () => {
+	const typeId = '00000000-0000-4000-8000-000000000021' as StableId;
+	const otherTypeId = '00000000-0000-4000-8000-000000000022' as StableId;
+	const factionId = '00000000-0000-4000-8000-000000000002' as StableId;
+	const ids = [1, 2, 3, 4, 5].map((n) => `00000000-0000-4000-8000-0000000001${n}0` as StableId);
+	const [heroApp, heroManual, heroStatic, npcApp, otherNpcApp] = ids;
+
+	async function saveChallengeWithResults() {
+		const challenge = createSetupChallenge();
+		challenge.npcTypes = [
+			{ id: typeId, name: 'Ghoul', initiativeStat: 2 },
+			{ id: otherTypeId, name: 'Imp', initiativeStat: 2 }
+		];
+		const appTurn = (id: StableId) => ({ id, initiative: { kind: 'roll', mode: 'app' } as const });
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 2,
+				factionId,
+				isHidden: false,
+				turns: [
+					appTurn(heroApp!),
+					{ id: heroManual!, initiative: { kind: 'roll', mode: 'manual' } },
+					{ id: heroStatic!, initiative: { kind: 'static', value: 5 } }
+				]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000012' as StableId,
+				kind: 'npc',
+				creatureTypeId: typeId,
+				identifier: '1',
+				factionId,
+				isHidden: false,
+				turns: [appTurn(npcApp!)]
+			},
+			{
+				id: '00000000-0000-4000-8000-000000000013' as StableId,
+				kind: 'npc',
+				creatureTypeId: otherTypeId,
+				identifier: '1',
+				factionId,
+				isHidden: false,
+				turns: [appTurn(otherNpcApp!)]
+			}
+		];
+		challenge.runState = {
+			initiativeResults: {
+				[heroApp!]: 7,
+				[heroManual!]: 9,
+				[npcApp!]: 6,
+				[otherNpcApp!]: 4
+			},
+			generatedTurnOrder: [{ kind: 'turn', turnId: heroApp! }, { kind: 'spawn' }],
+			tieDecisions: [
+				[heroApp!, heroManual!],
+				[npcApp!, otherNpcApp!]
+			]
+		};
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+	}
+
+	it('discards a character’s app-rolled results and the generated order', async () => {
+		await saveChallengeWithResults();
+		await fireEvent.input(
+			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
+			{
+				target: { value: '3' }
+			}
+		);
+
+		await waitFor(async () => {
+			const runState = (await loadChallengeLibrary()).challenges[0]?.runState;
+			expect(runState?.initiativeResults).toEqual({
+				[heroManual!]: 9,
+				[npcApp!]: 6,
+				[otherNpcApp!]: 4
+			});
+			expect(runState?.generatedTurnOrder).toBeUndefined();
+			expect(runState?.tieDecisions).toEqual([[npcApp!, otherNpcApp!]]);
+		});
+	});
+
+	it('discards app-rolled results only for NPCs of the changed type', async () => {
+		await saveChallengeWithResults();
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
+			target: { value: '4' }
+		});
+
+		await waitFor(async () => {
+			const runState = (await loadChallengeLibrary()).challenges[0]?.runState;
+			expect(runState?.initiativeResults).toEqual({
+				[heroApp!]: 7,
+				[heroManual!]: 9,
+				[otherNpcApp!]: 4
+			});
+			expect(runState?.generatedTurnOrder).toBeUndefined();
+		});
+	});
+
+	it('keeps results when a stat input is set to its current value', async () => {
+		await saveChallengeWithResults();
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
+			target: { value: '2' }
+		});
+		await fireEvent.input(
+			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
+			{
+				target: { value: '2' }
+			}
+		);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Renamed' }
+		});
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.name).toBe('Renamed');
+			expect(Object.keys(saved?.runState?.initiativeResults ?? {})).toHaveLength(4);
+			expect(saved?.runState?.generatedTurnOrder).toBeDefined();
+		});
+	});
+});
