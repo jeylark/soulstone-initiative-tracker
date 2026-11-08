@@ -59,14 +59,12 @@
 			{@render children()}
 		</select>
 	</label>
-	<div class="form-control-message-slot">
+	<div class="form-control-message-area">
 		{#if isInvalid && invalidMessage}
 			<p id={invalidId} class="form-control-message form-control-message--invalid" role="alert">
 				{invalidMessage}
 			</p>
 		{/if}
-	</div>
-	<div class="form-control-message-slot">
 		{#if hasWarning && warningMessage}
 			<p id={warningId} class="form-control-message form-control-message--warning" role="status">
 				{warningMessage}

@@ -65,7 +65,7 @@ describe('NumberInput', () => {
 		expect(invalidInput.getAttribute('aria-describedby')).toBe(invalidMessage.id);
 	});
 
-	it('keeps message space reserved as validation messages change', () => {
+	it('keeps one message area available as validation messages change', () => {
 		const { rerender } = render(NumberInput, {
 			label: 'Initiative',
 			value: '19',
@@ -73,14 +73,15 @@ describe('NumberInput', () => {
 		});
 
 		const input = screen.getByRole('spinbutton', { name: 'Initiative' }) as HTMLInputElement;
-		const messageSlots = input.parentElement?.parentElement?.querySelectorAll(
-			'.form-control-message-slot'
+		const messageArea = input.parentElement?.parentElement?.querySelectorAll(
+			'.form-control-message-area'
 		);
-		expect(messageSlots).toHaveLength(2);
+		expect(messageArea).toHaveLength(1);
 		expect(input.value).toBe('19');
 		expect(input.getAttribute('aria-describedby')).toBe('initiative-help');
 		expect(screen.queryByRole('status')).toBeNull();
 		expect(screen.queryByRole('alert')).toBeNull();
+		expect(messageArea?.[0]?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(0);
 
 		rerender({
 			label: 'Initiative',
@@ -95,6 +96,7 @@ describe('NumberInput', () => {
 		const warning = screen.getByRole('status');
 		const invalidMessage = screen.getByRole('alert');
 		expect(screen.getAllByText(/Values above 18|Enter a non-negative/)).toHaveLength(2);
+		expect(messageArea?.[0]?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(2);
 		expect(input.value).toBe('19');
 		expect(input.getAttribute('aria-describedby')).toBe(
 			`initiative-help ${invalidMessage.id} ${warning.id}`
@@ -115,7 +117,8 @@ describe('NumberInput', () => {
 		expect(screen.queryByRole('status')).toBeNull();
 		expect(screen.queryByRole('alert')).toBeNull();
 		expect(
-			input.parentElement?.parentElement?.querySelectorAll('.form-control-message-slot')
-		).toHaveLength(2);
+			input.parentElement?.parentElement?.querySelectorAll('.form-control-message-area')
+		).toHaveLength(1);
+		expect(messageArea?.[0]?.querySelectorAll('[role="alert"], [role="status"]')).toHaveLength(0);
 	});
 });

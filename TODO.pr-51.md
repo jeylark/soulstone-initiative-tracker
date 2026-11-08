@@ -303,28 +303,39 @@ requirement to strengthen faction colors.
 
 ### PR51-07: Bottom Whitespace
 
-- [ ] Remove empty space at the bottom of turn cards.
+- [x] Reduce reserved validation-message space to one line and tighten gaps for all inputs.
 
-**Current evidence:** [CheckboxInput.svelte](src/lib/components/forms/CheckboxInput.svelte)
-always renders two `.form-control-message-slot` elements;
-[form-controls.css](src/lib/components/forms/form-controls.css) gives each
-`min-height: 1.3em` plus wrapper gaps. Confirm the rendered cause before editing.
+  - 2026-11-08, branch `copilot/pr51-07`. Changed all six custom form controls
+    and their specs, `form-controls.css`, and this checklist.
+  - Checks: `npm run test:unit -- --run src/lib/components/forms` (6 files, 15
+    tests passed); `npm run check` (0 errors, 0 warnings).
+  - Browser: inspected challenge setup and Run at desktop/mobile sizes in light
+    and dark themes. Verified one-line empty/error areas, no horizontal overflow,
+    and the hidden turn and Spawn cards. Main TODO entries moved to Done: none.
+    Remaining overlap: TODO 6.19 still requests removing empty reserved height.
+    The supplementary Run integration specs were attempted but fail before
+    rendering because this Node runtime lacks `Map.prototype.getOrInsert`.
+
+**Behavior:** Every custom input reserves one line for warning/error feedback;
+warning and error messages render together and expand the area when both are
+present. Use smaller field/message gaps without changing control width or
+accessible associations.
+
+**Implementation:** Replace the separate warning/error slots with one shared
+message area in the checkbox, color picker, number, range, select, and text
+controls. Set one line of minimum height on that area, reduce shared field and
+message gaps, and keep extra message lines and their gap when both are displayed.
 Turn's hidden-status paragraph has zero bottom margin; do not change shared page
 padding as a shortcut.
 
-**Implementation:** Render message space only when messages exist, preserving
-control width stability, real feedback, accessible associations, and focus/target
-sizes. Checkbox-only changes must not accidentally regress other custom controls.
-Completing full TODO 6.19 requires an explicitly scoped shared-control pass.
+**Tests:** Owning specs for all six controls cover simultaneous warning/error
+messages within the shared area and preserve accessible associations. Real-browser
+inspection verifies message-area height and card appearance because jsdom cannot
+validate visual spacing. Check hidden/nonhidden/Spawn cards, light/dark, and
+desktop/mobile.
 
-**Tests:** [CheckboxInput.spec.ts](src/lib/components/forms/CheckboxInput.spec.ts),
-Turn's tests, and every changed control's owning tests. Check absent/present feedback,
-width stability, hidden/nonhidden/Spawn cards, light/dark and desktop/mobile.
-Real-browser height measurement is necessary; jsdom cannot validate visual spacing.
-
-**Main TODO:** Direct overlap with 6.19. After finishing, move it to Done only if
-all custom-input height reservations/empty slots in its full scope are removed and
-tests updated. For a checkbox-only fix, list remaining controls and leave it Open.
+**Main TODO:** 6.19 remains open because it calls for removing all reserved empty
+message height, while this item reserves one line by request.
 
 ## Run View
 
