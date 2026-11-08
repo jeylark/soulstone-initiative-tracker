@@ -13,6 +13,8 @@ detailed coding guidelines.
 - Preserve existing work. Do not switch branches if doing so could move,
   overwrite, or obscure uncommitted changes; ask the user how to proceed if the
   work cannot be safely isolated.
+- Adhere to the [Coding Guidelines](./PROJECT_DECISIONS.md#coding-guidelines) when
+  writing or editing code.
 - Clarify the expected behavior and identify relevant tests. For app changes,
   add or update tests before changing implementation. For documentation-only
   changes, tests are not needed unless the repository provides documentation

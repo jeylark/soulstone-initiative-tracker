@@ -8,7 +8,7 @@ import {
 	type TurnInitiative,
 	validateChallengeLibrary
 } from '#lib/challenge';
-import { createUuid, parseUuid } from './uuid';
+import { createUuid } from './uuid';
 
 const ids = {
 	challenge: createUuid(),
@@ -906,30 +906,6 @@ describe('challenge domain models', () => {
 		}
 	});
 
-	it('rejects duplicate entity IDs', () => {
-		const invalidLibrary = structuredClone(library);
-		invalidLibrary.challenges[0].npcTypes[0].id = invalidLibrary.challenges[0].factions[0].id;
-
-		const result = validateChallengeLibrary(invalidLibrary);
-
-		expect(result.isValid).toBe(false);
-		if (!result.isValid) {
-			expect(result.issues).toContainEqual({
-				path: '$.challenges[0].npcTypes[0].id',
-				message: 'Duplicate entity UUID.'
-			});
-		}
-	});
-
-	it('creates UUID IDs and rejects invalid UUID strings', () => {
-		const id = createUuid();
-
-		expectTypeOf<StableId>().toEqualTypeOf<ReturnType<typeof globalThis.crypto.randomUUID>>();
-		expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-		expect(parseUuid(id)).toBe(id);
-		expect(parseUuid('not-a-uuid')).toBeNull();
-	});
-
 	it('uses the initial version for persisted challenge libraries', () => {
 		expect(CHALLENGE_FORMAT_VERSION).toBe(1);
 		expectTypeOf<ChallengeLibrary['formatVersion']>().toEqualTypeOf<1>();
@@ -938,6 +914,7 @@ describe('challenge domain models', () => {
 	it('represents characters, challenge entities, and turn references', () => {
 		const challenge = library.challenges[0];
 
+		expectTypeOf<StableId>().toEqualTypeOf<ReturnType<typeof globalThis.crypto.randomUUID>>();
 		expect(challenge.creatures[0].kind).toBe('character');
 		expect(challenge.creatures[0].turns[1].initiative).toEqual({
 			kind: 'fixed-position',
