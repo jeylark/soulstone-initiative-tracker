@@ -214,7 +214,7 @@ Manual checks: none. Skipped: `npm test`/`npm run build` (pre-PR only). Blockers
 
 ### SPAWN-03: Restricted Setup Controls
 
-- [ ] Complete and commit `feat: enable restricted Spawn setup editing`.
+- [x] Complete and commit `feat: enable restricted Spawn setup editing`.
 
 **Dependencies:** SPAWN-02.
 
@@ -239,9 +239,20 @@ references; cancel changes nothing; unaffected results/ties survive. Cover the
 locked-configuration edge cases above.
 
 **Gate:** SetupPanel tests and each touched editor's owned integration tests;
-formatting; `npm run check`; step diff.
+formatting; focused diagnostics; step diff. App-wide `npm run check`, lint, and
+test are deferred to CI per the current repository instructions.
 
-**Completion:** Not started.
+**Completion:** 2026-11-08, Copilot session on branch `feat/spawn-challenge-editing`.
+Changed: SetupPanel and ChallengeSettings scoped locks; per-entity permissions in
+CreatureSetup, FactionEditor, CreatureEditor, TurnEditor, and NpcTypeEditor;
+creation/removal ID tracking, result/tie cleanup, pending-order preservation,
+NPC default initialization and locked blank-identifier protection; focused
+SetupPanel and setup-editor integration coverage. Checks: focused setup Vitest
+suite (7 files, 98 tests passed); editor/source diagnostics (no errors);
+`git diff --check` (clean); Prettier applied to every changed file. Manual
+checks: none; desktop/mobile interaction is reserved for SPAWN-05. Skipped:
+app-wide `npm run check`, `npm run lint`, and `npm test` per AGENTS.md. Blockers:
+none. Commit hash: record in a subsequent completion note after committing.
 
 ### SPAWN-04: Missing Initiatives and Ties
 

@@ -1,8 +1,12 @@
 import { IDBFactory } from 'fake-indexeddb';
-import { cleanup, fireEvent, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge, renderSetup } from '../../../view-test-support';
+import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
+import {
+	createSetupChallenge,
+	createSpawnEditChallenge,
+	renderSetup
+} from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -26,6 +30,26 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('keeps challenge settings disabled and guarded during Spawn editing', async () => {
+		await saveChallengeToLibrary(createSpawnEditChallenge());
+		await renderSetup();
+
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' }) as HTMLInputElement;
+		const fairnessInput = screen.getByRole('spinbutton', {
+			name: 'Fairness weight value'
+		}) as HTMLInputElement;
+		expect(nameInput.matches(':disabled')).toBe(true);
+		expect(fairnessInput.matches(':disabled')).toBe(true);
+
+		await fireEvent.input(nameInput, { target: { value: 'Changed while editing' } });
+		await fireEvent.input(fairnessInput, { target: { value: '7' } });
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0]!;
+			expect(saved.name).toBe('Spawn edit');
+			expect(saved.fairnessWeight).toBe(3);
+		});
+	});
+
 	it('updates the visible fairness value as the slider moves', async () => {
 		await renderSetup();
 

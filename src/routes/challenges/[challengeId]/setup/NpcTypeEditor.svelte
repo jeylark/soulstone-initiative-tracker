@@ -6,20 +6,38 @@
 	interface Props {
 		npcTypes: readonly NpcType[];
 		setupIssues: readonly ValidationIssue[];
+		canManageNpcTypes: boolean;
+		isNpcTypeConfigurable: (npcTypeId: StableId) => boolean;
+		creationError: string;
 		onCreate: () => void;
 		onRename: (npcTypeId: StableId, name: string) => void;
 		onInitiativeStatChange: (npcTypeId: StableId, initiativeStat: number) => void;
 		onRemove: (npcTypeId: StableId) => void;
 	}
 
-	let { npcTypes, setupIssues, onCreate, onRename, onInitiativeStatChange, onRemove }: Props =
-		$props();
+	let {
+		npcTypes,
+		setupIssues,
+		canManageNpcTypes,
+		isNpcTypeConfigurable,
+		creationError,
+		onCreate,
+		onRename,
+		onInitiativeStatChange,
+		onRemove
+	}: Props = $props();
 </script>
 
 <Card title="NPC types" headerSize="large">
 	<fieldset class="setup-section npc-type-strip-section">
 		<legend>NPC types</legend>
-		<EntityList addLabel="Add NPC Type" onAdd={onCreate} layout="strip">
+		{#if creationError}<p role="alert">{creationError}</p>{/if}
+		<EntityList
+			addLabel="Add NPC Type"
+			isAddDisabled={!canManageNpcTypes}
+			onAdd={onCreate}
+			layout="strip"
+		>
 			{#each npcTypes as npcType, index (npcType.id)}
 				{@const nameError = issueMessage(setupIssues, `$.npcTypes[${index}].name`)}
 				{@const statError = issueMessage(setupIssues, `$.npcTypes[${index}].initiativeStat`)}
@@ -36,12 +54,14 @@
 						legend={npcType.name}
 						removeLabel={`Remove NPC type ${npcType.name}`}
 						removeText="Remove NPC type"
+						isRemoveDisabled={!canManageNpcTypes}
 						onRemove={() => onRemove(npcType.id)}
 					>
 						<TextInput
 							label="NPC type name"
 							aria-label={`NPC type name: ${npcType.name}`}
 							value={npcType.name}
+							disabled={!isNpcTypeConfigurable(npcType.id)}
 							isInvalid={nameError !== undefined}
 							invalidMessage={nameError}
 							oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
@@ -50,6 +70,7 @@
 							label="Initiative stat (d6)"
 							aria-label={`Initiative stat for ${npcType.name}`}
 							value={npcType.initiativeStat}
+							disabled={!isNpcTypeConfigurable(npcType.id)}
 							min="0"
 							step="1"
 							isInvalid={statError !== undefined}

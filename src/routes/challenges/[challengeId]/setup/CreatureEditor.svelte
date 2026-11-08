@@ -31,8 +31,11 @@
 		onFactionChange?: (creatureId: StableId, factionId: StableId) => void;
 		targetTurns: readonly TurnTarget[];
 		siblingCount: (turnId: StableId) => number;
+		canManageCreaturesAndTurns: boolean;
+		isConfigurable: boolean;
+		isTurnConfigurable: (turnId: StableId) => boolean;
 		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
-		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
+		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => boolean;
 		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
 			creatureId: StableId,
@@ -61,6 +64,9 @@
 		onFactionChange,
 		targetTurns,
 		siblingCount,
+		canManageCreaturesAndTurns,
+		isConfigurable,
+		isTurnConfigurable,
 		onVisibilityChange,
 		onNpcTypeChange,
 		onCharacterNameChange,
@@ -91,6 +97,7 @@
 		legend={name}
 		removeLabel={`Remove ${name}`}
 		removeText="Remove creature"
+		isRemoveDisabled={!canManageCreaturesAndTurns}
 		onRemove={() => onRemove(creature.id)}
 	>
 		{#if onFactionChange}
@@ -98,6 +105,7 @@
 				label="Faction"
 				aria-label={`Faction for ${name}`}
 				value={creature.factionId}
+				disabled={!isConfigurable}
 				isInvalid={factionError !== undefined}
 				invalidMessage={factionError}
 				onchange={(event) => onFactionChange?.(creature.id, event.currentTarget.value as StableId)}
@@ -112,6 +120,7 @@
 				label="Character name"
 				aria-label={`Character name: ${characterName}`}
 				value={characterName}
+				disabled={!isConfigurable}
 				isInvalid={nameError !== undefined}
 				invalidMessage={nameError}
 				oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
@@ -121,6 +130,7 @@
 					label="Initiative stat (d6)"
 					aria-label={`Initiative stat (d6) for ${characterName}`}
 					value={characterInitiativeStat ?? ''}
+					disabled={!isConfigurable}
 					min="0"
 					step="1"
 					isInvalid={initiativeStatError !== undefined}
@@ -139,9 +149,13 @@
 				label="NPC type"
 				aria-label={`NPC type for ${name}`}
 				value={creature.creatureTypeId}
+				disabled={!isConfigurable}
 				isInvalid={npcTypeError !== undefined}
 				invalidMessage={npcTypeError}
-				onchange={(event) => onNpcTypeChange(creature.id, event.currentTarget.value as StableId)}
+				onchange={(event) => {
+					const isAccepted = onNpcTypeChange(creature.id, event.currentTarget.value as StableId);
+					if (!isAccepted) event.currentTarget.value = creature.creatureTypeId;
+				}}
 			>
 				{#if !npcTypes.some((npcType) => creature.kind === 'npc' && npcType.id === creature.creatureTypeId)}
 					<option value={creature.creatureTypeId} disabled>Missing NPC type</option>
@@ -153,6 +167,7 @@
 			<TextInput
 				label="NPC identifier"
 				value={creature.identifier}
+				disabled={!isConfigurable}
 				isInvalid={identifierError !== undefined}
 				invalidMessage={identifierError}
 				oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
@@ -162,12 +177,14 @@
 			<CheckboxInput
 				label={`Hidden from viewers: ${name}`}
 				checked={creature.isHidden}
+				disabled={!isConfigurable}
 				onchange={(event) => onVisibilityChange(creature.id, event.currentTarget.checked)}
 			/>
 		</div>
 		<EntityList
 			addLabel="Add turn"
 			addAriaLabel={`Add turn for ${name}`}
+			isAddDisabled={!canManageCreaturesAndTurns}
 			onAdd={() => onAddTurn(creature.id)}
 		>
 			{#each creature.turns as turn, index (turn.id)}
@@ -179,6 +196,8 @@
 					creatureName={name}
 					targetTurns={targetTurns.filter((target) => target.id !== turn.id)}
 					siblingCount={siblingCount(turn.id)}
+					isConfigurable={isTurnConfigurable(turn.id)}
+					isRemovalDisabled={!canManageCreaturesAndTurns}
 					onChange={(change) => onTurnChange(creature.id, turn.id, change)}
 					onRemove={() => onRemoveTurn(creature.id, turn.id)}
 				/>

@@ -2,7 +2,12 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
+import {
+	createSetupChallenge,
+	createSpawnEditChallenge,
+	renderSetup,
+	setRelativeTarget
+} from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -26,6 +31,31 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('locks an existing creature configuration but leaves removal and new creatures available', async () => {
+		await saveChallengeToLibrary(createSpawnEditChallenge());
+		await renderSetup();
+
+		const players = screen.getByRole('group', { name: 'Players' });
+		const aria = within(players).getByRole('group', { name: 'Aria' });
+		expect(
+			(within(aria).getByRole('textbox', { name: 'Character name: Aria' }) as HTMLInputElement)
+				.disabled
+		).toBe(true);
+		expect(
+			(within(aria).getByRole('button', { name: 'Remove Aria' }) as HTMLButtonElement).disabled
+		).toBe(false);
+
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		expect(
+			(
+				within(player).getByRole('textbox', {
+					name: 'Character name: Player 1'
+				}) as HTMLInputElement
+			).disabled
+		).toBe(false);
+	});
+
 	it('shows a missing NPC type instead of silently selecting another and permits repair', async () => {
 		const challenge = createSetupChallenge();
 		challenge.name = 'Missing type';

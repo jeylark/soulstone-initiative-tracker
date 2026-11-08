@@ -2,11 +2,18 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import setupChallengePage from './SetupPanel.svelte';
-import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
+import {
+	createUuid,
+	loadChallengeLibrary,
+	saveChallengeToLibrary,
+	type StableId
+} from '#lib/challenge';
 import {
 	createSetupChallenge,
+	createSpawnEditChallenge,
 	renderSetup,
 	expectPageError,
+	seedStoredChallengeLibrary,
 	setRelativeTarget
 } from '../../view-test-support';
 
@@ -188,6 +195,231 @@ describe('challenge setup persistence', () => {
 				{ kind: 'turn', turnId },
 				{ kind: 'spawn' }
 			]);
+		});
+	});
+
+	it('allows Spawn additions while keeping existing setup configuration locked', async () => {
+		const challenge = createSpawnEditChallenge();
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' }) as HTMLInputElement;
+		const players = screen.getByRole('group', { name: 'Players' });
+		const aria = within(players).getByRole('group', { name: 'Aria' });
+		const ariaNameInput = within(aria).getByRole('textbox', {
+			name: 'Character name: Aria'
+		}) as HTMLInputElement;
+		const existingTurnInput = within(aria).getByRole('combobox', {
+			name: 'Turn initiative'
+		}) as HTMLSelectElement;
+		expect(nameInput.matches(':disabled')).toBe(true);
+		expect(
+			(screen.getByRole('button', { name: 'Add Faction' }) as HTMLButtonElement).disabled
+		).toBe(true);
+		expect(
+			(within(aria).getByRole('textbox', { name: 'Character name: Aria' }) as HTMLInputElement)
+				.disabled
+		).toBe(true);
+		expect(
+			(within(aria).getByRole('combobox', { name: 'Turn initiative' }) as HTMLSelectElement)
+				.disabled
+		).toBe(true);
+		expect(
+			(within(aria).getByRole('button', { name: 'Add turn for Aria' }) as HTMLButtonElement)
+				.disabled
+		).toBe(false);
+		await fireEvent.input(ariaNameInput, { target: { value: 'Changed Aria' } });
+		await fireEvent.change(existingTurnInput, { target: { value: 'roll-app' } });
+
+		await fireEvent.click(within(aria).getByRole('button', { name: 'Add turn for Aria' }));
+		const newTurn = within(aria).getByRole('group', { name: 'Turn 2' });
+		const newTurnId = newTurn.getAttribute('data-entity-id');
+		const initiativeChoice = within(newTurn).getByRole('combobox', {
+			name: 'Turn initiative'
+		}) as HTMLSelectElement;
+		expect(initiativeChoice.disabled).toBe(false);
+		await fireEvent.change(initiativeChoice, { target: { value: 'roll-app' } });
+		expect(
+			(
+				screen.getByRole('spinbutton', {
+					name: 'Initiative stat (d6) for Aria'
+				}) as HTMLInputElement
+			).disabled
+		).toBe(true);
+
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const newCharacter = within(players).getByRole('group', { name: 'Player 1' });
+		expect(
+			(
+				within(newCharacter).getByRole('textbox', {
+					name: 'Character name: Player 1'
+				}) as HTMLInputElement
+			).disabled
+		).toBe(false);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0]!;
+			const edit = saved.runState?.spawnEdit;
+			const addedCharacter = saved.creatures.find(
+				(creature) => creature.kind === 'character' && creature.name === 'Player 1'
+			);
+			expect(addedCharacter).toBeDefined();
+			expect(
+				saved.creatures.find((creature) => creature.id === challenge.creatures[0]!.id)
+			).toMatchObject({
+				name: 'Aria',
+				turns: [
+					{
+						id: challenge.creatures[0]!.turns[0]!.id,
+						initiative: { kind: 'roll', mode: 'manual' }
+					},
+					expect.objectContaining({ initiative: { kind: 'roll', mode: 'app' } })
+				]
+			});
+			expect(edit?.newCreatureIds).toContain(addedCharacter?.id);
+			expect(edit?.newTurnIds).toContain(addedCharacter?.turns[0]?.id);
+			expect(edit?.newTurnIds).toContain(newTurnId);
+		});
+	});
+
+	it('keeps existing fields locked when saved Spawn metadata has an invalid pending order', async () => {
+		const challenge = createSpawnEditChallenge();
+		delete challenge.runState!.generatedTurnOrder;
+		await seedStoredChallengeLibrary({ formatVersion: 1, challenges: [challenge] });
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.spawnEdit).toBeDefined();
+		await renderSetup();
+
+		expect(screen.getByRole('region', { name: 'Setup validation errors' })).toBeTruthy();
+		expect(
+			(screen.getByRole('textbox', { name: 'Challenge name' }) as HTMLInputElement).matches(
+				':disabled'
+			)
+		).toBe(true);
+		expect(
+			(
+				within(screen.getByRole('group', { name: 'Players' })).getByRole('textbox', {
+					name: 'Character name: Aria'
+				}) as HTMLInputElement
+			).disabled
+		).toBe(true);
+	});
+
+	it('prunes removed Spawn entities while preserving unaffected results, ties, and the Spawn order', async () => {
+		const challenge = createSpawnEditChallenge();
+		const ariaTurnId = challenge.creatures[0]!.turns[0]!.id;
+		const bobTurnId = createUuid();
+		const dependentTurnId = createUuid();
+		const npcTypeId = createUuid();
+		const npcId = createUuid();
+		const npcTurnId = createUuid();
+		challenge.npcTypes = [{ id: npcTypeId, name: 'Sentinel', initiativeStat: 2 }];
+		challenge.creatures.push(
+			{
+				id: createUuid(),
+				kind: 'character',
+				name: 'Bob',
+				factionId: challenge.factions[0]!.id,
+				isHidden: false,
+				turns: [
+					{ id: bobTurnId, initiative: { kind: 'roll', mode: 'manual' } },
+					{
+						id: dependentTurnId,
+						initiative: {
+							kind: 'relative-position',
+							relation: 'after',
+							targetTurnId: npcTurnId
+						}
+					}
+				]
+			},
+			{
+				id: npcId,
+				kind: 'npc',
+				creatureTypeId: npcTypeId,
+				identifier: '1',
+				factionId: challenge.factions[1]!.id,
+				isHidden: false,
+				turns: [{ id: npcTurnId, initiative: { kind: 'roll', mode: 'app' } }]
+			}
+		);
+		challenge.runState!.initiativeResults = {
+			[ariaTurnId]: 12,
+			[bobTurnId]: 12,
+			[npcTurnId]: 8
+		};
+		challenge.runState!.tieDecisions = [[ariaTurnId, bobTurnId]];
+		challenge.runState!.spawnEdit = {
+			newCreatureIds: [npcId],
+			newNpcTypeIds: [npcTypeId],
+			newTurnIds: [npcTurnId],
+			lockedInitiativeTurnIds: [ariaTurnId, bobTurnId]
+		};
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const confirmation = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove Sentinel 1' }));
+		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 dependent turn'));
+		expect(screen.getByRole('group', { name: 'Sentinel 1' })).toBeTruthy();
+		expect((await loadChallengeLibrary()).challenges[0]!.runState).toEqual(challenge.runState);
+
+		confirmation.mockReturnValue(true);
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove Sentinel 1' }));
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0]!;
+			expect(saved.creatures.some((creature) => creature.id === npcId)).toBe(false);
+			expect(saved.creatures[1]?.turns.some((turn) => turn.id === dependentTurnId)).toBe(false);
+			expect(saved.runState?.initiativeResults).toEqual({ [ariaTurnId]: 12, [bobTurnId]: 12 });
+			expect(saved.runState?.tieDecisions).toEqual([[ariaTurnId, bobTurnId]]);
+			expect(saved.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
+			expect(saved.runState?.spawnEdit?.newCreatureIds).toEqual([]);
+			expect(saved.runState?.spawnEdit?.newTurnIds).toEqual([]);
+			expect(saved.runState?.spawnEdit?.lockedInitiativeTurnIds).toEqual([ariaTurnId, bobTurnId]);
+		});
+	});
+
+	it('clears only a changed new-turn result and its tie decision', async () => {
+		const challenge = createSpawnEditChallenge();
+		const baselineTurnId = challenge.creatures[0]!.turns[0]!.id;
+		const newTurnId = createUuid();
+		const otherTurnId = createUuid();
+		challenge.creatures[0]!.turns.push({
+			id: newTurnId,
+			initiative: { kind: 'roll', mode: 'app' }
+		});
+		challenge.creatures.push({
+			id: createUuid(),
+			kind: 'character',
+			name: 'Bob',
+			factionId: challenge.factions[0]!.id,
+			isHidden: false,
+			turns: [{ id: otherTurnId, initiative: { kind: 'roll', mode: 'manual' } }]
+		});
+		challenge.runState!.initiativeResults = {
+			[baselineTurnId]: 12,
+			[newTurnId]: 8,
+			[otherTurnId]: 8
+		};
+		challenge.runState!.tieDecisions = [[newTurnId, otherTurnId]];
+		challenge.runState!.spawnEdit!.newTurnIds = [newTurnId];
+		challenge.runState!.spawnEdit!.lockedInitiativeTurnIds = [baselineTurnId, otherTurnId];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const aria = screen.getByRole('group', { name: 'Aria' });
+		const newTurn = within(aria).getByRole('group', { name: 'Turn 2' });
+		await fireEvent.change(within(newTurn).getByRole('combobox', { name: 'Turn initiative' }), {
+			target: { value: 'roll-manual' }
+		});
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0]!;
+			expect(saved.runState?.initiativeResults).toEqual({
+				[baselineTurnId]: 12,
+				[otherTurnId]: 8
+			});
+			expect(saved.runState?.tieDecisions).toEqual([]);
+			expect(saved.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
 		});
 	});
 

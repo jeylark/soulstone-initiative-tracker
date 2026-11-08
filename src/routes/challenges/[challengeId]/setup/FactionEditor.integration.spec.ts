@@ -2,7 +2,12 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
+import {
+	createSetupChallenge,
+	createSpawnEditChallenge,
+	renderSetup,
+	setRelativeTarget
+} from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -26,6 +31,32 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('locks faction configuration and removal while allowing creature additions', async () => {
+		await saveChallengeToLibrary(createSpawnEditChallenge());
+		await renderSetup();
+
+		const players = screen.getByRole('group', { name: 'Players' });
+		expect(
+			(screen.getByRole('textbox', { name: 'Faction name: Players' }) as HTMLInputElement).matches(
+				':disabled'
+			)
+		).toBe(true);
+		expect(
+			(within(players).getByRole('button', { name: 'Remove faction Players' }) as HTMLButtonElement)
+				.disabled
+		).toBe(true);
+		expect(
+			(within(players).getByRole('button', { name: 'Add Player' }) as HTMLButtonElement).disabled
+		).toBe(false);
+
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		expect(
+			(within(player).getByRole('button', { name: 'Remove Player 1' }) as HTMLButtonElement)
+				.disabled
+		).toBe(false);
+	});
+
 	it('renders the unassigned creature list without inventing a faction or faction actions', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [

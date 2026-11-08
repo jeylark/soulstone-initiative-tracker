@@ -12,6 +12,8 @@
 		creatureName: string;
 		targetTurns: readonly TurnTarget[];
 		siblingCount: number;
+		isConfigurable: boolean;
+		isRemovalDisabled: boolean;
 		onChange: (change: Readonly<TurnEditorChange>) => void;
 		onRemove: () => void;
 	}
@@ -24,6 +26,8 @@
 		creatureName,
 		targetTurns,
 		siblingCount,
+		isConfigurable,
+		isRemovalDisabled,
 		onChange,
 		onRemove
 	}: Props = $props();
@@ -60,12 +64,14 @@
 		legend={`Turn ${turnNumber}`}
 		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
 		removeText="Remove turn"
+		isRemoveDisabled={isRemovalDisabled}
 		{onRemove}
 	>
 		<div class="turn-settings">
 			<SelectInput
 				label="Turn initiative"
 				value={initiativeChoice(turn.initiative)}
+				disabled={!isConfigurable}
 				onchange={(event) =>
 					onChange({ kind: 'choice', choice: event.currentTarget.value as InitiativeChoice })}
 			>
@@ -80,6 +86,7 @@
 			{#if turn.initiative.kind === 'static'}
 				<NumberInput
 					label="Static initiative"
+					disabled={!isConfigurable}
 					isInvalid={staticError !== undefined}
 					invalidMessage={staticError}
 					value={turn.initiative.value}
@@ -92,6 +99,7 @@
 			{:else if turn.initiative.kind === 'fixed-position'}
 				<NumberInput
 					label="Position"
+					disabled={!isConfigurable}
 					isInvalid={positionError !== undefined}
 					invalidMessage={positionError}
 					value={turn.initiative.position}
@@ -106,6 +114,7 @@
 				{#if siblingCount > 1 || indexError !== undefined}
 					<NumberInput
 						label="Index"
+						disabled={!isConfigurable}
 						isInvalid={indexError !== undefined}
 						invalidMessage={indexError}
 						value={turn.initiative.index ?? ''}
@@ -122,6 +131,7 @@
 				{/if}
 				<SelectInput
 					label="Target turn"
+					disabled={!isConfigurable}
 					isInvalid={targetError !== undefined}
 					invalidMessage={targetError}
 					value={turn.initiative.targetTurnId}

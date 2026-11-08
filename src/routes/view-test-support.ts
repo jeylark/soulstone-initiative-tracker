@@ -42,6 +42,35 @@ export function createSetupChallenge(): Challenge {
 	};
 }
 
+/** Creates a valid running challenge paused at Spawn with one locked character turn. */
+export function createSpawnEditChallenge(): Challenge {
+	const challenge = createSetupChallenge();
+	const turnId = '00000000-0000-4000-8000-000000000012' as StableId;
+	challenge.name = 'Spawn edit';
+	challenge.creatures = [
+		{
+			id: '00000000-0000-4000-8000-000000000013' as StableId,
+			kind: 'character',
+			name: 'Aria',
+			factionId: challenge.factions[0]!.id,
+			isHidden: false,
+			turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+		}
+	];
+	challenge.runState = {
+		initiativeResults: { [turnId]: 12 },
+		generatedTurnOrder: [{ kind: 'spawn' }],
+		spawnCount: 2,
+		spawnEdit: {
+			newCreatureIds: [],
+			newNpcTypeIds: [],
+			newTurnIds: [],
+			lockedInitiativeTurnIds: [turnId]
+		}
+	};
+	return challenge;
+}
+
 export async function renderSetup() {
 	render(setupChallengePage);
 	await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });

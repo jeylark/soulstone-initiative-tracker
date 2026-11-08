@@ -28,6 +28,10 @@
 		setupIssues: readonly ValidationIssue[];
 		factionIndex: number;
 		npcTypeId: StableId | '';
+		canManageFactions: boolean;
+		canManageCreaturesAndTurns: boolean;
+		isCreatureConfigurable: (creatureId: StableId) => boolean;
+		isTurnConfigurable: (turnId: StableId) => boolean;
 		onRename: (factionId: StableId, name: string) => void;
 		onColorChange: (factionId: StableId, color: FactionColor) => void;
 		onRemove: (factionId: StableId) => void;
@@ -35,7 +39,7 @@
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onCreatureFactionChange?: (creatureId: StableId, factionId: StableId) => void;
-		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
+		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => boolean;
 		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
 			creatureId: StableId,
@@ -60,6 +64,10 @@
 		setupIssues,
 		factionIndex,
 		npcTypeId,
+		canManageFactions,
+		canManageCreaturesAndTurns,
+		isCreatureConfigurable,
+		isTurnConfigurable,
 		onRename,
 		onColorChange,
 		onRemove,
@@ -128,11 +136,13 @@
 	<EntityList>
 		{#snippet actions()}
 			{#if faction}
-				<ActionButton onclick={() => faction && onCreateCharacter(faction.id)}
-					>Add Player</ActionButton
+				<ActionButton
+					disabled={!canManageCreaturesAndTurns}
+					onclick={() => faction && onCreateCharacter(faction.id)}>Add Player</ActionButton
 				>
-				<ActionButton disabled={!npcTypeId} onclick={() => faction && onCreateNpc(faction.id)}
-					>Add NPC</ActionButton
+				<ActionButton
+					disabled={!canManageCreaturesAndTurns || !npcTypeId}
+					onclick={() => faction && onCreateNpc(faction.id)}>Add NPC</ActionButton
 				>
 			{/if}
 		{/snippet}
@@ -154,6 +164,9 @@
 				{factions}
 				targetTurns={targetTurns()}
 				{siblingCount}
+				{canManageCreaturesAndTurns}
+				isConfigurable={isCreatureConfigurable(creature.id)}
+				{isTurnConfigurable}
 				onFactionChange={faction ? undefined : onCreatureFactionChange}
 				onVisibilityChange={onCreatureVisibilityChange}
 				{onNpcTypeChange}
@@ -183,23 +196,27 @@
 			legend={faction.name}
 			removeLabel={`Remove faction ${faction.name}`}
 			removeText="Remove faction"
+			isRemoveDisabled={!canManageFactions}
 			onRemove={() => onRemove(faction.id)}
 		>
-			<TextInput
-				label="Faction name"
-				aria-label={`Faction name: ${faction.name}`}
-				value={faction.name}
-				isInvalid={factionNameError !== undefined}
-				invalidMessage={factionNameError}
-				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-			/>
-			<ColorPickerInput
-				label={`Faction color for ${faction.name}`}
-				name={`faction-color-${faction.id}`}
-				options={FACTION_COLORS}
-				value={faction.color}
-				onchange={(color) => onColorChange(faction.id, color)}
-			/>
+			<fieldset disabled={!canManageFactions}>
+				<TextInput
+					label="Faction name"
+					aria-label={`Faction name: ${faction.name}`}
+					value={faction.name}
+					isInvalid={factionNameError !== undefined}
+					invalidMessage={factionNameError}
+					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+				/>
+				<ColorPickerInput
+					label={`Faction color for ${faction.name}`}
+					name={`faction-color-${faction.id}`}
+					options={FACTION_COLORS}
+					value={faction.color}
+					isDisabled={!canManageFactions}
+					onchange={(color) => onColorChange(faction.id, color)}
+				/>
+			</fieldset>
 
 			{@render creatureList()}
 		</EntityListItem>
