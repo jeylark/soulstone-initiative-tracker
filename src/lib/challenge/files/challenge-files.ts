@@ -148,6 +148,8 @@ function importChallengeEntities(
 		entityIdMap.set(normalizedId, mappedId);
 		return mappedId;
 	};
+	const mapEntityId = (id: string): StableId =>
+		entityIdMap.get(id.toLowerCase()) ?? (id as StableId);
 	const mapTurnId = (id: string): StableId => {
 		const mappedId = turnIdMap.get(id.toLowerCase());
 		if (mappedId) return mappedId;
@@ -220,6 +222,17 @@ function importChallengeEntities(
 					...(challenge.runState.spawnCount === undefined
 						? {}
 						: { spawnCount: challenge.runState.spawnCount }),
+					...(challenge.runState.spawnEdit === undefined
+						? {}
+						: {
+								spawnEdit: {
+									newCreatureIds: challenge.runState.spawnEdit.newCreatureIds.map(mapEntityId),
+									newNpcTypeIds: challenge.runState.spawnEdit.newNpcTypeIds.map(mapEntityId),
+									newTurnIds: challenge.runState.spawnEdit.newTurnIds.map(mapTurnId),
+									lockedInitiativeTurnIds:
+										challenge.runState.spawnEdit.lockedInitiativeTurnIds.map(mapTurnId)
+								}
+							}),
 					...(challenge.runState.generatedTurnOrder === undefined
 						? {}
 						: {

@@ -67,8 +67,18 @@ function sanitizeCreature(value: unknown): unknown {
 function sanitizeRunState(value: unknown): unknown {
 	return pickFields(
 		value,
-		['initiativeResults', 'generatedTurnOrder', 'spawnCount', 'tieDecisions'],
+		['initiativeResults', 'generatedTurnOrder', 'spawnCount', 'tieDecisions', 'spawnEdit'],
 		{
+			spawnEdit: (edit) =>
+				pickFields(
+					edit,
+					['newCreatureIds', 'newNpcTypeIds', 'newTurnIds', 'lockedInitiativeTurnIds'],
+					Object.fromEntries(
+						['newCreatureIds', 'newNpcTypeIds', 'newTurnIds', 'lockedInitiativeTurnIds'].map(
+							(key) => [key, (ids: unknown) => mapItems(ids, (id) => id)]
+						)
+					)
+				),
 			initiativeResults: (results) =>
 				typeof results === 'object' && results !== null && !Array.isArray(results)
 					? Object.fromEntries(Object.entries(results))

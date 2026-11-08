@@ -274,6 +274,58 @@ describe('challenge file workflows', () => {
 		expect(validation.isValid).toBe(true);
 	});
 
+	it('remaps Spawn editing references when importing a copy', async () => {
+		const editing = createChallenge();
+		editing.npcTypes = [{ id: createUuid(), name: 'Skeleton', initiativeStat: 2 }];
+		editing.runState = {
+			initiativeResults: { [secondTurnId]: 13 },
+			generatedTurnOrder: [{ kind: 'spawn' }],
+			spawnEdit: {
+				newCreatureIds: [creatureId],
+				newNpcTypeIds: [editing.npcTypes[0].id],
+				newTurnIds: [turnId],
+				lockedInitiativeTurnIds: [secondTurnId]
+			}
+		};
+		const editingLibrary: ChallengeLibrary = { formatVersion: 1, challenges: [editing] };
+
+		const readResult = await readChallengeFile(createChallengeJson(editingLibrary, challengeId));
+		const copy = prepareChallengeImport(library, readResult, { resolution: 'copy' }).challenge;
+
+		expect(copy.runState?.spawnEdit).toEqual({
+			newCreatureIds: [copy.creatures[0]?.id],
+			newNpcTypeIds: [copy.npcTypes[0]?.id],
+			newTurnIds: [copy.creatures[0]?.turns[0]?.id],
+			lockedInitiativeTurnIds: [copy.creatures[0]?.turns[1]?.id]
+		});
+		expect(copy.runState?.spawnEdit?.newCreatureIds[0]).not.toBe(creatureId);
+		expect(copy.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
+		expect(validateChallengeLibrary({ formatVersion: 1, challenges: [copy] }).isValid).toBe(true);
+	});
+
+	it('round-trips Spawn editing state through a JSON file', async () => {
+		const editing = createChallenge();
+		editing.runState = {
+			initiativeResults: { [secondTurnId]: 13 },
+			generatedTurnOrder: [{ kind: 'spawn' }],
+			spawnEdit: {
+				newCreatureIds: [],
+				newNpcTypeIds: [],
+				newTurnIds: [turnId],
+				lockedInitiativeTurnIds: [secondTurnId]
+			}
+		};
+		const editingLibrary: ChallengeLibrary = { formatVersion: 1, challenges: [editing] };
+
+		const readResult = await readChallengeFile(createChallengeJson(editingLibrary, challengeId));
+		const imported = prepareChallengeImport(emptyLibrary, readResult, {
+			resolution: 'replace',
+			activeChallengeIds: new Set()
+		}).challenge;
+
+		expect(imported.runState?.spawnEdit).toEqual(editing.runState.spawnEdit);
+	});
+
 	it('copies only modeled fields when preparing existing challenges for an import', async () => {
 		const challengeWithExtraFields = {
 			...library.challenges[0],

@@ -32,6 +32,18 @@ export type GeneratedTurnOrderEntry = GeneratedTurnEntry | GeneratedSpawnEntry;
 /** Entries in play order, where the first entry is the current turn; Spawn is last when freshly generated and rotates as turns advance. */
 export type GeneratedTurnOrder = GeneratedTurnOrderEntry[];
 
+/** Saved permissions for an explicit, unfinished edit of the challenge at a Spawn step. */
+export interface SpawnEditState {
+	/** IDs of creatures added during this edit, which may still be configured. */
+	newCreatureIds: StableId[];
+	/** IDs of NPC types added during this edit, which may still be configured. */
+	newNpcTypeIds: StableId[];
+	/** IDs of turns added during this edit, including a new creature's automatic first turn. */
+	newTurnIds: StableId[];
+	/** IDs of turns whose initiative results existed when editing began, and so stay locked. */
+	lockedInitiativeTurnIds: StableId[];
+}
+
 /** Saved progress from initiative collection and turn-order generation. */
 export interface ChallengeRunState {
 	/** Initiative values already collected for turns configured to roll. */
@@ -42,6 +54,8 @@ export interface ChallengeRunState {
 	spawnCount?: number;
 	/** Orders chosen by the DM for groups of tied same-faction turns; each entry lists a group's turn IDs in play order. */
 	tieDecisions?: StableId[][];
+	/** Present only while Spawn editing is active; the generated order is then only the Spawn step. */
+	spawnEdit?: SpawnEditState;
 }
 
 /** Persistent library containing saved challenges. */
