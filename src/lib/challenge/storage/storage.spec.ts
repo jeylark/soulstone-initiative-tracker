@@ -146,6 +146,58 @@ describe('challenge library storage', () => {
 		});
 	});
 
+	it('allows creation when all existing challenges are unreadable and retains their diagnostics', async () => {
+		await seedStoredLibrary({ ...emptyLibrary, challenges: [null, { name: 'Broken' }] });
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
+		const challenge = createChallenge('New');
+		await saveChallengeToLibrary(challenge, indexedDbFactory);
+		const result = await loadChallengeLibraryWithDiagnostics(indexedDbFactory);
+		expect(result.library.challenges).toEqual([challenge]);
+		expect(result.unreadableChallenges.map((entry) => entry.index)).toEqual([0, 1]);
+		expect(result.unreadableChallenges[1].name).toBe('Broken');
+	});
+
+	it('isolates duplicate identities without blocking edits to the readable first copy', async () => {
+		const challenge = createChallenge('Duplicate');
+		await seedStoredLibrary({ ...emptyLibrary, challenges: [challenge, challenge] });
+		const result = await loadChallengeLibraryWithDiagnostics(indexedDbFactory);
+		expect(result.library.challenges).toEqual([challenge]);
+		expect(result.unreadableChallenges).toMatchObject([
+			{ index: 1, issues: [{ path: '$.challenges[1].id' }] }
+		]);
+		await saveChallengeToLibrary({ ...challenge, name: 'Renamed' }, indexedDbFactory);
+		const updated = await loadChallengeLibraryWithDiagnostics(indexedDbFactory);
+		expect(updated.library.challenges[0].name).toBe('Renamed');
+		expect(updated.unreadableChallenges[0].name).toBe('Duplicate');
+	});
+
+	it('does not overwrite an unreadable-only record by ID', async () => {
+		const challenge = createChallenge('Unreadable');
+		await seedStoredLibrary({ ...emptyLibrary, challenges: [{ ...challenge, creatures: null }] });
+		await expect(saveChallengeToLibrary(challenge, indexedDbFactory)).rejects.toBeInstanceOf(
+			ChallengeLibraryValidationError
+		);
+	});
+
+	it('loads and saves a draft with a missing faction reference', async () => {
+		const challenge = createChallenge('Missing faction');
+		challenge.creatures = [
+			{
+				id: createUuid(),
+				kind: 'character',
+				name: 'Hero',
+				factionId: createUuid(),
+				isHidden: false,
+				turns: []
+			}
+		];
+		await saveChallengeToLibrary(challenge, indexedDbFactory);
+		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual({
+			...emptyLibrary,
+			challenges: [challenge]
+		});
+	});
+
 	it('removes obsolete relative distance from all turns without assigning sibling indices', async () => {
 		const challenge = createChallenge('Legacy');
 		const factionId = createUuid();
@@ -170,7 +222,7 @@ describe('challenge library storage', () => {
 		};
 		await seedStoredLibrary({
 			...emptyLibrary,
-			unused: true,
+			unused: 'legacy',
 			challenges: [
 				{
 					...challenge,

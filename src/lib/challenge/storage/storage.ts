@@ -1,6 +1,11 @@
 import { CHALLENGE_FORMAT_VERSION, type Challenge, type ChallengeLibrary } from '../core/model';
 import type { DeepReadonly } from '../../DeepReadonly';
-import { validateChallengeLibrary, type ValidationIssue } from '../core/validation';
+import {
+	validateChallengeLibrary,
+	validateReadableChallengeLibrary,
+	type ValidationIssue
+} from '../core/validation';
+import { sanitizeChallengeLibraryData } from '../core/raw-sanitizer';
 
 const DATABASE_NAME = 'soulstone-challenge-library';
 const DATABASE_VERSION = 1;
@@ -144,48 +149,107 @@ async function readStoredLibraryValue(
 	}
 }
 
-function recoverValidChallenges(value: unknown): readonly Challenge[] {
-	if (typeof value !== 'object' || value === null || Array.isArray(value)) return [];
+/** An unreadable challenge retained in browser storage but excluded from the editable library. */
+export interface UnreadableChallenge {
+	/** Original zero-based position in the saved library. */
+	readonly index: number;
+	/** Saved challenge name when it is a string, including an empty draft name. */
+	readonly name?: string;
+	/** Saved challenge identifier when it is a string. */
+	readonly id?: string;
+	/** Structural issues with paths referring to the original saved positions. */
+	readonly issues: readonly ValidationIssue[];
+}
 
-	const storedLibrary = value as Readonly<Record<string, unknown>>;
-	if (storedLibrary.formatVersion !== CHALLENGE_FORMAT_VERSION) {
-		const result = validateChallengeLibrary({
-			formatVersion: storedLibrary.formatVersion,
-			challenges: []
-		});
-		if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
-	}
-	if (!Array.isArray(storedLibrary.challenges)) {
-		return [];
-	}
+/** Browser-library recovery result, separating editable records from unreadable diagnostics. */
+export interface ChallengeLibraryLoadResult {
+	/** Sanitized readable challenges, including those with repairable Setup errors. */
+	readonly library: ChallengeLibrary;
+	/** Unreadable records that remain stored until explicitly replaced by a whole-library operation. */
+	readonly unreadableChallenges: readonly UnreadableChallenge[];
+}
 
-	let challenges: readonly Challenge[] = [];
-	for (const challenge of storedLibrary.challenges) {
-		const result = validateChallengeLibrary({
+function getStoredChallenges(value: unknown): readonly unknown[] {
+	const record =
+		typeof value === 'object' && value !== null && !Array.isArray(value)
+			? (value as Readonly<Record<string, unknown>>)
+			: undefined;
+	const result = validateReadableChallengeLibrary({
+		formatVersion: record?.formatVersion,
+		challenges: []
+	});
+	if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
+	if (!Array.isArray(record?.challenges)) {
+		throw new ChallengeLibraryValidationError([
+			{ path: '$.challenges', message: 'Expected an array.' }
+		]);
+	}
+	return Array.from(record.challenges);
+}
+
+function recoverLibrary(value: unknown): ChallengeLibraryLoadResult {
+	const savedChallenges = getStoredChallenges(value);
+	const unreadableChallenges: UnreadableChallenge[] = [];
+	let library = createEmptyChallengeLibrary();
+	for (const [index, challenge] of savedChallenges.entries()) {
+		const candidateIndex = library.challenges.length;
+		const candidate = sanitizeChallengeLibraryData({
 			formatVersion: CHALLENGE_FORMAT_VERSION,
-			challenges: [...challenges, challenge]
+			challenges: [challenge]
 		});
-		if (result.isValid) challenges = result.value.challenges;
+		const sanitized = (candidate as Readonly<{ challenges: readonly unknown[] }>).challenges[0];
+		const result = validateReadableChallengeLibrary({
+			...library,
+			challenges: [...library.challenges, sanitized]
+		});
+		if (result.isValid) {
+			library = result.value;
+		} else {
+			const record =
+				typeof challenge === 'object' && challenge !== null
+					? (challenge as Readonly<Record<string, unknown>>)
+					: undefined;
+			unreadableChallenges.push({
+				index,
+				...(typeof record?.name === 'string' ? { name: record.name } : {}),
+				...(typeof record?.id === 'string' ? { id: record.id } : {}),
+				issues: result.issues.map((issue) => ({
+					...issue,
+					path: issue.path.replace(`$.challenges[${candidateIndex}]`, `$.challenges[${index}]`)
+				}))
+			});
+		}
 	}
-	return challenges;
+	return { library, unreadableChallenges };
 }
 
 /**
- * Loads and validates the saved challenge library, or returns an empty one.
+ * Loads readable saved challenges independently and reports unreadable records without deleting them.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
- * @returns The stored, validated library, or an empty library when nothing has been saved.
+ * @returns Sanitized editable library and original-index diagnostics for unreadable challenges.
+ * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be accessed.
+ * @throws {ChallengeLibraryValidationError} If the library envelope is malformed or its version unsupported.
+ */
+export async function loadChallengeLibraryWithDiagnostics(
+	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
+): Promise<ChallengeLibraryLoadResult> {
+	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
+	return storedLibrary.hasValue
+		? recoverLibrary(storedLibrary.value)
+		: { library: createEmptyChallengeLibrary(), unreadableChallenges: [] };
+}
+
+/**
+ * Loads sanitized readable saved challenges, including drafts with Setup errors.
+ * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
+ * @returns The editable library, omitting unreadable entries; use the diagnostic loader to report them.
  * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened, read, or closed successfully.
- * @throws {ChallengeLibraryValidationError} If stored data does not match the library schema.
+ * @throws {ChallengeLibraryValidationError} If the library envelope is malformed or its version unsupported.
  */
 export async function loadChallengeLibrary(
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<ChallengeLibrary> {
-	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
-	if (!storedLibrary.hasValue) return createEmptyChallengeLibrary();
-
-	const result = validateChallengeLibrary(storedLibrary.value);
-	if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
-	return result.value;
+	return (await loadChallengeLibraryWithDiagnostics(indexedDbFactory)).library;
 }
 
 /**
@@ -202,12 +266,18 @@ export async function saveChallengeLibrary(
 ): Promise<void> {
 	const result = validateChallengeLibrary(value);
 	if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
+	await writeStoredLibrary(result.value, indexedDbFactory);
+}
 
+async function writeStoredLibrary(
+	value: unknown,
+	indexedDbFactory: Readonly<IDBFactory>
+): Promise<void> {
 	const database = await openDatabase(indexedDbFactory);
 	try {
 		await new Promise<void>((resolve, reject) => {
 			const transaction = database.transaction(OBJECT_STORE_NAME, 'readwrite');
-			const request = transaction.objectStore(OBJECT_STORE_NAME).put(result.value, LIBRARY_KEY);
+			const request = transaction.objectStore(OBJECT_STORE_NAME).put(value, LIBRARY_KEY);
 			request.onerror = () => {
 				reject(
 					new ChallengeLibraryStorageError('Unable to save the challenge library.', request.error)
@@ -238,11 +308,11 @@ export async function saveChallengeLibrary(
 
 /**
  * Saves a challenge into the stored library, replacing any challenge with the same ID.
- * Invalid existing challenges are skipped while individually valid challenges are preserved.
+ * Setup-invalid drafts can be saved; unreadable existing records are retained unchanged.
  * @param challenge Challenge to add or replace.
  * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
  * @returns A promise that resolves when the updated library has been saved.
- * @throws {ChallengeLibraryValidationError} If the challenge or resulting library is invalid.
+ * @throws {ChallengeLibraryValidationError} If the challenge is unreadable, identities conflict, or the saved envelope is unsupported.
  * @throws {ChallengeLibraryStorageError} If IndexedDB cannot be opened, read, or written.
  */
 export async function saveChallengeToLibrary(
@@ -250,20 +320,43 @@ export async function saveChallengeToLibrary(
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<void> {
 	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
-	const library = storedLibrary.hasValue
-		? {
-				formatVersion: CHALLENGE_FORMAT_VERSION,
-				challenges: recoverValidChallenges(storedLibrary.value)
-			}
-		: createEmptyChallengeLibrary();
-	const hasChallenge = library.challenges.some((saved) => saved.id === challenge.id);
-	await saveChallengeLibrary(
-		{
-			...library,
-			challenges: hasChallenge
-				? library.challenges.map((saved) => (saved.id === challenge.id ? challenge : saved))
-				: [...library.challenges, challenge]
-		},
+	const rawChallenges = storedLibrary.hasValue ? getStoredChallenges(storedLibrary.value) : [];
+	const recovery = storedLibrary.hasValue
+		? recoverLibrary(storedLibrary.value)
+		: { library: createEmptyChallengeLibrary(), unreadableChallenges: [] };
+	const id = challenge.id.toLowerCase();
+	if (
+		!recovery.library.challenges.some((saved) => saved.id.toLowerCase() === id) &&
+		recovery.unreadableChallenges.some((entry) => entry.id?.toLowerCase() === id)
+	) {
+		throw new ChallengeLibraryValidationError([
+			{ path: '$.id', message: 'An unreadable saved challenge already uses this identifier.' }
+		]);
+	}
+	const result = validateReadableChallengeLibrary(
+		sanitizeChallengeLibraryData({
+			formatVersion: CHALLENGE_FORMAT_VERSION,
+			challenges: [
+				...recovery.library.challenges.filter((saved) => saved.id.toLowerCase() !== id),
+				challenge
+			]
+		})
+	);
+	if (!result.isValid) throw new ChallengeLibraryValidationError(result.issues);
+	const readableById = new Map(
+		result.value.challenges.map((saved) => [saved.id.toLowerCase(), saved])
+	);
+	const unreadableIndices = new Set(recovery.unreadableChallenges.map((entry) => entry.index));
+	let hasChallenge = false;
+	const challenges = rawChallenges.map((saved, index) => {
+		if (unreadableIndices.has(index)) return saved;
+		const savedId = (saved as Readonly<Challenge>).id.toLowerCase();
+		if (savedId === id) hasChallenge = true;
+		return readableById.get(savedId);
+	});
+	if (!hasChallenge) challenges.push(readableById.get(id));
+	await writeStoredLibrary(
+		{ formatVersion: CHALLENGE_FORMAT_VERSION, challenges },
 		indexedDbFactory
 	);
 }
