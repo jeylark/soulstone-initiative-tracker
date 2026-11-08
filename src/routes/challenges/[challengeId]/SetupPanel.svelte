@@ -106,6 +106,22 @@
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
 	}
 
+	async function focusNewEntity(entityId: StableId) {
+		await tick();
+		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
+		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
+		);
+		if (!field) return;
+		field.focus();
+		if (field instanceof HTMLSelectElement) return;
+		try {
+			field.select();
+		} catch {
+			// Some input types do not support text selection.
+		}
+	}
+
 	function discardAppRolledResults(creatures: readonly DeepReadonly<ChallengeCreature>[]): void {
 		const runState = challenge.runState;
 		if (!runState) return;
@@ -153,22 +169,6 @@
 		if (challenge.fairnessWeight === weight) return;
 		challenge.fairnessWeight = weight;
 		invalidateGeneratedTurnOrder();
-	}
-
-	async function focusNewEntity(entityId: StableId) {
-		await tick();
-		const entity = document.querySelector(`[data-entity-id="${entityId}"]`);
-		const field = entity?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-			'input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])'
-		);
-		if (!field) return;
-		field.focus();
-		if (field instanceof HTMLSelectElement) return;
-		try {
-			field.select();
-		} catch {
-			// Some input types do not support text selection.
-		}
 	}
 
 	function addFaction() {

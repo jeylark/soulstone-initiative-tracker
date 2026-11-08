@@ -207,4 +207,64 @@ describe('new challenge setup', () => {
 		});
 		expect(within(firstPlayer).getByRole('group', { name: 'Turn 1' })).toBeTruthy();
 	});
+
+	it('uses initiative choices for direction and restores the saved placement selections', async () => {
+		await renderSetup();
+
+		const playersPanel = screen.getByRole('group', { name: 'Players' });
+		for (let index = 0; index < 4; index += 1) {
+			await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
+		}
+
+		const turns = ['Player 1', 'Player 2', 'Player 3', 'Player 4'].map((playerName) =>
+			within(screen.getByRole('group', { name: playerName })).getByRole('group', {
+				name: 'Turn 1'
+			})
+		);
+		const choices = ['fixed-top', 'fixed-bottom', 'relative-before', 'relative-after'] as const;
+		for (const [index, choice] of choices.entries()) {
+			await fireEvent.change(
+				within(turns[index]!).getByRole('combobox', { name: 'Turn initiative' }),
+				{ target: { value: choice } }
+			);
+		}
+
+		expect(screen.queryByRole('combobox', { name: 'Count from' })).toBeNull();
+		expect(screen.queryByRole('combobox', { name: 'Relationship' })).toBeNull();
+		expect(within(turns[0]!).getByRole('spinbutton', { name: 'Position' })).toBeTruthy();
+		expect(within(turns[1]!).getByRole('spinbutton', { name: 'Position' })).toBeTruthy();
+		for (const turn of turns.slice(2)) {
+			expect(within(turn).queryByRole('spinbutton', { name: 'Distance' })).toBeNull();
+			expect(within(turn).queryByRole('spinbutton', { name: 'Index' })).toBeNull();
+			expect(within(turn).getByRole('combobox', { name: 'Target turn' })).toBeTruthy();
+		}
+
+		await waitFor(async () => {
+			const savedChallenge = (await loadChallengeLibrary()).challenges[0]!;
+			expect(savedChallenge.creatures.map((creature) => creature.turns[0]?.initiative)).toEqual([
+				{ kind: 'fixed-position', from: 'top', position: 1 },
+				{ kind: 'fixed-position', from: 'bottom', position: 1 },
+				{
+					kind: 'relative-position',
+					relation: 'before',
+					targetTurnId: savedChallenge.creatures[0]!.turns[0]!.id
+				},
+				{
+					kind: 'relative-position',
+					relation: 'after',
+					targetTurnId: savedChallenge.creatures[0]!.turns[0]!.id
+				}
+			]);
+		});
+
+		cleanup();
+		await renderSetup();
+		expect(
+			screen
+				.getAllByRole('combobox', { name: 'Turn initiative' })
+				.map((select) => (select as HTMLSelectElement).value)
+		).toEqual(choices);
+		expect(screen.queryByRole('combobox', { name: 'Count from' })).toBeNull();
+		expect(screen.queryByRole('combobox', { name: 'Relationship' })).toBeNull();
+	});
 });

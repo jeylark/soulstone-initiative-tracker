@@ -2,7 +2,7 @@
 
 Implementation handoff for [PR #51](https://github.com/jeylark/soulstone-initiative-tracker/pull/51),
 whose head branch was verified as `laughing-goggles` on 2026-11-08.
-This file tracks the requested changes, not completed implementation.
+This file tracks the requested changes and their implementation status.
 
 ## Session Instructions
 
@@ -131,6 +131,19 @@ otherwise record this subset and leave it Open.
     (7 files, 209 passed); `npm run check` (0 errors, 0 warnings).
   - Manual checks: none. Main TODO entries moved to Done: none; no exact Open
     match. Remaining overlap and blockers: none.
+  - 2026-11-08 (Copilot session, branch `copilot/pr51-03`). Changed:
+    `TurnEditor.svelte`, `challenge-setup-types.ts`, `SetupPanel.svelte`,
+    `TurnEditor.integration.spec.ts`, `SetupPanel.spec.ts`, and the faction,
+    NPC type, and creature editor `data-entity-id` attributes to preserve the
+    latest PR branch's focus-after-add implementation.
+  - Checks: `npm run test:unit -- --run 'src/routes/challenges/[challengeId]/SetupPanel.spec.ts' 'src/routes/challenges/[challengeId]/setup/TurnEditor.integration.spec.ts'`
+    (2 files, 60 tests passed); `npm run check` (0 errors, 0 warnings);
+    `npx eslint` and `npx prettier --check` on the eight changed setup source/spec
+    files (`SetupPanel.spec.ts`, `SetupPanel.svelte`, `CreatureEditor.svelte`,
+    `FactionEditor.svelte`, `NpcTypeEditor.svelte`, `TurnEditor.integration.spec.ts`,
+    `TurnEditor.svelte`, and `challenge-setup-types.ts`); `git diff --check`.
+  - Secret scan: no secrets detected. CodeQL reported 0 alerts but analysis failed.
+  - Main TODO entries moved to Done: none. Manual checks: none. Blockers: CodeQL analysis failure.
 
 **Confirmed behavior:** Keep the Turn initiative choices Fixed position from top,
 Fixed position from bottom, Before another turn, and After another turn. Remove
@@ -400,22 +413,20 @@ message height, while this item reserves one line by request.
 
 ### PR51-08: Recalculate Action
 
-- [ ] Remove the Recalculate button in Run view.
+- [x] Remove the Recalculate button in Run view.
 
-**Implementation:** [RunPanel.svelte](src/routes/challenges/%5BchallengeId%5D/RunPanel.svelte)
-currently always renders generation, changing its label when saved order exists.
-Hide generation while a generated order exists, including restored runs; preserve
-initial generation and Next turn. Update the unknown-turn warning that currently
-directs users to recalculate, without inventing a reset workflow. Do not change the
-separate per-turn Calculate roll action.
+**Completion (2026-11-08):** `RunPanel.svelte` hides order generation after a
+generated order is saved, including after reload, while preserving the Next turn
+action. The unknown-turn warning explains that removed turns are omitted, and a
+failed generation save restores the prior run state. Updated `RunPanel.spec.ts`
+to cover the behavior.
 
-**Tests:** [RunPanel.spec.ts](src/routes/challenges/%5BchallengeId%5D/RunPanel.spec.ts):
-initial action present, absent after generation/reload, advancement/persistence
-intact, and generation/save failures handled.
+Checks: focused `RunPanel.spec.ts` on Node 26 (22 passed); `npm run check`;
+focused ESLint; Prettier; secret scan. A Node 22 test attempt failed because the
+existing turn-order implementation uses `Map.getOrInsert`; CI uses Node 26.
 
-**Main TODO:** Partial overlap with 2.21, which also renames initial generation to
-Start challenge. Completing that existing rename in this session would allow
-moving 2.21 to Done; if it is not included, record the remainder and leave it Open.
+**Main TODO:** 2.21 remains Open because its **Start challenge** label change was
+not part of this task.
 
 ### PR51-09: Two-Column Run Layout
 
