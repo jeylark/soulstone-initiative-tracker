@@ -46,7 +46,11 @@ describe('turn-order run route', () => {
 		expect(
 			within(savedOrder)
 				.getAllByRole('listitem')
-				.map((item) => item.querySelector('h2')?.textContent)
+				.map(
+					(item) =>
+						item.querySelector('.turn-order-creature-name')?.textContent ??
+						item.querySelector('h2')?.textContent
+				)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
@@ -94,26 +98,30 @@ describe('turn-order run route', () => {
 		expect(screen.getByText('Initiative: 0')).toBeTruthy();
 		expect(screen.getByText('Initiative: 12')).toBeTruthy();
 		expect(screen.getByText('Initiative: 3')).toBeTruthy();
-		const titles = () =>
+		const labels = () =>
 			within(screen.getByRole('list', { name: 'Generated turn order' }))
 				.getAllByRole('listitem')
-				.map((item) => item.querySelector('h2')?.textContent);
+				.map(
+					(item) =>
+						item.querySelector('.turn-order-creature-name')?.textContent ??
+						item.querySelector('h2')?.textContent
+				);
 
 		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
 
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Rook', 'Mira', 'Spawn', 'Aria']));
+		await waitFor(() => expect(labels()).toEqual(['Rook', 'Mira', 'Spawn', 'Aria']));
 		const rotatedOrder = screen.getByRole('list', { name: 'Generated turn order' });
 		expect(within(rotatedOrder).getByText('Initiative: 12')).toBeTruthy();
 		expect(within(rotatedOrder).getByText('Initiative: 3')).toBeTruthy();
 		expect(within(rotatedOrder).getByText('Initiative: 0')).toBeTruthy();
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Mira', 'Spawn', 'Aria', 'Rook']));
+		await waitFor(() => expect(labels()).toEqual(['Mira', 'Spawn', 'Aria', 'Rook']));
 		expect(screen.getByText('Spawns: 0')).toBeTruthy();
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook', 'Mira']));
+		await waitFor(() => expect(labels()).toEqual(['Spawn', 'Aria', 'Rook', 'Mira']));
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
 
@@ -147,24 +155,28 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage);
 		const next = () => screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement;
-		const titles = () =>
+		const labels = () =>
 			within(screen.getByRole('list', { name: 'Generated turn order' }))
 				.getAllByRole('listitem')
-				.map((item) => item.querySelector('h2')?.textContent);
+				.map(
+					(item) =>
+						item.querySelector('.turn-order-creature-name')?.textContent ??
+						item.querySelector('h2')?.textContent
+				);
 
 		expect(await screen.findByText('Spawns: 0')).toBeTruthy();
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Spawn', 'Aria', 'Rook']));
+		await waitFor(() => expect(labels()).toEqual(['Spawn', 'Aria', 'Rook']));
 		expect(screen.getByText('Spawns: 0')).toBeTruthy();
 		const order = screen.getByRole('list', { name: 'Generated turn order' });
 		const hiddenRook = within(order)
 			.getAllByRole('listitem')
-			.find((item) => item.querySelector('h2')?.textContent === 'Rook');
+			.find((item) => item.querySelector('.turn-order-creature-name')?.textContent === 'Rook');
 		expect(hiddenRook?.textContent).toContain('Hidden');
 
 		await waitFor(() => expect(next().disabled).toBe(false));
 		await fireEvent.click(next());
-		await waitFor(() => expect(titles()).toEqual(['Aria', 'Rook', 'Spawn']));
+		await waitFor(() => expect(labels()).toEqual(['Aria', 'Rook', 'Spawn']));
 		await waitFor(() => expect(screen.getByText('Spawns: 1')).toBeTruthy());
 	});
 
@@ -419,16 +431,17 @@ describe('turn-order run route', () => {
 		const savedOrder = await screen.findByRole('list', { name: 'Generated turn order' });
 		const items = within(savedOrder).getAllByRole('listitem');
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
-			'Rook',
-			'Aria',
+			'Enemies',
+			'Players',
 			'Spawn'
 		]);
+		expect(
+			items.slice(0, 2).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
+		).toEqual(['Rook', 'Aria']);
 		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
 		expect(items[0]?.textContent).toContain('Initiative: 12');
 		expect(items[1]?.textContent).toContain('Initiative: 6');
 		expect(items[2]?.textContent).not.toContain('Initiative:');
-		expect(items[0]?.textContent).not.toContain('Enemies');
-		expect(items[1]?.textContent).not.toContain('Players');
 		expect(
 			items.map((item) =>
 				item
@@ -463,7 +476,7 @@ describe('turn-order run route', () => {
 		const initialOrder = screen.getByRole('list', { name: 'Generated turn order' });
 		const initialItems = within(initialOrder).getAllByRole('listitem');
 		const initialAriaItems = initialItems.filter((item) =>
-			item.querySelector('h2')?.textContent?.startsWith('Aria')
+			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);
 		expect(initialAriaItems).toHaveLength(2);
 		for (const item of initialAriaItems) {
@@ -486,15 +499,14 @@ describe('turn-order run route', () => {
 
 		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
 		const items = within(savedOrder).getAllByRole('listitem');
-		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
-			'Aria - Turn 1',
-			'Rook',
-			'Aria - Turn 2',
-			'Spawn'
-		]);
+		expect(
+			items.slice(0, 3).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
+		).toEqual(['Aria - Turn 1', 'Rook', 'Aria - Turn 2']);
+		expect(within(items[3]!).getByRole('heading', { name: 'Spawn' })).toBeTruthy();
 		const ariaItems = items.filter((item) =>
-			item.querySelector('h2')?.textContent?.startsWith('Aria')
+			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);
+		expect(ariaItems).toHaveLength(2);
 		for (const item of ariaItems) {
 			expect(item.textContent).toContain('Hidden');
 			expect(within(item).getByText('Hidden', { selector: 'span' })).toBeTruthy();
@@ -551,7 +563,11 @@ describe('turn-order run route', () => {
 		expect(
 			within(savedOrder)
 				.getAllByRole('listitem')
-				.map((item) => item.querySelector('h2')?.textContent)
+				.map(
+					(item) =>
+						item.querySelector('.turn-order-creature-name')?.textContent ??
+						item.querySelector('h2')?.textContent
+				)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
