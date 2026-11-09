@@ -1,6 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import challengePage from './+page.svelte';
 import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
@@ -31,7 +31,7 @@ describe('challenge workflow tabs', () => {
 		challenge.name = 'Saved encounter';
 		await saveChallengeToLibrary(challenge);
 
-		const createObjectUrl = vi.fn(() => 'blob:challenge');
+		const createObjectUrl = vi.fn<typeof URL.createObjectURL>(() => 'blob:challenge');
 		const revokeObjectUrl = vi.fn();
 		const urlConstructor = class extends URL {};
 		Reflect.set(urlConstructor, 'createObjectURL', createObjectUrl);
@@ -43,7 +43,8 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Download' }));
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
-		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0] as Blob;
+		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0];
+		assert(downloadedBlob instanceof Blob);
 		const downloadedLibrary = JSON.parse(await downloadedBlob.text());
 		expect(downloadedLibrary).toMatchObject({
 			formatVersion: 1,
