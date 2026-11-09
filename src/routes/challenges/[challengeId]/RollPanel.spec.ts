@@ -101,7 +101,9 @@ describe('running challenge storage', () => {
 			).matches(':disabled')
 		).toBe(true);
 		expect(
-			(screen.getByRole('button', { name: 'Roll all' }) as HTMLButtonElement).matches(':disabled')
+			(screen.getByRole('button', { name: 'Roll all remaining' }) as HTMLButtonElement).matches(
+				':disabled'
+			)
 		).toBe(true);
 		expect(
 			(
@@ -714,7 +716,7 @@ describe('running challenge storage', () => {
 		);
 		expect(screen.getByText('Initiative result: 7')).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Roll initiative for Aria - Turn 1' })).toBeNull();
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all remaining' }));
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
 		await waitFor(async () => {
@@ -743,7 +745,7 @@ describe('running challenge storage', () => {
 		expect(await screen.findAllByText('Initiative result: 7')).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
 	});
 
 	it('rolls zero-stat creatures as 0 without randomness and surfaces the tie', async () => {
@@ -778,7 +780,7 @@ describe('running challenge storage', () => {
 
 		render(rollChallengePage);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Roll initiative for Aria' }));
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all remaining' }));
 
 		expect(screen.getAllByText('Initiative result: 0')).toHaveLength(2);
 		expect(screen.getByText('Needs ordering')).toBeTruthy();
@@ -936,4 +938,191 @@ describe('running challenge storage', () => {
 			);
 		}
 	);
+});
+
+describe('spawn editing', () => {
+	const faction = '00000000-0000-4000-8000-000000000002' as StableId;
+	const [lockedManual, missingManual, missingApp, lockedApp] = [41, 42, 43, 44].map(
+		(id) => `00000000-0000-4000-8000-0000000000${id}` as StableId
+	);
+
+	async function saveEditingChallenge(
+		turns: readonly { readonly id: StableId; readonly mode: 'manual' | 'app' }[],
+		initiativeResults: Readonly<Record<StableId, number>>,
+		extra: {
+			readonly tieDecisions?: readonly (readonly StableId[])[];
+			readonly newTurnIds?: readonly StableId[];
+		} = {}
+	): Promise<void> {
+		const challenge = createSetupChallenge();
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				initiativeStat: 2,
+				factionId: faction,
+				isHidden: false,
+				turns: turns.map(({ id, mode }) => ({ id, initiative: { kind: 'roll', mode } }))
+			}
+		];
+		challenge.runState = {
+			initiativeResults,
+			generatedTurnOrder: [{ kind: 'spawn' }],
+			spawnCount: 1,
+			...(extra.tieDecisions
+				? { tieDecisions: extra.tieDecisions.map((decision) => [...decision]) }
+				: {}),
+			spawnEdit: {
+				newCreatureIds: [],
+				newNpcTypeIds: [],
+				newTurnIds: [...(extra.newTurnIds ?? [])],
+				lockedInitiativeTurnIds: Object.keys(initiativeResults) as StableId[]
+			}
+		};
+		await saveChallengeToLibrary(challenge);
+	}
+
+	function isDisabled(element: Pick<HTMLElement, 'matches'>): boolean {
+		return element.matches(':disabled');
+	}
+
+	it('locks collected results but lets missing results be collected', async () => {
+		await saveEditingChallenge(
+			[
+				{ id: lockedManual, mode: 'manual' },
+				{ id: missingManual, mode: 'manual' },
+				{ id: missingApp, mode: 'app' },
+				{ id: lockedApp, mode: 'app' }
+			],
+			{ [lockedManual]: 12, [lockedApp]: 9 } as Record<StableId, number>
+		);
+
+		render(rollChallengePage);
+
+		expect(
+			isDisabled(await screen.findByRole('spinbutton', { name: 'Initiative for Aria - Turn 1' }))
+		).toBe(true);
+		expect(
+			isDisabled(screen.getByRole('spinbutton', { name: 'Initiative for Aria - Turn 2' }))
+		).toBe(false);
+		expect(
+			isDisabled(screen.getByRole('button', { name: 'Roll initiative for Aria - Turn 3' }))
+		).toBe(false);
+		expect(
+			isDisabled(screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 4' }))
+		).toBe(true);
+		expect(
+			screen.queryByText('Cannot roll because the initiative stat is missing or invalid.')
+		).toBeNull();
+		expect(isDisabled(screen.getByRole('button', { name: 'Roll all remaining' }))).toBe(false);
+	});
+
+	it('collects multi-digit manual results and keeps the pending Spawn order', async () => {
+		await saveEditingChallenge(
+			[
+				{ id: lockedManual, mode: 'manual' },
+				{ id: missingManual, mode: 'manual' }
+			],
+			{ [lockedManual]: 12 } as Record<StableId, number>
+		);
+
+		render(rollChallengePage);
+		const input = (await screen.findByRole('spinbutton', {
+			name: 'Initiative for Aria - Turn 2'
+		})) as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: '1' } });
+		await fireEvent.input(input, { target: { value: '14' } });
+		await fireEvent.input(input, { target: { value: '15' } });
+		expect(isDisabled(input)).toBe(false);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults).toEqual({
+				[lockedManual]: 12,
+				[missingManual]: 15
+			});
+			expect(saved?.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
+			expect(saved?.runState?.spawnCount).toBe(1);
+			expect(saved?.runState?.spawnEdit?.lockedInitiativeTurnIds).toEqual([lockedManual]);
+		});
+	});
+
+	it('locks an app result once rolled and Roll all remaining fills only missing results', async () => {
+		await saveEditingChallenge(
+			[
+				{ id: lockedApp, mode: 'app' },
+				{ id: missingApp, mode: 'app' },
+				{ id: missingManual, mode: 'app' }
+			],
+			{ [lockedApp]: 9 } as Record<StableId, number>
+		);
+		vi.spyOn(Math, 'random').mockReturnValue(0);
+
+		render(rollChallengePage);
+		await fireEvent.click(
+			await screen.findByRole('button', { name: 'Roll initiative for Aria - Turn 2' })
+		);
+
+		expect(
+			isDisabled(screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 2' }))
+		).toBe(true);
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all remaining' }));
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.initiativeResults).toEqual({
+				[lockedApp]: 9,
+				[missingApp]: 2,
+				[missingManual]: 2
+			});
+			expect(saved?.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
+		});
+		expect(
+			isDisabled(screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 3' }))
+		).toBe(true);
+		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
+	});
+
+	it('resolves ties, keeping valid decisions and discarding affected ones', async () => {
+		const [a, b, c, d] = [51, 52, 53, 54].map(
+			(id) => `00000000-0000-4000-8000-0000000000${id}` as StableId
+		);
+		await saveEditingChallenge(
+			[
+				{ id: a, mode: 'manual' },
+				{ id: b, mode: 'manual' },
+				{ id: c, mode: 'manual' },
+				{ id: d, mode: 'manual' }
+			],
+			{ [a]: 5, [b]: 5, [c]: 3 } as Record<StableId, number>,
+			{ tieDecisions: [[b, a]], newTurnIds: [d] }
+		);
+
+		render(rollChallengePage);
+		await fireEvent.input(
+			await screen.findByRole('spinbutton', { name: 'Initiative for Aria - Turn 4' }),
+			{ target: { value: '9' } }
+		);
+		expect((await loadChallengeLibrary()).challenges[0]?.runState?.tieDecisions).toEqual([[b, a]]);
+
+		await fireEvent.input(
+			screen.getByRole('spinbutton', { name: 'Initiative for Aria - Turn 4' }),
+			{
+				target: { value: '3' }
+			}
+		);
+		await fireEvent.click(
+			await screen.findByRole('button', { name: 'Move Aria - Turn 4 earlier' })
+		);
+
+		await waitFor(async () => {
+			const saved = (await loadChallengeLibrary()).challenges[0];
+			expect(saved?.runState?.tieDecisions).toEqual([
+				[b, a],
+				[d, c]
+			]);
+			expect(saved?.runState?.generatedTurnOrder).toEqual([{ kind: 'spawn' }]);
+		});
+	});
 });

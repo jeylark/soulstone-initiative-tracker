@@ -47,6 +47,13 @@ describe('raw challenge-library sanitization', () => {
 							{ kind: 'spawn', unused: 'legacy' }
 						],
 						spawnCount: 2,
+						spawnEdit: {
+							newCreatureIds: ['creature'],
+							newNpcTypeIds: ['type'],
+							newTurnIds: ['turn'],
+							lockedInitiativeTurnIds: ['other'],
+							unused: 'legacy'
+						},
 						unused: 'legacy'
 					}
 				}
@@ -87,7 +94,13 @@ describe('raw challenge-library sanitization', () => {
 						initiativeResults: { turn: 7 },
 						tieDecisions: [['turn', 'other']],
 						generatedTurnOrder: [{ kind: 'turn', turnId: 'turn' }, { kind: 'spawn' }],
-						spawnCount: 2
+						spawnCount: 2,
+						spawnEdit: {
+							newCreatureIds: ['creature'],
+							newNpcTypeIds: ['type'],
+							newTurnIds: ['turn'],
+							lockedInitiativeTurnIds: ['other']
+						}
 					}
 				}
 			]

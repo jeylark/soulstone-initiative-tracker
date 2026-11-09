@@ -40,7 +40,11 @@
 	let tieGroups = $derived(
 		challenge ? findInitiativeTies(challenge, challenge.runState?.initiativeResults ?? {}) : []
 	);
-	let isChallengeRunning = $derived(challenge?.runState?.generatedTurnOrder !== undefined);
+	let isEditing = $derived(challenge?.runState?.spawnEdit !== undefined);
+	// While editing, the generated order is only the pending Spawn step, so it must not lock Roll.
+	let isChallengeRunning = $derived(
+		challenge?.runState?.generatedTurnOrder !== undefined && !isEditing
+	);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -50,6 +54,18 @@
 
 		const initiative = Number(value);
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
+	}
+
+	/** Whether a turn's result may be changed; results collected before editing started never can. */
+	function isTurnLocked(turnId: StableId): boolean {
+		if (isChallengeRunning) return true;
+		return challenge?.runState?.spawnEdit?.lockedInitiativeTurnIds.includes(turnId) ?? false;
+	}
+
+	/** Whether an app roll may happen; while editing, a result can only be collected once. */
+	function canRollTurn(turnId: StableId): boolean {
+		if (isTurnLocked(turnId)) return false;
+		return !isEditing || challenge?.runState?.initiativeResults[turnId] === undefined;
 	}
 
 	function decideTie(order: readonly StableId[]): void {
@@ -62,12 +78,12 @@
 			...(challenge.runState ?? { initiativeResults: {} }),
 			tieDecisions: [...decisions, [...order]]
 		};
-		delete runState.generatedTurnOrder;
+		if (!isEditing) delete runState.generatedTurnOrder;
 		challenge.runState = runState;
 	}
 
 	function updateInitiative(turnId: StableId, value: string): void {
-		if (!challenge || isChallengeRunning) return;
+		if (!challenge || isTurnLocked(turnId)) return;
 		initiativeInputs[turnId] = value;
 
 		const previousInitiative = challenge.runState?.initiativeResults[turnId];
@@ -79,7 +95,7 @@
 			initiativeResults[turnId] = initiative;
 		}
 		const runState = { ...(challenge.runState ?? {}), initiativeResults };
-		if (previousInitiative !== initiative) delete runState.generatedTurnOrder;
+		if (previousInitiative !== initiative && !isEditing) delete runState.generatedTurnOrder;
 		if (challenge.runState?.tieDecisions) {
 			runState.tieDecisions = discardTieDecisionsForTurn(challenge.runState.tieDecisions, turnId);
 		}
@@ -99,7 +115,7 @@
 		creature: DeepReadonly<ChallengeCreature>,
 		turnId: StableId
 	): void {
-		if (!challenge || isChallengeRunning) return;
+		if (!challenge || !canRollTurn(turnId)) return;
 		const turn = creature.turns.find((item) => item.id === turnId);
 		if (!turn || turn.initiative.kind !== 'roll' || turn.initiative.mode !== 'app') {
 			return;
@@ -118,7 +134,7 @@
 			...(challenge.runState ?? {}),
 			initiativeResults
 		};
-		if (previousInitiative !== initiative) {
+		if (previousInitiative !== initiative && !isEditing) {
 			delete runState.generatedTurnOrder;
 		}
 		if (challenge.runState?.tieDecisions) {
@@ -140,7 +156,8 @@
 				if (
 					turn.initiative.kind === 'roll' &&
 					turn.initiative.mode === 'app' &&
-					initiativeResults[turn.id] === undefined
+					initiativeResults[turn.id] === undefined &&
+					canRollTurn(turn.id)
 				) {
 					const initiative = rollInitiative(diceCount);
 					if (initiativeResults[turn.id] !== initiative) hasResultChanged = true;
@@ -150,7 +167,7 @@
 		}
 
 		const runState = { ...(challenge.runState ?? {}), initiativeResults };
-		if (hasResultChanged) delete runState.generatedTurnOrder;
+		if (hasResultChanged && !isEditing) delete runState.generatedTurnOrder;
 		challenge.runState = runState;
 	}
 
@@ -293,6 +310,8 @@
 						{initiativeInputs}
 						isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}
 						canRoll={(creature) => initiativeStat(creature) !== undefined}
+						isInputLocked={isTurnLocked}
+						isRollLocked={(turnId) => !canRollTurn(turnId)}
 						onInput={updateInitiative}
 						onRoll={rollInitiativeForTurn}
 					/>
@@ -305,7 +324,7 @@
 				onDecide={decideTie}
 			/>
 			{#if hasRollableAppTurns()}
-				<ActionButton onclick={rollAll}>Roll all</ActionButton>
+				<ActionButton onclick={rollAll}>Roll all remaining</ActionButton>
 			{/if}
 		</fieldset>
 		{#if hasSaveError}

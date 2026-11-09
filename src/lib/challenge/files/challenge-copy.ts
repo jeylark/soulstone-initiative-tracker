@@ -82,6 +82,18 @@ export function sanitizeChallenge(challenge: DeepReadonly<Challenge>): Challenge
 						...(challenge.runState.spawnCount === undefined
 							? {}
 							: { spawnCount: challenge.runState.spawnCount }),
+						...(challenge.runState.spawnEdit === undefined
+							? {}
+							: {
+									spawnEdit: {
+										newCreatureIds: [...challenge.runState.spawnEdit.newCreatureIds],
+										newNpcTypeIds: [...challenge.runState.spawnEdit.newNpcTypeIds],
+										newTurnIds: [...challenge.runState.spawnEdit.newTurnIds],
+										lockedInitiativeTurnIds: [
+											...challenge.runState.spawnEdit.lockedInitiativeTurnIds
+										]
+									}
+								}),
 						...(challenge.runState.generatedTurnOrder === undefined
 							? {}
 							: {

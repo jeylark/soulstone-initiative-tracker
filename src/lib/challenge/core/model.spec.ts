@@ -983,3 +983,160 @@ describe('challenge domain models', () => {
 		]);
 	});
 });
+
+const spawnEdit = {
+	newCreatureIds: [ids.secondCreature],
+	newNpcTypeIds: [ids.npcType],
+	newTurnIds: [ids.secondTurnId],
+	lockedInitiativeTurnIds: [ids.turn]
+};
+
+const editingLibrary = replaceAtPath(
+	replaceAtPath(library, ['challenges', 0, 'runState', 'generatedTurnOrder'], [{ kind: 'spawn' }]),
+	['challenges', 0, 'runState', 'spawnEdit'],
+	spawnEdit
+);
+
+const invalidSpawnEditCases = [
+	{
+		field: 'spawn edit object',
+		path: ['challenges', 0, 'runState', 'spawnEdit'],
+		value: [],
+		issuePath: '$.challenges[0].runState.spawnEdit',
+		message: 'Expected a Spawn editing state object.'
+	},
+	...(
+		['newCreatureIds', 'newNpcTypeIds', 'newTurnIds', 'lockedInitiativeTurnIds'] as const
+	).flatMap((key) => [
+		{
+			field: `${key} array`,
+			path: ['challenges', 0, 'runState', 'spawnEdit', key],
+			value: null,
+			issuePath: `$.challenges[0].runState.spawnEdit.${key}`,
+			message: 'Expected an array of UUIDs.'
+		},
+		{
+			field: `${key} UUID`,
+			path: ['challenges', 0, 'runState', 'spawnEdit', key],
+			value: ['invalid'],
+			issuePath: `$.challenges[0].runState.spawnEdit.${key}[0]`,
+			message: 'Expected a valid UUID.'
+		}
+	]),
+	{
+		field: 'duplicate new creature',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newCreatureIds'],
+		value: [ids.secondCreature, ids.secondCreature],
+		issuePath: '$.challenges[0].runState.spawnEdit.newCreatureIds[1]',
+		message: 'ID appears more than once.'
+	},
+	{
+		field: 'missing new creature',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newCreatureIds'],
+		value: [missingTurnId],
+		issuePath: '$.challenges[0].runState.spawnEdit.newCreatureIds[0]',
+		message: 'References a creature that does not exist in this challenge.'
+	},
+	{
+		field: 'turn ID in new creatures',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newCreatureIds'],
+		value: [ids.turn],
+		issuePath: '$.challenges[0].runState.spawnEdit.newCreatureIds[0]',
+		message: 'References a creature that does not exist in this challenge.'
+	},
+	{
+		field: 'missing new NPC type',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newNpcTypeIds'],
+		value: [ids.faction],
+		issuePath: '$.challenges[0].runState.spawnEdit.newNpcTypeIds[0]',
+		message: 'References an NPC type that does not exist in this challenge.'
+	},
+	{
+		field: 'duplicate new turn',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newTurnIds'],
+		value: [ids.turn, ids.turn],
+		issuePath: '$.challenges[0].runState.spawnEdit.newTurnIds[1]',
+		message: 'ID appears more than once.'
+	},
+	{
+		field: 'missing new turn',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'newTurnIds'],
+		value: [ids.creature],
+		issuePath: '$.challenges[0].runState.spawnEdit.newTurnIds[0]',
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'missing locked turn',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'lockedInitiativeTurnIds'],
+		value: [missingTurnId],
+		issuePath: '$.challenges[0].runState.spawnEdit.lockedInitiativeTurnIds[0]',
+		message: 'References a turn that does not exist in this challenge.'
+	},
+	{
+		field: 'locked non-roll turn',
+		path: ['challenges', 0, 'runState', 'spawnEdit', 'lockedInitiativeTurnIds'],
+		value: [ids.secondTurn],
+		issuePath: '$.challenges[0].runState.spawnEdit.lockedInitiativeTurnIds[0]',
+		message: 'Initiative locks can only reference turns configured to roll.'
+	},
+	{
+		field: 'missing pending order',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: undefined,
+		issuePath: '$.challenges[0].runState.generatedTurnOrder',
+		message: 'Spawn editing requires an order containing only the Spawn step.'
+	},
+	{
+		field: 'non-Spawn-only order',
+		path: ['challenges', 0, 'runState', 'generatedTurnOrder'],
+		value: [{ kind: 'turn', turnId: ids.turn }, { kind: 'spawn' }],
+		issuePath: '$.challenges[0].runState.generatedTurnOrder',
+		message: 'Spawn editing requires an order containing only the Spawn step.'
+	}
+];
+
+describe('Spawn editing state validation', () => {
+	it('accepts valid editing state and empty arrays', () => {
+		expect(validateChallengeLibrary(editingLibrary)).toEqual({
+			isValid: true,
+			value: editingLibrary
+		});
+		const empty = replaceAtPath(editingLibrary, ['challenges', 0, 'runState', 'spawnEdit'], {
+			newCreatureIds: [],
+			newNpcTypeIds: [],
+			newTurnIds: [],
+			lockedInitiativeTurnIds: []
+		});
+		expect(validateChallengeLibrary(empty).isValid).toBe(true);
+	});
+
+	it('leaves absent editing state valid', () => {
+		expect((editingLibrary as ChallengeLibrary).challenges[0]?.runState?.spawnEdit).toBeDefined();
+		expect(library.challenges[0].runState).not.toHaveProperty('spawnEdit');
+		expect(validateChallengeLibrary(library).isValid).toBe(true);
+	});
+
+	it.each(invalidSpawnEditCases)(
+		'rejects invalid $field',
+		({ path, value, issuePath, message }) => {
+			const result = validateChallengeLibrary(replaceAtPath(editingLibrary, path, value));
+			expect(result.isValid).toBe(false);
+			if (!result.isValid) expect(result.issues).toContainEqual({ path: issuePath, message });
+		}
+	);
+
+	it('keeps referential problems readable but rejects malformed shapes', () => {
+		const dangling = replaceAtPath(
+			editingLibrary,
+			['challenges', 0, 'runState', 'spawnEdit', 'newTurnIds'],
+			[missingTurnId]
+		);
+		expect(validateReadableChallengeLibrary(dangling).isValid).toBe(true);
+		const malformed = replaceAtPath(
+			editingLibrary,
+			['challenges', 0, 'runState', 'spawnEdit', 'newTurnIds'],
+			'x'
+		);
+		expect(validateReadableChallengeLibrary(malformed).isValid).toBe(false);
+	});
+});

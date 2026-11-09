@@ -6,12 +6,20 @@
 	interface Props {
 		name: string;
 		fairnessWeight: number;
+		isDisabled: boolean;
 		setupIssues: readonly ValidationIssue[];
 		onNameChange: (name: string) => void;
 		onFairnessWeightChange: (weight: number) => void;
 	}
 
-	let { name, fairnessWeight, setupIssues, onNameChange, onFairnessWeightChange }: Props = $props();
+	let {
+		name,
+		fairnessWeight,
+		isDisabled,
+		setupIssues,
+		onNameChange,
+		onFairnessWeightChange
+	}: Props = $props();
 	let nameError = $derived(issueMessage(setupIssues, '$.name'));
 	let fairnessWeightError = $derived(issueMessage(setupIssues, '$.fairnessWeight'));
 
@@ -25,7 +33,7 @@
 </script>
 
 <Card title="Challenge settings" headerSize="large">
-	<fieldset class="settings">
+	<fieldset class="settings" disabled={isDisabled}>
 		<legend>Challenge settings</legend>
 		<TextInput
 			label="Challenge name"

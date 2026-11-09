@@ -13,6 +13,7 @@
 		type TurnOrderPreparation,
 		saveChallengeToLibrary,
 		type Challenge,
+		type ChallengeRunState,
 		type StableId
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
@@ -23,9 +24,11 @@
 	interface Props {
 		sharedChallenge?: Challenge;
 		onSave?: () => Promise<void>;
+		onTabChange?: (tab: 'setup') => Promise<void> | void;
+		onTransitionChange?: (isTransitioning: boolean) => void;
 	}
 
-	let { sharedChallenge, onSave }: Props = $props();
+	let { sharedChallenge, onSave, onTabChange, onTransitionChange }: Props = $props();
 	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
 
 	let loadStatus = $state<LoadStatus>('loading');
@@ -35,6 +38,8 @@
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
 	let saveQueue: Promise<void> = Promise.resolve();
+	let isEditing = $derived(challenge?.runState?.spawnEdit !== undefined);
+	let isSpawnCurrent = $derived(challenge?.runState?.generatedTurnOrder?.[0]?.kind === 'spawn');
 	let turnDisplayLookup = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
@@ -99,6 +104,50 @@
 		return pendingSave;
 	}
 
+	async function saveRunState(
+		nextRunState: DeepReadonly<ChallengeRunState>,
+		previousRunState: DeepReadonly<ChallengeRunState> | undefined
+	): Promise<boolean> {
+		if (!challenge) return false;
+		const challengeToSave = { ...$state.snapshot(challenge), runState: nextRunState };
+		isSaving = true;
+		onTransitionChange?.(true);
+		try {
+			challenge.runState = nextRunState as ChallengeRunState;
+			if (sharedChallenge && onSave) await onSave();
+			else await enqueueSave(challengeToSave);
+			hasSaveError = false;
+			return true;
+		} catch {
+			challenge.runState = previousRunState as ChallengeRunState | undefined;
+			hasSaveError = true;
+			return false;
+		} finally {
+			isSaving = false;
+			onTransitionChange?.(false);
+		}
+	}
+
+	async function startEditing(): Promise<void> {
+		const runState = challenge?.runState;
+		if (!challenge || isSaving || !runState || !isSpawnCurrent || runState.spawnEdit) return;
+
+		generationIssue = undefined;
+		const snapshotRunState = $state.snapshot(runState);
+		const nextRunState: ChallengeRunState = {
+			...snapshotRunState,
+			generatedTurnOrder: [{ kind: 'spawn' }],
+			spawnEdit: {
+				newCreatureIds: [],
+				newNpcTypeIds: [],
+				newTurnIds: [],
+				lockedInitiativeTurnIds: Object.keys(snapshotRunState.initiativeResults) as StableId[]
+			}
+		};
+		if (!(await saveRunState(nextRunState, runState))) return;
+		await onTabChange?.('setup');
+	}
+
 	async function generateTurnOrder(): Promise<void> {
 		if (!challenge || isSaving) return;
 
@@ -115,10 +164,16 @@
 		}
 
 		const snapshotChallenge = $state.snapshot(challenge);
-		const nextRunState = {
+		const nextRunState: ChallengeRunState = {
 			...(snapshotChallenge.runState ?? { initiativeResults: {} }),
 			generatedTurnOrder: [...preparation.order]
 		};
+		if (runState.spawnEdit) {
+			// Spawn stays current; the later Next turn action completes it.
+			const spawn = nextRunState.generatedTurnOrder?.pop();
+			if (spawn) nextRunState.generatedTurnOrder?.unshift(spawn);
+			delete nextRunState.spawnEdit;
+		}
 		if (runState.tieDecisions !== undefined) {
 			nextRunState.tieDecisions = pruneTieDecisions(
 				challenge,
@@ -126,40 +181,15 @@
 				runState.tieDecisions
 			);
 		}
-		const challengeToSave = { ...snapshotChallenge, runState: nextRunState };
-		const previousRunState = challenge.runState;
-		isSaving = true;
-		try {
-			challenge.runState = nextRunState;
-			if (sharedChallenge && onSave) await onSave();
-			else await enqueueSave(challengeToSave);
-			hasSaveError = false;
-		} catch {
-			challenge.runState = previousRunState;
-			hasSaveError = true;
-		} finally {
-			isSaving = false;
-		}
+		await saveRunState(nextRunState, challenge.runState);
 	}
 
 	async function advanceToNextTurn(): Promise<void> {
-		if (!challenge?.runState?.generatedTurnOrder || isSaving) return;
+		if (!challenge?.runState?.generatedTurnOrder || isSaving || isEditing) return;
 
 		const previousRunState = challenge.runState;
 		const nextRunState = advanceTurn($state.snapshot(previousRunState), hiddenTurnIds);
-		const challengeToSave = { ...$state.snapshot(challenge), runState: nextRunState };
-		isSaving = true;
-		try {
-			challenge.runState = nextRunState;
-			if (sharedChallenge && onSave) await onSave();
-			else await enqueueSave(challengeToSave);
-			hasSaveError = false;
-		} catch {
-			challenge.runState = previousRunState;
-			hasSaveError = true;
-		} finally {
-			isSaving = false;
-		}
+		await saveRunState(nextRunState, previousRunState);
 	}
 
 	async function updateCreatureVisibility(creatureId: StableId, isHidden: boolean): Promise<void> {
@@ -235,11 +265,16 @@
 				{/if}
 
 				{#if generatedOrderDisplay}
-					<ActionButton disabled={isSaving} onclick={advanceToNextTurn}>Next turn</ActionButton>
+					<ActionButton disabled={isSaving || isEditing} onclick={advanceToNextTurn}>
+						Next turn
+					</ActionButton>
+					<ActionButton disabled={isSaving || isEditing || !isSpawnCurrent} onclick={startEditing}>
+						Edit Challenge
+					</ActionButton>
 				{/if}
-				{#if !challenge.runState?.generatedTurnOrder}
+				{#if !challenge.runState?.generatedTurnOrder || isEditing}
 					<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
-						Generate turn order
+						{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
 					</ActionButton>
 				{/if}
 				{#if hasSaveError}

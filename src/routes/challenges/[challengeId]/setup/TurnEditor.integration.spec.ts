@@ -2,7 +2,12 @@ import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
-import { createSetupChallenge, renderSetup, setRelativeTarget } from '../../../view-test-support';
+import {
+	createSetupChallenge,
+	createSpawnEditChallenge,
+	renderSetup,
+	setRelativeTarget
+} from '../../../view-test-support';
 
 const { mockedPage, mockedGoto } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> },
@@ -26,6 +31,66 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('allows new turn placement while preserving indices on locked relative hooks', async () => {
+		const challenge = createSpawnEditChallenge();
+		const targetTurnId = challenge.creatures[0]!.turns[0]!.id;
+		challenge.creatures[0]!.turns.push(
+			{
+				id: createUuid(),
+				initiative: {
+					kind: 'relative-position',
+					relation: 'after',
+					targetTurnId,
+					index: 1
+				}
+			},
+			{
+				id: createUuid(),
+				initiative: {
+					kind: 'relative-position',
+					relation: 'after',
+					targetTurnId,
+					index: 2
+				}
+			}
+		);
+		challenge.creatures.push({
+			id: createUuid(),
+			kind: 'character',
+			name: 'Bryn',
+			factionId: challenge.factions[1]!.id,
+			isHidden: false,
+			turns: [{ id: createUuid(), initiative: { kind: 'static', value: 8 } }]
+		});
+		challenge.runState!.spawnEdit!.lockedInitiativeTurnIds = [];
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const bryn = screen.getByRole('group', { name: 'Bryn' });
+		const aria = screen.getByRole('group', { name: 'Aria' });
+		const addTurn = within(bryn).getByRole('button', { name: 'Add turn for Bryn' });
+		expect((addTurn as HTMLButtonElement).disabled).toBe(false);
+		await fireEvent.click(addTurn);
+		const newTurn = within(bryn).getByRole('group', { name: 'Turn 2' });
+		const mode = within(newTurn).getByRole('combobox', { name: 'Turn initiative' });
+		expect((mode as HTMLSelectElement).disabled).toBe(false);
+		await fireEvent.change(mode, { target: { value: 'relative-after' } });
+		await fireEvent.change(within(newTurn).getByRole('combobox', { name: 'Target turn' }), {
+			target: { value: targetTurnId }
+		});
+		const index = within(newTurn).getByRole('spinbutton', { name: 'Index' });
+		await fireEvent.input(index, { target: { value: '3' } });
+		expect((index as HTMLInputElement).value).toBe('3');
+		expect(screen.queryByRole('region', { name: 'Setup validation errors' })).toBeNull();
+
+		const lockedSibling = within(aria).getByRole('group', { name: 'Turn 3' });
+		await fireEvent.click(within(aria).getByRole('button', { name: 'Remove Turn 2 for Aria' }));
+		expect(
+			(within(lockedSibling).getByRole('spinbutton', { name: 'Index' }) as HTMLInputElement).value
+		).toBe('2');
+		expect(screen.getByRole('region', { name: 'Setup validation errors' })).toBeTruthy();
+	});
+
 	it('keeps invalid singleton indices editable and explicitly repairs a missing target', async () => {
 		const challenge = createSetupChallenge();
 		challenge.name = 'Turn recovery';

@@ -424,7 +424,43 @@ function validateRunState(
 			});
 		}
 	}
-	return isValidResults && isValidOrder && isValidSpawnCount && isValidTieDecisions;
+	const isValidSpawnEdit =
+		!('spawnEdit' in value) ||
+		value.spawnEdit === undefined ||
+		validateSpawnEdit(value.spawnEdit, `${path}.spawnEdit`, addIssue);
+	return (
+		isValidResults && isValidOrder && isValidSpawnCount && isValidTieDecisions && isValidSpawnEdit
+	);
+}
+
+const SPAWN_EDIT_ID_KEYS = [
+	'newCreatureIds',
+	'newNpcTypeIds',
+	'newTurnIds',
+	'lockedInitiativeTurnIds'
+] as const;
+
+function validateSpawnEdit(value: unknown, path: string, addIssue: IssueRecorder): boolean {
+	if (!isRecord(value)) {
+		addIssue(path, 'Expected a Spawn editing state object.');
+		return false;
+	}
+	let isValid = true;
+	for (const key of SPAWN_EDIT_ID_KEYS) {
+		const ids = value[key];
+		if (!Array.isArray(ids)) {
+			addIssue(`${path}.${key}`, 'Expected an array of UUIDs.');
+			isValid = false;
+			continue;
+		}
+		ids.forEach((id: unknown, index) => {
+			if (typeof id !== 'string' || parseUuid(id) === null) {
+				addIssue(`${path}.${key}[${index}]`, 'Expected a valid UUID.');
+				isValid = false;
+			}
+		});
+	}
+	return isValid;
 }
 
 function validateChallenge(
@@ -639,7 +675,74 @@ function validateChallengeReferences(
 	});
 
 	if (!isRecord(challenge.runState)) return;
-	validateRunStateReferences(challenge.runState, turnEntries, turnIds, path, addIssue);
+	validateRunStateReferences(
+		challenge.runState,
+		turnEntries,
+		{ turnIds, creatureIds: entityIds(getArray(challenge.creatures)), npcTypeIds },
+		path,
+		addIssue
+	);
+}
+
+function validateSpawnEditReferences(
+	spawnEdit: UnknownRecord,
+	generatedTurnOrder: unknown,
+	turnEntries: readonly { readonly id: string; readonly turn: UnknownRecord }[],
+	context: {
+		readonly creatureIds: ReadonlySet<string>;
+		readonly npcTypeIds: ReadonlySet<string>;
+		readonly path: string;
+		readonly addIssue: IssueRecorder;
+	}
+): void {
+	const { creatureIds, npcTypeIds, path, addIssue } = context;
+	const turnsById = new Map(turnEntries.map((entry) => [entry.id, entry.turn]));
+	const checks = {
+		newCreatureIds: (id: string) =>
+			creatureIds.has(id)
+				? undefined
+				: 'References a creature that does not exist in this challenge.',
+		newNpcTypeIds: (id: string) =>
+			npcTypeIds.has(id)
+				? undefined
+				: 'References an NPC type that does not exist in this challenge.',
+		newTurnIds: (id: string) =>
+			turnsById.has(id) ? undefined : 'References a turn that does not exist in this challenge.',
+		lockedInitiativeTurnIds: (id: string) => {
+			const turn = turnsById.get(id);
+			if (!turn) return 'References a turn that does not exist in this challenge.';
+			return isRecord(turn.initiative) && turn.initiative.kind === 'roll'
+				? undefined
+				: 'Initiative locks can only reference turns configured to roll.';
+		}
+	} as const;
+
+	for (const key of SPAWN_EDIT_ID_KEYS) {
+		const ids = spawnEdit[key];
+		if (!Array.isArray(ids)) continue;
+		const seen = new Set<string>();
+		ids.forEach((value: unknown, index) => {
+			const id = typeof value === 'string' ? parseUuid(value)?.toLowerCase() : undefined;
+			if (!id) return;
+			const idPath = `${path}.spawnEdit.${key}[${index}]`;
+			if (seen.has(id)) addIssue(idPath, 'ID appears more than once.');
+			seen.add(id);
+			const message = checks[key](id);
+			if (message) addIssue(idPath, message);
+		});
+	}
+
+	const isSpawnOnly =
+		Array.isArray(generatedTurnOrder) &&
+		generatedTurnOrder.length === 1 &&
+		isRecord(generatedTurnOrder[0]) &&
+		generatedTurnOrder[0].kind === 'spawn';
+	if (!isSpawnOnly) {
+		addIssue(
+			`${path}.generatedTurnOrder`,
+			'Spawn editing requires an order containing only the Spawn step.'
+		);
+	}
 }
 
 function validateRunStateReferences(
@@ -649,7 +752,15 @@ function validateRunStateReferences(
 		readonly turn: UnknownRecord;
 		readonly path: string;
 	}[],
-	turnIds: ReadonlySet<string>,
+	{
+		turnIds,
+		creatureIds,
+		npcTypeIds
+	}: {
+		readonly turnIds: ReadonlySet<string>;
+		readonly creatureIds: ReadonlySet<string>;
+		readonly npcTypeIds: ReadonlySet<string>;
+	},
 	path: string,
 	addIssue: IssueRecorder
 ): void {
@@ -682,6 +793,15 @@ function validateRunStateReferences(
 				if (seen.has(id)) addIssue(decisionPath, 'Turn appears more than once in the decision.');
 				seen.add(id);
 			});
+		});
+	}
+
+	if (isRecord(runState.spawnEdit)) {
+		validateSpawnEditReferences(runState.spawnEdit, runState.generatedTurnOrder, turnEntries, {
+			creatureIds,
+			npcTypeIds,
+			path: `${path}.runState`,
+			addIssue
 		});
 	}
 

@@ -7,6 +7,7 @@
 	import {
 		createUuid,
 		discardTieDecisionsForTurn,
+		pruneTieDecisions,
 		getNextFactionColor,
 		loadChallengeLibrary,
 		saveChallengeToLibrary,
@@ -29,6 +30,8 @@
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 	type WorkflowTab = 'setup' | 'roll' | 'run';
+	const LOCKED_BLANK_NPC_IDENTIFIER_ERROR =
+		'This NPC type has a locked NPC with a blank identifier. Choose another type or remove and recreate that NPC before adding another.';
 
 	interface Props {
 		sharedChallenge?: Challenge;
@@ -42,14 +45,20 @@
 	let localChallenge = $state<Challenge>({} as Challenge);
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let newNpcTypeId = $state<StableId | ''>('');
+	let npcCreationError = $state('');
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
 	let setupIssues = $derived(loadStatus === 'ready' ? getChallengeSetupIssues(challenge) : []);
 	let isChallengeRunning = $derived(challenge.runState?.generatedTurnOrder !== undefined);
+	let spawnEditState = $derived(challenge.runState?.spawnEdit);
+	let isSpawnEditing = $derived(spawnEditState !== undefined);
+	let canManageCreaturesAndTurns = $derived(!isChallengeRunning || isSpawnEditing);
+	let canManageFactions = $derived(!isChallengeRunning && !isSpawnEditing);
 
 	onMount(() => {
 		if (sharedChallenge) {
+			newNpcTypeId = challenge.npcTypes[0]?.id ?? '';
 			loadStatus = 'ready';
 			return;
 		}
@@ -62,6 +71,7 @@
 					return;
 				}
 				localChallenge = saved;
+				newNpcTypeId = saved.npcTypes[0]?.id ?? '';
 				loadStatus = 'ready';
 			} catch {
 				loadStatus = 'error';
@@ -106,6 +116,27 @@
 	function invalidateGeneratedTurnOrder(): void {
 		if (isChallengeRunning) return;
 		if (challenge.runState) delete challenge.runState.generatedTurnOrder;
+	}
+
+	function canConfigureCreature(creatureId: StableId): boolean {
+		return (
+			(!isChallengeRunning && !isSpawnEditing) ||
+			(spawnEditState?.newCreatureIds.includes(creatureId) ?? false)
+		);
+	}
+
+	function canConfigureNpcType(npcTypeId: StableId): boolean {
+		return (
+			(!isChallengeRunning && !isSpawnEditing) ||
+			(spawnEditState?.newNpcTypeIds.includes(npcTypeId) ?? false)
+		);
+	}
+
+	function canConfigureTurn(turnId: StableId): boolean {
+		return (
+			(!isChallengeRunning && !isSpawnEditing) ||
+			(spawnEditState?.newTurnIds.includes(turnId) ?? false)
+		);
 	}
 
 	async function focusNewEntity(entityId: StableId) {
@@ -164,7 +195,7 @@
 	}
 
 	function updateChallengeName(name: string) {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		challenge.name = name;
 	}
 
@@ -179,7 +210,7 @@
 	}
 
 	function updateCreatureFaction(creatureId: StableId, factionId: StableId): void {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		if (!challenge.factions.some((faction) => faction.id === factionId)) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
@@ -189,14 +220,14 @@
 	}
 
 	function updateFairnessWeight(weight: number) {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		if (challenge.fairnessWeight === weight) return;
 		challenge.fairnessWeight = weight;
 		invalidateGeneratedTurnOrder();
 	}
 
 	function addFaction() {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		const name = nextNumberedName(
 			'Faction',
 			challenge.factions.map((faction) => faction.name)
@@ -218,19 +249,19 @@
 	}
 
 	function renameFaction(factionId: StableId, name: string) {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		const faction = challenge.factions.find((item) => item.id === factionId);
 		if (faction) faction.name = name;
 	}
 
 	function updateFactionColor(factionId: StableId, color: FactionColor) {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		const faction = challenge.factions.find((item) => item.id === factionId);
 		if (faction) faction.color = color;
 	}
 
 	function removeFaction(factionId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageFactions) return;
 		const faction = challenge.factions.find((item) => item.id === factionId);
 		if (!faction) return;
 
@@ -252,7 +283,7 @@
 	}
 
 	function addNpcType() {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const name = nextNumberedName(
 			'NPC Type',
 			challenge.npcTypes.map((npcType) => npcType.name)
@@ -263,18 +294,20 @@
 			initiativeStat: 1
 		} satisfies NpcType;
 		challenge.npcTypes.push(npcType);
+		if (spawnEditState) spawnEditState.newNpcTypeIds.push(npcType.id);
 		newNpcTypeId ||= npcType.id;
+		npcCreationError = '';
 		void focusNewEntity(npcType.id);
 	}
 
 	function renameNpcType(npcTypeId: StableId, name: string) {
-		if (isChallengeRunning) return;
+		if (!canConfigureNpcType(npcTypeId)) return;
 		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
 		if (npcType) npcType.name = name;
 	}
 
 	function updateNpcTypeInitiativeStat(npcTypeId: StableId, initiativeStat: number) {
-		if (isChallengeRunning) return;
+		if (!canConfigureNpcType(npcTypeId)) return;
 		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
 		if (!npcType || npcType.initiativeStat === initiativeStat) return;
 
@@ -287,7 +320,7 @@
 	}
 
 	function removeNpcType(npcTypeId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const npcType = challenge.npcTypes.find((item) => item.id === npcTypeId);
 		if (!npcType) return;
 
@@ -304,7 +337,11 @@
 		if (turnIds === null) return;
 		removeCreaturesAndTurns(creatureIds, turnIds);
 		challenge.npcTypes = challenge.npcTypes.filter((npcType) => npcType.id !== npcTypeId);
+		if (spawnEditState) {
+			spawnEditState.newNpcTypeIds = spawnEditState.newNpcTypeIds.filter((id) => id !== npcTypeId);
+		}
 		if (newNpcTypeId === npcTypeId) newNpcTypeId = challenge.npcTypes[0]?.id ?? '';
+		npcCreationError = '';
 	}
 
 	function createTurn(mode: InitiativeRollMode): Turn {
@@ -312,17 +349,20 @@
 	}
 
 	function addTurn(creatureId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
 		const turn = createTurn(creature.kind === 'character' ? 'manual' : 'app');
 		creature.turns.push(turn);
+		if (spawnEditState) {
+			spawnEditState.newTurnIds = [...spawnEditState.newTurnIds, turn.id];
+		}
 		void focusNewEntity(turn.id);
 		invalidateGeneratedTurnOrder();
 	}
 
 	function addCharacter(factionId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const name = nextNumberedName(
 			'Player',
 			challenge.creatures.flatMap((creature) =>
@@ -331,30 +371,51 @@
 		);
 
 		const id = createUuid();
+		const firstTurn = createTurn('manual');
 		challenge.creatures.push({
 			id,
 			kind: 'character',
 			name,
 			factionId,
 			isHidden: false,
-			turns: [createTurn('manual')]
+			turns: [firstTurn]
 		});
+		if (spawnEditState) spawnEditState.newCreatureIds.push(id);
+		if (spawnEditState) {
+			spawnEditState.newTurnIds = [...spawnEditState.newTurnIds, firstTurn.id];
+		}
 		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
 	function addNpc(factionId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		if (!newNpcTypeId) return;
 
-		const existingIdentifiers = challenge.creatures.flatMap((creature) =>
-			creature.kind === 'npc' && creature.creatureTypeId === newNpcTypeId
-				? [creature.identifier]
-				: []
+		const existingNpcs = challenge.creatures.flatMap((creature) =>
+			creature.kind === 'npc' && creature.creatureTypeId === newNpcTypeId ? [creature] : []
 		);
+		const blankIdentifierNpcs = existingNpcs.filter((creature) => creature.identifier === '');
+		const lockedBlankIdentifierNpcs = blankIdentifierNpcs.filter(
+			(creature) => !(spawnEditState?.newCreatureIds.includes(creature.id) ?? false)
+		);
+		if (lockedBlankIdentifierNpcs.length > 0) {
+			npcCreationError = LOCKED_BLANK_NPC_IDENTIFIER_ERROR;
+			return;
+		}
+		npcCreationError = '';
+		const existingIdentifiers = existingNpcs
+			.filter((creature) => creature.identifier !== '')
+			.map((creature) => creature.identifier);
+		for (const creature of blankIdentifierNpcs) {
+			const identifier = nextNumberedIdentifier(existingIdentifiers);
+			creature.identifier = identifier;
+			existingIdentifiers.push(identifier);
+		}
 		const identifier = nextNumberedIdentifier(existingIdentifiers);
 
 		const id = createUuid();
+		const firstTurn = createTurn('app');
 		challenge.creatures.push({
 			id,
 			kind: 'npc',
@@ -362,20 +423,38 @@
 			identifier,
 			factionId,
 			isHidden: false,
-			turns: [createTurn('app')]
+			turns: [firstTurn]
 		});
+		if (spawnEditState) spawnEditState.newCreatureIds.push(id);
+		if (spawnEditState) {
+			spawnEditState.newTurnIds = [...spawnEditState.newTurnIds, firstTurn.id];
+		}
 		void focusNewEntity(id);
 		invalidateGeneratedTurnOrder();
 	}
 
-	function updateNpcType(creatureId: StableId, npcTypeId: StableId) {
-		if (isChallengeRunning) return;
+	function updateNpcType(creatureId: StableId, npcTypeId: StableId): boolean {
+		if (!canConfigureCreature(creatureId)) return false;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (
 			creature?.kind !== 'npc' ||
 			!challenge.npcTypes.some((npcType) => npcType.id === npcTypeId)
 		) {
-			return;
+			return false;
+		}
+		if (
+			isSpawnEditing &&
+			challenge.creatures.some(
+				(item) =>
+					item.kind === 'npc' &&
+					item.id !== creatureId &&
+					item.creatureTypeId === npcTypeId &&
+					item.identifier === '' &&
+					!(spawnEditState?.newCreatureIds.includes(item.id) ?? false)
+			)
+		) {
+			npcCreationError = LOCKED_BLANK_NPC_IDENTIFIER_ERROR;
+			return false;
 		}
 
 		const destinationIdentifiers = challenge.creatures.flatMap((item) =>
@@ -388,6 +467,9 @@
 		}
 		creature.creatureTypeId = npcTypeId;
 		newNpcTypeId = npcTypeId;
+		npcCreationError = '';
+		discardAppRolledResults([creature]);
+		return true;
 	}
 
 	function nextNumberedIdentifier(existingIdentifiers: readonly string[]): string {
@@ -398,13 +480,13 @@
 	}
 
 	function updateCharacterName(creatureId: StableId, name: string) {
-		if (isChallengeRunning) return;
+		if (!canConfigureCreature(creatureId)) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature?.kind === 'character') creature.name = name;
 	}
 
 	function updateCharacterInitiativeStat(creatureId: StableId, initiativeStat: number | undefined) {
-		if (isChallengeRunning) return;
+		if (!canConfigureCreature(creatureId)) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature?.kind !== 'character') return;
 
@@ -416,7 +498,6 @@
 	}
 
 	function setTurnInitiative(creatureId: StableId, turnId: StableId, choice: InitiativeChoice) {
-		if (isChallengeRunning) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		const turn = creature?.turns.find((item) => item.id === turnId);
 		if (!turn) return;
@@ -441,8 +522,17 @@
 			};
 		} else hasChanged = false;
 		if (hasChanged) {
-			if (previousInitiative.kind === 'roll' && turn.initiative.kind !== 'roll') {
+			if (
+				previousInitiative.kind === 'roll' &&
+				(turn.initiative.kind !== 'roll' || previousInitiative.mode !== turn.initiative.mode)
+			) {
 				if (challenge.runState) delete challenge.runState.initiativeResults[turnId];
+				if (challenge.runState?.tieDecisions) {
+					challenge.runState.tieDecisions = discardTieDecisionsForTurn(
+						challenge.runState.tieDecisions,
+						turnId
+					);
+				}
 			}
 			invalidateGeneratedTurnOrder();
 		}
@@ -453,7 +543,7 @@
 		turnId: StableId,
 		change: Readonly<TurnEditorChange>
 	) {
-		if (isChallengeRunning) return;
+		if (!canConfigureTurn(turnId)) return;
 		if (change.kind === 'choice') {
 			setTurnInitiative(creatureId, turnId, change.choice);
 			return;
@@ -484,13 +574,13 @@
 	}
 
 	function updateCreatureVisibility(creatureId: StableId, isHidden: boolean) {
-		if (isChallengeRunning) return;
+		if (!canConfigureCreature(creatureId)) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature) creature.isHidden = isHidden;
 	}
 
 	function updateNpcIdentifier(creatureId: StableId, identifier: string) {
-		if (isChallengeRunning) return;
+		if (!canConfigureCreature(creatureId)) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (creature?.kind === 'npc') creature.identifier = identifier;
 	}
@@ -538,7 +628,7 @@
 		creatureIds: ReadonlySet<StableId>,
 		turnIds: ReadonlySet<StableId>
 	) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		challenge.creatures = challenge.creatures
 			.filter((creature) => !creatureIds.has(creature.id))
 			.map((creature) => ({
@@ -548,12 +638,27 @@
 
 		if (challenge.runState) {
 			for (const turnId of turnIds) delete challenge.runState.initiativeResults[turnId];
+			if (challenge.runState.spawnEdit) {
+				const spawnEdit = challenge.runState.spawnEdit;
+				spawnEdit.newCreatureIds = spawnEdit.newCreatureIds.filter((id) => !creatureIds.has(id));
+				spawnEdit.newTurnIds = spawnEdit.newTurnIds.filter((id) => !turnIds.has(id));
+				spawnEdit.lockedInitiativeTurnIds = spawnEdit.lockedInitiativeTurnIds.filter(
+					(id) => !turnIds.has(id)
+				);
+			}
+			if (challenge.runState.tieDecisions) {
+				challenge.runState.tieDecisions = pruneTieDecisions(
+					challenge,
+					challenge.runState.initiativeResults,
+					challenge.runState.tieDecisions
+				);
+			}
 			invalidateGeneratedTurnOrder();
 		}
 	}
 
 	function removeTurn(creatureId: StableId, turnId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature?.turns.some((turn) => turn.id === turnId)) return;
 
@@ -563,7 +668,7 @@
 	}
 
 	function removeCreature(creatureId: StableId) {
-		if (isChallengeRunning) return;
+		if (!canManageCreaturesAndTurns) return;
 		const creature = challenge.creatures.find((item) => item.id === creatureId);
 		if (!creature) return;
 
@@ -603,15 +708,12 @@
 				{/if}
 			</section>
 		{/if}
-		<fieldset
-			disabled={isChallengeRunning}
-			aria-label="Challenge setup editing"
-			class="setup-editing"
-		>
+		<fieldset aria-label="Challenge setup editing" class="setup-editing">
 			<div class="challenge-setup">
 				<ChallengeSettings
 					name={challenge.name}
 					fairnessWeight={challenge.fairnessWeight}
+					isDisabled={!canManageFactions}
 					{setupIssues}
 					onNameChange={updateChallengeName}
 					onFairnessWeightChange={updateFairnessWeight}
@@ -620,6 +722,9 @@
 				<NpcTypeEditor
 					npcTypes={challenge.npcTypes}
 					{setupIssues}
+					canManageNpcTypes={canManageCreaturesAndTurns}
+					isNpcTypeConfigurable={canConfigureNpcType}
+					creationError={npcCreationError}
 					onCreate={addNpcType}
 					onRename={renameNpcType}
 					onInitiativeStatChange={updateNpcTypeInitiativeStat}
@@ -632,6 +737,10 @@
 					npcTypes={challenge.npcTypes}
 					{setupIssues}
 					npcTypeId={newNpcTypeId}
+					{canManageFactions}
+					{canManageCreaturesAndTurns}
+					isCreatureConfigurable={canConfigureCreature}
+					isTurnConfigurable={canConfigureTurn}
 					onCreateFaction={addFaction}
 					onRenameFaction={renameFaction}
 					onFactionColorChange={updateFactionColor}

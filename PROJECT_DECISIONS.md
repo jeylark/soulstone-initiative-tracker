@@ -33,6 +33,13 @@ This document records the product and architecture decisions discussed so far. I
 
 A challenge with a generated turn order is running. The first entry is the current turn; the DM's **Next turn** button moves it to the end of the order and continues past hidden turns until a visible turn or Spawn is current. The run state saves how many Spawn steps have been completed (`spawnCount`), shown above the list. The DM can then run the encounter. At the end of each round, the DM handles the Spawn step; if that changes the challenge, initiatives are collected again as needed and the order is regenerated.
 
+**Spawn editing** is the only way to change a running challenge. Run's **Edit Challenge** button is enabled only while Spawn is current and editing is not already active; reaching Spawn alone unlocks nothing. It saves an explicit editing state (`spawnEdit` in the run state: IDs of new creatures, NPC types, and turns, plus the turns whose results were already collected) and opens Setup. While editing:
+
+- Creatures, NPC types, and turns can be added or removed. Existing configuration stays locked; only newly added entries are configurable, and existing creatures can gain or lose turns. Challenge settings and factions stay locked. Removals use the usual cascade confirmation and also discard their results, tie decisions, and metadata.
+- Roll accepts only initiatives that were missing when editing started, and tie decisions. Previously collected results stay unchanged, app results cannot be rerolled, and a manual field that started empty stays editable until editing ends.
+- **Next turn** stays visible but disabled. **Calculate Turn Order** is available; when it succeeds and saves, editing ends, Setup and Roll relock, Spawn remains current, and the completed Spawn count is unchanged. Only the later **Next turn** completes Spawn and starts the next round. Missing results, unresolved ties, invalid setup, or a failed save keep editing active.
+- The editing state survives a reload, which opens Setup as usual. Edits autosave; there is no cancel-and-rollback.
+
 Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`. Tab selection is local page state and returns to Setup after a reload.
 
 ## App navigation and views
@@ -105,7 +112,6 @@ Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[chal
 - Implement changes incrementally in small, reviewable steps; avoid large bulk changes.
 - Use a test-driven approach: clarify the expected behavior before implementation, then write or update tests for that behavior before writing or changing app code. Do not write app code while the expected behavior is unclear.
 - Every production module (excluding index/barrel files) and UI component must have its own colocated test file covering behavior owned by that unit. Integration tests supplement but do not replace module- or component-owned tests. Type-only modules should use compile-time assertions where runtime tests do not apply.
-- Run `npm test`, `npm run lint`, and `npm run check` before submitting pull requests; CI must pass.
 - Write comments to explain non-obvious intent, not to restate the code.
 
 ## Still to decide

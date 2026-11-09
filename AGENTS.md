@@ -1,42 +1,56 @@
 # Repository instructions
 
-Follow these instructions for every task in this repository. See
-[PROJECT_DECISIONS.md](./PROJECT_DECISIONS.md) for product, architecture, and
-detailed coding guidelines.
+Follow these instructions for every task in this repository.
 
 ## Before changing files
 
-- Check the current branch and worktree before editing.
-- Do implementation work on a task-specific branch; never merge into or push to
-  `main`. If the current branch is unsuitable, create or switch to the task
-  branch before editing, but only after confirming with the user. Use descriptive
-  names when creating branches.
-- Preserve existing work. Do not switch branches if doing so could move,
-  overwrite, or obscure uncommitted changes; ask the user how to proceed if the
-  work cannot be safely isolated.
-- Adhere to the [Coding Guidelines](./PROJECT_DECISIONS.md#coding-guidelines) when
-  writing or editing code.
-- Clarify the expected behavior and identify relevant tests. For app changes,
-  add or update tests before changing implementation. For documentation-only
-  changes, tests are not needed unless the repository provides documentation
-  tests.
-- Public API documentation is mandatory for every symbol exported from any
-  module under `src/lib`, whether or not it is re-exported from `src/lib/index.ts`.
-  For each public type, document the meaning of every property. For functions
-  and constructors, document every parameter and return value, and document
-  thrown errors where applicable. For exported constants containing structured data, document
-  the meaning of each public field. Keep documentation updated whenever the API
-  changes, and keep helpers module-private when they are not intended for use
-  outside their module.
+- Check if there are any uncommitted changes in the working tree. If so, ask
+  the user on how to proceed with them.
+- Never merge into or push to `main`.
+- Check if the current branch has an appropriate name for the task and, if not,
+  suggest to the user a new branch to create and switch to.
+- Before doing any additions or changes to the code, clarify the expected
+  behavior and write appropriate tests. Do not write app code while the
+  expected behavior is unclear.
+- App behavior and architecture is documented in
+  [PROJECT_DECISIONS.md](./PROJECT_DECISIONS.md). Refer to these, but when in
+  doubt check back with the user. Update the documentation when new decisions
+  are made.
+  If decisions are made concerning the app's behavior
+- Try to split large changes into separate edits that are also commited
+  individually.
+- Do not run app-wide `npm run check`, `npm run lint` or `npm test`. This will
+  be done later by the CI. If necessary, reconfirm with the user if the command
+  should be ran.
 
-## Before finishing
+## Coding guidelines
 
-- After all edits are complete, run `npx prettier --write` on every edited file before running any lint checks.
-- For routine changes, run only relevant focused checks; do not run ESLint for
-  every change. Before opening a pull request, run `npm test`, `npm run lint`,
-  and `npm run check`; also run `npm run build` when changes
-  affect the production build or deployment.
-- Inspect the final diff and confirm only task-related changes are included.
-- Report the exact checks run and their results. Clearly disclose failures,
-  skipped checks, and environment blockers; do not describe an unverified result
-  as passing.
+- Public API documentation is mandatory for every exported symbol, including
+  paramters, return types, generics and each public field. When making changes
+  to such a symbol, verify that the documentation is still valid.
+- Keep helpers module-private when they are not intended for use outside their
+  module.
+- Prefer clear names and simple designs. Keep functions and components focused,
+  avoid duplication.
+- Use PascalCase for types, camelCase for identifiers and UPPER_SNAKE_CASE for
+  constants.
+- Prefix names of booleans with `is`, `are`, `has`, `have` or `can`.
+- Write acronyms as words.
+- Function parameters must be strictly read-only. Functions must be pure and
+  have no side-effects.
+- Use strict types and handle errors explicitly. Address compiler diagnostics
+  rather than suppressing or bypassing them.
+- Keep third-party dependencies to a minimum; suggest using one only when it
+  provides clear value and get permission from the user before including them.
+- Target WCAG 2.2 Level AA, including semantic markup, keyboard operability,
+  visible focus, and support for assistive technologies.
+- Make the app usable on mobile devices. Use available space on larger screens
+  where possible.
+- Every production module and UI component must have its own colocated test
+  file covering behavior owned by that unit. Integration tests supplement but
+  do not replace module- or component-owned tests.
+- Write comments to explain non-obvious intent, not to restate the code.
+
+## Before commiting changes
+
+- Run `npx prettier --write` on every changed file.

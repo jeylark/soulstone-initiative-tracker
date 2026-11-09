@@ -17,6 +17,10 @@
 		npcTypes: readonly NpcType[];
 		setupIssues: readonly ValidationIssue[];
 		npcTypeId: StableId | '';
+		canManageFactions: boolean;
+		canManageCreaturesAndTurns: boolean;
+		isCreatureConfigurable: (creatureId: StableId) => boolean;
+		isTurnConfigurable: (turnId: StableId) => boolean;
 		onCreateFaction: () => void;
 		onRenameFaction: (factionId: StableId, name: string) => void;
 		onFactionColorChange: (factionId: StableId, color: FactionColor) => void;
@@ -25,7 +29,7 @@
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
 		onCreatureFactionChange?: (creatureId: StableId, factionId: StableId) => void;
-		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => void;
+		onNpcTypeChange: (creatureId: StableId, npcTypeId: StableId) => boolean;
 		onCharacterNameChange: (creatureId: StableId, name: string) => void;
 		onCharacterInitiativeStatChange: (
 			creatureId: StableId,
@@ -48,6 +52,10 @@
 		npcTypes,
 		setupIssues,
 		npcTypeId,
+		canManageFactions,
+		canManageCreaturesAndTurns,
+		isCreatureConfigurable,
+		isTurnConfigurable,
 		onCreateFaction,
 		onRenameFaction,
 		onFactionColorChange,
@@ -70,7 +78,12 @@
 <Card title="Factions" headerSize="large">
 	<fieldset class="setup-section faction-board-section">
 		<legend>Factions</legend>
-		<EntityList addLabel="Add Faction" onAdd={onCreateFaction} layout="grid">
+		<EntityList
+			addLabel="Add Faction"
+			isAddDisabled={!canManageFactions}
+			onAdd={onCreateFaction}
+			layout="grid"
+		>
 			{#each factions as faction, factionIndex (faction.id)}
 				<FactionEditor
 					{faction}
@@ -79,6 +92,10 @@
 					{npcTypes}
 					{setupIssues}
 					{npcTypeId}
+					{canManageFactions}
+					{canManageCreaturesAndTurns}
+					{isCreatureConfigurable}
+					{isTurnConfigurable}
 					onRename={onRenameFaction}
 					onColorChange={onFactionColorChange}
 					onRemove={onRemoveFaction}
@@ -102,6 +119,10 @@
 					{npcTypes}
 					{setupIssues}
 					{npcTypeId}
+					{canManageFactions}
+					{canManageCreaturesAndTurns}
+					{isCreatureConfigurable}
+					{isTurnConfigurable}
 					factionIndex={-1}
 					onRename={onRenameFaction}
 					onColorChange={onFactionColorChange}
