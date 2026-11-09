@@ -62,7 +62,7 @@ describe('new challenge setup', () => {
 			isHidden: false,
 			turns: [{ id: createUuid(), initiative: { kind: 'static', value: 8 } }]
 		});
-		challenge.runState!.lockedInitiativeTurnIds = [];
+		challenge.runState!.spawnEdit!.lockedInitiativeTurnIds = [];
 		await saveChallengeToLibrary(challenge);
 		await renderSetup();
 
