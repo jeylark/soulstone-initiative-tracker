@@ -970,7 +970,9 @@ describe('spawn editing', () => {
 			initiativeResults,
 			generatedTurnOrder: [{ kind: 'spawn' }],
 			spawnCount: 1,
-			...(extra.tieDecisions ? { tieDecisions: extra.tieDecisions } : {}),
+			...(extra.tieDecisions
+				? { tieDecisions: extra.tieDecisions.map((decision) => [...decision]) }
+				: {}),
 			spawnEdit: {
 				newCreatureIds: [],
 				newNpcTypeIds: [],
