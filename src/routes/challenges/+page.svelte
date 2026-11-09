@@ -7,6 +7,7 @@
 	import {
 		ChallengeLibraryStorageError,
 		ChallengeLibraryValidationError,
+		backupChallengeLibraryToJsonFile,
 		createUuid,
 		getNextFactionColor,
 		loadChallengeLibraryWithDiagnostics,
@@ -21,7 +22,9 @@
 	let loadErrorDetails = $state('');
 	let unreadableDetails = $state('');
 	let createErrorDetails = $state('');
+	let downloadErrorDetails = $state('');
 	let isCreating = $state(false);
+	let isDownloading = $state(false);
 	let draftChallenge: Challenge | undefined;
 
 	function describeError(error: unknown): string {
@@ -99,6 +102,19 @@
 		}
 	}
 
+	async function downloadLibrary(): Promise<void> {
+		if (isDownloading) return;
+		isDownloading = true;
+		downloadErrorDetails = '';
+		try {
+			await backupChallengeLibraryToJsonFile();
+		} catch (error) {
+			downloadErrorDetails = describeError(error);
+		} finally {
+			isDownloading = false;
+		}
+	}
+
 	onMount(() => {
 		void loadChallenges();
 	});
@@ -143,6 +159,15 @@
 	{/if}
 	<ActionButton disabled={isCreating} onclick={() => void createChallenge()}>
 		{isCreating ? 'Creating…' : 'Create new challenge'}
+	</ActionButton>
+	{#if downloadErrorDetails}
+		<ErrorDisplay
+			message="The challenge library could not be downloaded."
+			details={downloadErrorDetails}
+		/>
+	{/if}
+	<ActionButton disabled={isDownloading} onclick={() => void downloadLibrary()}>
+		{isDownloading ? 'Downloading…' : 'Download Library'}
 	</ActionButton>
 </ViewPage>
 

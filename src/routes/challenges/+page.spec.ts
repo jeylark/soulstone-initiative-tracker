@@ -73,6 +73,36 @@ describe('challenge hub', () => {
 		expect(challengeLink.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
 	});
 
+	it('downloads the complete challenge library', async () => {
+		const challenge = { ...createSetupChallenge(), name: 'Ashen Company' };
+		await saveChallengeToLibrary(challenge);
+		const createObjectUrl = vi.fn(() => 'blob:backup');
+		const revokeObjectUrl = vi.fn();
+		const urlConstructor = class extends URL {};
+		Reflect.set(urlConstructor, 'createObjectURL', createObjectUrl);
+		Reflect.set(urlConstructor, 'revokeObjectURL', revokeObjectUrl);
+		vi.stubGlobal('URL', urlConstructor);
+		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+		render(savedChallengesPage);
+		await screen.findByRole('heading', { level: 3, name: 'Ashen Company' });
+		await fireEvent.click(screen.getByRole('button', { name: 'Download Library' }));
+
+		await vi.waitFor(() => expect(createObjectUrl).toHaveBeenCalledOnce());
+		expect(click).toHaveBeenCalledOnce();
+		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:backup');
+	});
+
+	it('shows a recoverable error when the library download fails', async () => {
+		vi.stubGlobal('indexedDB', undefined);
+
+		render(savedChallengesPage);
+		await screen.findByRole('button', { name: 'Download Library' });
+		await fireEvent.click(screen.getByRole('button', { name: 'Download Library' }));
+
+		expect(await screen.findByText('The challenge library could not be downloaded.')).toBeTruthy();
+	});
+
 	it('shows a recoverable storage error', async () => {
 		vi.stubGlobal('indexedDB', undefined);
 

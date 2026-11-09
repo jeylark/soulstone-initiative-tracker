@@ -230,6 +230,10 @@ under the same category, keeping its task number and wording.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 
+### 3. Challenge library and file workflows
+
+- 3.1: Add UI for backing up the whole library.
+
 ### 6. Quality and release readiness
 
 - 6.7: Organize files in `src/lib/challenge` into one or more logical
