@@ -48,9 +48,12 @@ describe('faction color palette legibility', () => {
 		['dark', 'darkHex', DARK_SURFACE]
 	] as const;
 
-	describe.each(themes)('%s theme', (_name, key, surface) => {
+	describe.each(themes)('%s theme', (themeName, key, surface) => {
 		it.each(FACTION_COLORS)('$value stands out from the background', (color) => {
-			expect(getContrast(color[key], surface)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+			expect(
+				getContrast(color[key], surface),
+				`${color.value} on ${themeName} theme`
+			).toBeGreaterThanOrEqual(MIN_CONTRAST);
 		});
 
 		it('keeps every pair of colors distinguishable', () => {
