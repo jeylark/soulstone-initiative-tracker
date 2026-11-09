@@ -95,17 +95,36 @@ describe('Turn', () => {
 		expect(screen.queryByText('2')).toBeNull();
 	});
 
-	it('keeps faction color styling without displaying faction names', () => {
+	it('shows the faction as the card title and the creature name as prominent content', () => {
 		const { container } = render(Turn, {
 			props: { item: createTurnItem(6, false, true), onVisibilityChange: vi.fn() }
 		});
 
-		expect(screen.queryByText('Players')).toBeNull();
-		expect(screen.getByRole('heading', { name: 'Aria' })).toBeTruthy();
+		expect(screen.getByRole('heading', { name: 'Players' })).toBeTruthy();
+		expect(container.querySelector('.turn-order-creature-name')?.textContent).toBe('Aria');
 		expect(
 			container
 				.querySelector<HTMLElement>('.turn-order-card-tone')
 				?.style.getPropertyValue('--faction-color')
 		).toBe('light-dark(#1f5fbf, #5c9dff)');
+	});
+
+	it('uses a clear title when the faction is missing', () => {
+		render(Turn, {
+			props: { item: createTurnItem(6), onVisibilityChange: vi.fn() }
+		});
+
+		expect(screen.getByRole('heading', { name: 'Unknown faction' })).toBeTruthy();
+		expect(screen.getByText('Aria', { selector: '.turn-order-creature-name' })).toBeTruthy();
+	});
+
+	it('displays the turn label inside the card when a creature has multiple turns', () => {
+		const turnItem = createTurnItem(6, false, true);
+		const item = { ...turnItem, display: { ...turnItem.display, label: 'Aria - Turn 2' } };
+		render(Turn, { props: { item, onVisibilityChange: vi.fn() } });
+
+		expect(
+			screen.getByText('Aria - Turn 2', { selector: '.turn-order-creature-name' })
+		).toBeTruthy();
 	});
 });

@@ -33,12 +33,13 @@
 		style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
 	>
 		<Card
-			title={item.display.label}
+			title={item.display.faction?.name ?? 'Unknown faction'}
 			headingLevel="h2"
 			headerSize="small"
 			spacing="compact"
 			class="turn-order-card"
 		>
+			<p class="turn-order-creature-name">{item.display.label}</p>
 			<div class="turn-order-card-details">
 				{#if item.initiative !== undefined}
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
@@ -86,5 +87,17 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
+	}
+
+	.turn-order-creature-name {
+		margin: 0 0 8px;
+		font-size: clamp(1.5rem, 4vw, 1.75rem);
+		font-weight: 700;
+		line-height: 1.15;
+		overflow-wrap: anywhere;
+	}
+
+	.turn-order-initiative {
+		font-size: 1rem;
 	}
 </style>

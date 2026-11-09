@@ -55,7 +55,7 @@ describe('turn', () => {
 		const initialOrder = screen.getByRole('list', { name: 'Generated turn order' });
 		const initialItems = within(initialOrder).getAllByRole('listitem');
 		const initialAriaItems = initialItems.filter((item) =>
-			item.querySelector('h2')?.textContent?.startsWith('Aria')
+			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);
 		expect(initialAriaItems).toHaveLength(2);
 		for (const item of initialAriaItems) {
@@ -78,14 +78,12 @@ describe('turn', () => {
 
 		const savedOrder = screen.getByRole('list', { name: 'Generated turn order' });
 		const items = within(savedOrder).getAllByRole('listitem');
-		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
-			'Aria - Turn 1',
-			'Rook',
-			'Aria - Turn 2',
-			'Spawn'
-		]);
+		expect(
+			items.slice(0, 3).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
+		).toEqual(['Aria - Turn 1', 'Rook', 'Aria - Turn 2']);
+		expect(within(items[3]!).getByRole('heading', { name: 'Spawn' })).toBeTruthy();
 		const ariaItems = items.filter((item) =>
-			item.querySelector('h2')?.textContent?.startsWith('Aria')
+			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);
 		for (const item of ariaItems) {
 			expect(item.textContent).toContain('Hidden');

@@ -24,6 +24,7 @@ This document records the product and architecture decisions discussed so far. I
 - The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out and are skipped by **Next turn**. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
 - Faction colors have a separate hex for light and dark mode (applied via CSS `light-dark()`). Each color keeps at least 3:1 contrast against its theme's card surface and a CIELAB distance of at least 30 from every other color in the same theme. Turn cards tint their background with the faction color and show a solid faction-colored left border.
+- In the DM run view, each turn card is titled with its faction name; the creature name (including the NPC type and identifier) is the large, prominent label inside the card. If the faction is missing, the card title is `Unknown faction`.
 
 ## Challenge workflow
 

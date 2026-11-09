@@ -23,10 +23,6 @@ under the same category, keeping its task number and wording.
 - 2.16: Add an animated "rolling" effect for initiative rolls.
 - 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 
-#### Run
-
-- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it.
-
 ### 3. Challenge library and file workflows
 
 - 3.1: Add UI for backing up the whole library.
@@ -218,6 +214,7 @@ under the same category, keeping its task number and wording.
   the list.
 - 2.24: Make the creature name prominent inside each turn card and show its
   numeric initiative when one exists.
+- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
