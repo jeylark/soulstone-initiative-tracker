@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
 import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
-import { PUT } from './+server';
+import { DELETE, PUT } from './+server';
 
 function createChallenge(): Challenge {
 	const now = new Date('2026-11-03T12:00:00.000Z');
@@ -63,6 +63,55 @@ describe('PUT /api/sessions/[sessionId]', () => {
 		});
 
 		const response = await PUT({ params: { sessionId: 'missing' }, request } as never);
+
+		expect(response.status).toBe(404);
+	});
+});
+
+describe('DELETE /api/sessions/[sessionId]', () => {
+	it('ends an active session with its reconnect credential', async () => {
+		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
+		const request = new Request(`http://localhost/api/sessions/${session.id}`, {
+			method: 'DELETE',
+			headers: new Headers([['authorization', `Bearer ${reconnectToken}`]])
+		});
+
+		const response = await DELETE({ params: { sessionId: session.id }, request } as never);
+
+		expect(response.status).toBe(204);
+		expect(await response.text()).toBe('');
+		expect(liveSessionRegistry.findByViewerCode(session.viewerCode)).toBeUndefined();
+	});
+
+	it('rejects missing and invalid credentials without ending the session', async () => {
+		const { session } = liveSessionRegistry.create(createChallenge());
+		const unauthenticatedRequest = new Request(`http://localhost/api/sessions/${session.id}`, {
+			method: 'DELETE'
+		});
+		const unauthenticatedResponse = await DELETE({
+			params: { sessionId: session.id },
+			request: unauthenticatedRequest
+		} as never);
+		const request = new Request(`http://localhost/api/sessions/${session.id}`, {
+			method: 'DELETE',
+			headers: new Headers([['authorization', 'Bearer incorrect-token']])
+		});
+
+		const response = await DELETE({ params: { sessionId: session.id }, request } as never);
+
+		expect(unauthenticatedResponse.status).toBe(401);
+		expect(response.status).toBe(401);
+		expect(liveSessionRegistry.findByViewerCode(session.viewerCode)).toBeDefined();
+		liveSessionRegistry.end(session.id);
+	});
+
+	it('reports a session that is no longer active', async () => {
+		const request = new Request('http://localhost/api/sessions/missing', {
+			method: 'DELETE',
+			headers: new Headers([['authorization', 'Bearer stale-token']])
+		});
+
+		const response = await DELETE({ params: { sessionId: 'missing' }, request } as never);
 
 		expect(response.status).toBe(404);
 	});

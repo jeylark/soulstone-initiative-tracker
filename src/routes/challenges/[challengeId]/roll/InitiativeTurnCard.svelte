@@ -36,7 +36,11 @@
 	let hasWarning = $derived(result !== undefined && result > 18);
 </script>
 
-<div class="initiative-card-tone" style={factionColor ? `--faction-color: ${factionColor}` : ''}>
+<div
+	class="initiative-card-tone"
+	class:initiative-card-tone--app={mode === 'app'}
+	style={factionColor ? `--faction-color: ${factionColor}` : ''}
+>
 	<Card {title} headingLevel="h3" headerSize="small" spacing="compact" class="initiative-card">
 		<div class="initiative-field">
 			{#if mode === 'manual'}
@@ -87,6 +91,12 @@
 		flex: 0 1 max-content;
 		min-width: 0;
 		max-width: 100%;
+	}
+
+	.initiative-card-tone--app {
+		flex-basis: 20rem;
+		width: 20rem;
+		overflow-wrap: anywhere;
 	}
 
 	.initiative-card-tone :global(.initiative-card) {

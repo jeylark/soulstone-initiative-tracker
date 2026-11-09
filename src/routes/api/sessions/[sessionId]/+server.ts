@@ -50,3 +50,25 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		throw error;
 	}
 };
+
+/** Ends an active DM session and invalidates its reconnect credential. */
+export const DELETE: RequestHandler = async ({ params, request }) => {
+	const authorization = request.headers.get('authorization');
+	const reconnectToken = authorization?.match(/^Bearer (.+)$/i)?.[1];
+	if (!reconnectToken) {
+		return Response.json({ message: 'A valid reconnect credential is required.' }, { status: 401 });
+	}
+
+	try {
+		liveSessionRegistry.endAuthorized(params.sessionId, reconnectToken);
+		return new Response(null, { status: 204 });
+	} catch (error) {
+		if (error instanceof LiveSessionAuthorizationError) {
+			return Response.json({ message: error.message }, { status: 401 });
+		}
+		if (error instanceof LiveSessionNotFoundError) {
+			return Response.json({ message: error.message }, { status: 404 });
+		}
+		throw error;
+	}
+};

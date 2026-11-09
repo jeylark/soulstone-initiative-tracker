@@ -21,7 +21,6 @@ under the same category, keeping its task number and wording.
 #### Rolling
 
 - 2.16: Add an animated "rolling" effect for initiative rolls.
-- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 
 ### 3. Challenge library and file workflows
 
@@ -43,8 +42,6 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
-- 4.2: End sessions by removing their data; server restarts may lose active
-  sessions.
 - 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
 - 4.8: Stream live turn-order updates to read-only viewers with SSE.
@@ -191,6 +188,7 @@ under the same category, keeping its task number and wording.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
 - 2.35: Validate setup values.
@@ -227,11 +225,13 @@ under the same category, keeping its task number and wording.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.
 - 4.7: Allow viewer-code regeneration to invalidate the previous code.
+- 4.2: End sessions by removing their data; server restarts may lose active
+  sessions.
+- 4.3: Add a configurable active-session limit and refuse new sessions with a
+  clear message without evicting existing sessions.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
-- 4.3: Add a configurable active-session limit and refuse new sessions with a
-  clear message without evicting existing sessions.
 
 ### 6. Quality and release readiness
 

@@ -20,6 +20,7 @@
 	import {
 		createLiveSession,
 		deleteLiveSessionCredential,
+		endLiveSession,
 		loadLiveSessionCredential,
 		LiveSessionRequestError,
 		regenerateViewerCode,
@@ -48,7 +49,9 @@
 	let isLoadingLiveSession = $state(true);
 	let isStartingLiveSession = $state(false);
 	let isRegeneratingViewerCode = $state(false);
+	let isEndingLiveSession = $state(false);
 	let savedLiveSessionCredential = $state<LiveSessionCredential>();
+	let liveSessionCredential = $state<LiveSessionCredential>();
 	let liveSession = $state<LiveSessionDescriptor>();
 	let liveSessionErrorDetails = $state('');
 	let localChallenge = $state<Challenge>();
@@ -134,6 +137,7 @@
 		liveSessionErrorDetails = '';
 		try {
 			liveSession = await resumeLiveSession(savedLiveSessionCredential, $state.snapshot(challenge));
+			liveSessionCredential = savedLiveSessionCredential;
 		} catch (error) {
 			liveSessionErrorDetails = describeSessionError(error);
 			if (
@@ -174,19 +178,27 @@
 		try {
 			const created = await createLiveSession($state.snapshot(challenge));
 			liveSession = created.session;
-			await saveLiveSessionCredential({
+			const credential: LiveSessionCredential = {
 				challengeId: challenge.id,
 				sessionId: created.session.id,
 				reconnectToken: created.reconnectToken
-			});
-		} catch (error) {
-			liveSessionErrorDetails =
-				error instanceof Error
-					? `${error.name}: ${error.message}`
-					: 'An unexpected error occurred.';
-			if (liveSession) {
-				liveSessionErrorDetails = `The session started, but its reconnect credential could not be saved.\n${liveSessionErrorDetails}`;
+			};
+			liveSessionCredential = credential;
+			try {
+				await saveLiveSessionCredential(credential);
+				savedLiveSessionCredential = credential;
+			} catch (storageError) {
+				try {
+					await endLiveSession(credential);
+					liveSession = undefined;
+					liveSessionCredential = undefined;
+					liveSessionErrorDetails = `The reconnect credential could not be saved, so the session was ended.\n${describeSessionError(storageError)}`;
+				} catch (endError) {
+					liveSessionErrorDetails = `The session started, but its reconnect credential could not be saved.\n${describeSessionError(storageError)}\nThe session could not be ended.\n${describeSessionError(endError)}`;
+				}
 			}
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
 		} finally {
 			isStartingLiveSession = false;
 		}
@@ -204,6 +216,38 @@
 		} finally {
 			isRegeneratingViewerCode = false;
 		}
+	}
+
+	async function endCurrentLiveSession(): Promise<void> {
+		const credential = liveSessionCredential ?? savedLiveSessionCredential;
+		if (!credential || isEndingLiveSession) return;
+		if (
+			!window.confirm(
+				'End this live session? Viewers will lose access, and you will need to start a new session to share again.'
+			)
+		) {
+			return;
+		}
+
+		isEndingLiveSession = true;
+		liveSessionErrorDetails = '';
+		try {
+			await endLiveSession(credential);
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
+			return;
+		} finally {
+			isEndingLiveSession = false;
+		}
+
+		try {
+			await deleteLiveSessionCredential(credential.challengeId);
+		} catch (error) {
+			liveSessionErrorDetails = `The server session ended, but its saved reconnect credential could not be removed.\n${describeSessionError(error)}`;
+		}
+		liveSession = undefined;
+		liveSessionCredential = undefined;
+		savedLiveSessionCredential = undefined;
 	}
 
 	function enqueueSave(snapshotChallenge: DeepReadonly<Challenge>): Promise<void> {
@@ -399,10 +443,16 @@
 									{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
 								</ActionButton>
 							{/if}
+							<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+								{isEndingLiveSession ? 'Ending…' : 'End live session'}
+							</ActionButton>
 						{:else if savedLiveSessionCredential}
 							<p>A saved live session could not be resumed.</p>
 							<ActionButton disabled={isLoadingLiveSession} onclick={resumeSavedLiveSession}>
 								Retry session resume
+							</ActionButton>
+							<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+								{isEndingLiveSession ? 'Ending…' : 'End live session'}
 							</ActionButton>
 						{:else}
 							<p>Start a live session to let viewers join this challenge.</p>
@@ -415,7 +465,7 @@
 						{/if}
 						{#if liveSessionErrorDetails}
 							<ErrorDisplay
-								message="The live session request failed."
+								message="The live session could not be started, resumed, or ended."
 								details={liveSessionErrorDetails}
 							/>
 						{/if}
