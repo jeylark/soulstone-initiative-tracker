@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
-import { sanitizeChallenge, type DeepReadonly } from '../challenge/challenge-copy';
-import type { Challenge } from '../challenge/model';
+import type { DeepReadonly } from '../DeepReadonly';
+import { sanitizeChallenge, type Challenge } from '../challenge';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 8;

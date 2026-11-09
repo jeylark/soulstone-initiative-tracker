@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Challenge } from '../challenge/model';
-import { createUuid } from '../challenge/uuid';
+import { createUuid, type Challenge } from '../challenge';
 import { InMemoryLiveSessionRegistry, LiveSessionLimitError } from './live-sessions';
 
 function createChallenge(): Challenge {
@@ -12,7 +11,6 @@ function createChallenge(): Challenge {
 		updatedAt: now,
 		factions: [],
 		npcTypes: [],
-		initiativeRollModes: { characters: 'manual', npcs: 'app' },
 		fairnessWeight: 0,
 		creatures: []
 	};
