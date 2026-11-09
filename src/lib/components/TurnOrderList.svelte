@@ -1,10 +1,12 @@
 <script lang="ts">
 	import type { StableId, TurnOrderDisplayItem } from '#lib/challenge';
-	import Turn from './Turn.svelte';
+	import TurnOrderItem from './TurnOrderItem.svelte';
 
 	interface Props {
+		/** Ordered turn and Spawn entries to display. Filtering remains the caller's responsibility. */
 		items: readonly TurnOrderDisplayItem[];
-		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		/** Optional handler for changing a creature's visibility; omitted for read-only lists. */
+		onVisibilityChange?: (creatureId: StableId, isHidden: boolean) => void;
 	}
 
 	let { items, onVisibilityChange }: Props = $props();
@@ -13,7 +15,7 @@
 <ol aria-label="Generated turn order" class="turn-order-list">
 	{#each items as item, index (item.kind === 'turn' ? item.turnId : 'spawn')}
 		<li aria-current={index === 0 ? 'step' : undefined}>
-			<Turn {item} {onVisibilityChange} />
+			<TurnOrderItem {item} {onVisibilityChange} />
 		</li>
 	{/each}
 </ol>

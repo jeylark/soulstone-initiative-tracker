@@ -4,8 +4,10 @@
 	import { Card, CheckboxInput } from '#lib/components';
 
 	interface Props {
+		/** Turn or Spawn data to render as a card. */
 		item: TurnOrderDisplayItem;
-		onVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
+		/** Called with the creature ID and new hidden state when its checkbox changes. Omit to render read-only. */
+		onVisibilityChange?: (creatureId: StableId, isHidden: boolean) => void;
 	}
 
 	let { item, onVisibilityChange }: Props = $props();
@@ -45,15 +47,17 @@
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
 			</div>
-			<div class="turn-order-visibility">
-				<CheckboxInput
-					label="Hidden"
-					aria-label={`Hidden from viewers: ${item.display.creatureName}`}
-					checked={item.display.isHidden}
-					onchange={(event) =>
-						onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
-				/>
-			</div>
+			{#if onVisibilityChange}
+				<div class="turn-order-visibility">
+					<CheckboxInput
+						label="Hidden"
+						aria-label={`Hidden from viewers: ${item.display.creatureName}`}
+						checked={item.display.isHidden}
+						onchange={(event) =>
+							onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
+					/>
+				</div>
+			{/if}
 		</Card>
 	</div>
 {/if}

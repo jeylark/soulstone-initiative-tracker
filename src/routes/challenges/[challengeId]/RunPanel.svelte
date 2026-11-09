@@ -16,7 +16,7 @@
 		type ChallengeRunState,
 		type StableId
 	} from '#lib/challenge';
-	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import { ActionButton, ErrorDisplay, TurnOrderList, ViewPage } from '#lib/components';
 	import {
 		createLiveSession,
 		deleteLiveSessionCredential,
@@ -27,7 +27,6 @@
 		type LiveSessionCredential,
 		type LiveSessionDescriptor
 	} from '../../../lib/live-session-client';
-	import TurnList from './run/TurnList.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -409,7 +408,7 @@
 
 			{#if generatedOrderDisplay}
 				<section aria-label="Turn cards">
-					<TurnList
+					<TurnOrderList
 						items={generatedOrderDisplay.items}
 						onVisibilityChange={updateCreatureVisibility}
 					/>
