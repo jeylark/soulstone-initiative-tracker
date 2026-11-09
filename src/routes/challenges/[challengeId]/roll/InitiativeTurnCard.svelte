@@ -9,7 +9,12 @@
 		result: number | undefined;
 		inputValue: string;
 		isInvalid: boolean;
+		/** Whether the initiative stat allows an app roll. */
 		canRoll: boolean;
+		/** Whether the manual field is read-only. */
+		isInputLocked: boolean;
+		/** Whether rolling or rerolling is not allowed. */
+		isRollLocked: boolean;
 		onInput: (value: string) => void;
 		onRoll: () => void;
 	}
@@ -22,6 +27,8 @@
 		inputValue,
 		isInvalid,
 		canRoll,
+		isInputLocked,
+		isRollLocked,
 		onInput,
 		onRoll
 	}: Props = $props();
@@ -41,6 +48,7 @@
 					{hasWarning}
 					warningMessage={hasWarning ? 'Initiative is above 18.' : undefined}
 					{isInvalid}
+					disabled={isInputLocked}
 					invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
 					value={inputValue}
 					oninput={(event) => onInput(event.currentTarget.value)}
@@ -51,7 +59,7 @@
 						<output>Initiative result: {result}</output>
 						<ActionButton
 							aria-label={`Reroll initiative for ${title}`}
-							disabled={!canRoll}
+							disabled={!canRoll || isRollLocked}
 							onclick={onRoll}
 						>
 							Reroll
@@ -59,7 +67,7 @@
 					{:else}
 						<ActionButton
 							aria-label={`Roll initiative for ${title}`}
-							disabled={!canRoll}
+							disabled={!canRoll || isRollLocked}
 							onclick={onRoll}
 						>
 							Roll

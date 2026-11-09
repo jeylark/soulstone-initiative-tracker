@@ -85,7 +85,7 @@ describe('initiative turn card', () => {
 		);
 		expect(screen.getByText('Initiative result: 7')).toBeTruthy();
 		expect(screen.queryByRole('button', { name: 'Roll initiative for Aria - Turn 1' })).toBeNull();
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll all' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Roll all remaining' }));
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
 		await waitFor(async () => {
@@ -114,7 +114,7 @@ describe('initiative turn card', () => {
 		expect(await screen.findAllByText('Initiative result: 7')).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Roll all' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
 	});
 
 	it('blocks an app roll when its character has no valid initiative stat', async () => {
