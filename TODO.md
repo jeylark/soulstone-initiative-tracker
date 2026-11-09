@@ -52,9 +52,6 @@ under the same category, keeping its task number and wording.
 
 ### 5. Hosting and operations
 
-- 5.2: Write structured diagnostic logs to the mounted directory and exclude
-  challenge contents, viewer codes, reconnect tokens, and authorization
-  headers.
 - 5.3: Add bounded log rotation and retention using the configured maximum
   retained log size.
 - 5.4: Document configuration-change behavior and session loss on server
@@ -212,6 +209,9 @@ under the same category, keeping its task number and wording.
 - 5.1: Read server configuration from the mounted JSON file, with configurable
   session limits, viewer limits, inactivity timeout, and maximum retained log
   size.
+- 5.2: Write structured diagnostic logs to the mounted directory and exclude
+  challenge contents, viewer codes, reconnect tokens, and authorization
+  headers.
 
 ### 6. Quality and release readiness
 
