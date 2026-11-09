@@ -56,6 +56,6 @@ describe('turn list', () => {
 					.querySelector<HTMLElement>('.turn-order-card-tone')
 					?.style.getPropertyValue('--faction-color')
 			)
-		).toEqual(['#c76a6e', '#5687c8', undefined]);
+		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});
 });

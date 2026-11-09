@@ -25,8 +25,7 @@ under the same category, keeping its task number and wording.
 
 #### Run
 
-- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it. The turn index doesn't need to be displayed at all.
-- 2.27: Make faction colors stand out more clearly from the background.
+- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it.
 
 ### 3. Challenge library and file workflows
 
@@ -185,6 +184,7 @@ under the same category, keeping its task number and wording.
   fixed and relative placement hooks.
 - 2.6: Show clear feedback for invalid placement hooks.
 - 2.7: Display the DM turn list using each faction's selected color.
+- 2.27: Rework faction colors so they stand out from the page background in light and dark mode and are distinguishable from one another.
 - 2.10: Detect same-faction initiative ties and block turn-order generation
   until the DM has resolved them. Ties across factions stay with the
   fairness algorithm.

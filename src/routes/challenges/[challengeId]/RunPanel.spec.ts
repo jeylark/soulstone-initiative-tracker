@@ -435,7 +435,7 @@ describe('turn-order run route', () => {
 					.querySelector<HTMLElement>('.turn-order-card-tone')
 					?.style.getPropertyValue('--faction-color')
 			)
-		).toEqual(['#c76a6e', '#5687c8', undefined]);
+		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});
 
 	it('hides and restores all turns for a creature without changing the saved order or results', async () => {
