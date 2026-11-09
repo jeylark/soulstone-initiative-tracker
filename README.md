@@ -54,4 +54,10 @@ The limit defaults to 100 when the file or property is absent. It must be a
 non-negative safe integer; invalid configuration prevents the server from
 starting. Configuration changes take effect after restarting the app container.
 The container runs as the unprivileged `node` user; on Linux, ensure the host log
-directory is writable by UID 1000. The app does not yet write logs to `/app/logs`.
+directory is writable by UID 1000. Server requests and unhandled server errors
+are written as newline-delimited JSON to
+`./data/logs/diagnostics.jsonl` (container path `/app/logs/diagnostics.jsonl`).
+Entries include a timestamp, severity, event, source route, correlation ID, and
+safe request metadata. Error records include stack frames but omit error
+messages. Request URLs and bodies, challenge contents, viewer codes, reconnect
+tokens, and authorization headers are not logged.
