@@ -1,21 +1,29 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import type { Component } from 'svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
 import SavedChallengesPage from './challenges/+page.svelte';
-import NewChallengePage from './challenges/new/+page.svelte';
-import JoinSessionPage from './join/+page.svelte';
+import ChallengePage from './challenges/[challengeId]/+page.svelte';
+import ViewerPage from './view/+page.svelte';
+
+vi.mock('$app/state', () => ({
+	page: {
+		params: { challengeId: '00000000-0000-4000-8000-000000000001' }
+	}
+}));
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
 afterEach(() => {
 	cleanup();
 });
 
-const views = [
+const views: { name: string; page: Component }[] = [
 	{ name: 'landing', page: LandingPage },
-	{ name: 'new challenge', page: NewChallengePage },
+	{ name: 'challenge detail', page: ChallengePage },
 	{ name: 'saved challenges', page: SavedChallengesPage },
-	{ name: 'join session', page: JoinSessionPage }
+	{ name: 'viewer entry', page: ViewerPage }
 ];
 
 const renderLayout = () =>
@@ -37,6 +45,7 @@ describe('app layout', () => {
 		const lightModeButton = screen.getByRole('button', { name: 'Light mode' });
 		expect(lightModeButton.getAttribute('aria-pressed')).toBe('true');
 		expect(container.querySelector('.app-shell')?.classList.contains('theme-dark')).toBe(true);
+		expect(document.documentElement.classList.contains('theme-dark')).toBe(true);
 
 		await fireEvent.click(lightModeButton);
 
@@ -44,6 +53,7 @@ describe('app layout', () => {
 			'false'
 		);
 		expect(container.querySelector('.app-shell')?.classList.contains('theme-dark')).toBe(false);
+		expect(document.documentElement.classList.contains('theme-dark')).toBe(false);
 	});
 
 	it('shows the app header and renders page content', () => {
@@ -51,6 +61,19 @@ describe('app layout', () => {
 
 		expect(container.querySelector('header')?.textContent).toContain('Soulstone');
 		expect(screen.getByText('content')).toBeTruthy();
+	});
+
+	it('links the header icon and app name to the landing page and has no navigation bar', () => {
+		const { container } = renderLayout();
+		const header = container.querySelector('header');
+		expect(header).not.toBeNull();
+		if (!header) return;
+
+		expect(within(header).getByRole('button', { name: 'Dark mode' })).toBeTruthy();
+		const homeLink = within(header).getByRole('link', { name: 'Soulstone' });
+		expect(homeLink.getAttribute('href')).toBe('/');
+		expect(homeLink.querySelector('img')).not.toBeNull();
+		expect(screen.queryByRole('navigation')).toBeNull();
 	});
 
 	it.each(views)('does not duplicate the shell in the $name page', ({ page }) => {

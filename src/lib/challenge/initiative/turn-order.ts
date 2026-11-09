@@ -1,0 +1,453 @@
+import type {
+	Challenge,
+	GeneratedTurnOrder,
+	GeneratedTurnOrderEntry,
+	InitiativeResults,
+	StableId
+} from '../core/model';
+import type { DeepReadonly } from '../../DeepReadonly';
+
+type InitiativeTurn = {
+	readonly id: StableId;
+	readonly initiative: number;
+};
+type FixedTurn = {
+	readonly id: StableId;
+	readonly kind: 'fixed-position';
+	readonly from: 'top' | 'bottom';
+	readonly position: number;
+};
+type RelativeTurn = {
+	readonly id: StableId;
+	readonly kind: 'relative-position';
+	readonly relation: 'before' | 'after';
+	readonly index?: number;
+	readonly targetTurnId: StableId;
+};
+type HookedTurn = FixedTurn | RelativeTurn;
+
+/** Thrown when placement hooks cannot be resolved into a turn order. */
+export class TurnOrderError extends Error {
+	/** IDs of the turns whose placement could not be resolved, in setup order. */
+	readonly turnIds: StableId[];
+
+	/**
+	 * @param turnIds IDs of the turns whose placement could not be resolved.
+	 */
+	constructor(turnIds: readonly StableId[]) {
+		super(`Cannot place turns: ${turnIds.join(', ')}`);
+		this.name = 'TurnOrderError';
+		this.turnIds = [...turnIds];
+	}
+}
+
+function clamp(value: number, min: number, max: number) {
+	return Math.min(Math.max(value, min), max);
+}
+
+/** Ordered turn IDs chosen by the DM for one group of tied turns. */
+export type TieDecision = readonly StableId[];
+
+function sameMembers(a: readonly StableId[], b: readonly StableId[]): boolean {
+	return a.length === b.length && a.every((id) => b.includes(id));
+}
+
+/**
+ * Finds groups of turns in the same faction that have equal initiative.
+ * Hooked turns and rolling turns without a result are ignored.
+ * @param challenge Challenge whose creature turns define factions and static initiatives.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @returns Each group of two or more tied turn IDs, in setup order.
+ */
+export function findInitiativeTies(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>
+): StableId[][] {
+	const [turnsByFaction] = filterFactionTurns(challenge, initiativeResults);
+	const ties: StableId[][] = [];
+	for (const factionTurns of turnsByFaction.values()) {
+		const groups = new Map<number, StableId[]>();
+		for (const turn of factionTurns) {
+			let group = groups.get(turn.initiative);
+			if (!group) {
+				group = [];
+				groups.set(turn.initiative, group);
+			}
+			group.push(turn.id);
+		}
+		ties.push(...groups.values().filter((group) => group.length > 1));
+	}
+	return ties;
+}
+
+/**
+ * Finds tie groups that none of the decisions orders.
+ * A decision resolves a group only when it contains exactly the group's turns.
+ * @param challenge Challenge whose creature turns define factions and static initiatives.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @param tieDecisions Orders the DM chose for tied groups.
+ * @returns Each unresolved group of tied turn IDs, in setup order.
+ */
+export function findUnresolvedTies(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[] = []
+): StableId[][] {
+	return findInitiativeTies(challenge, initiativeResults).filter(
+		(group) => !tieDecisions.some((decision) => sameMembers(decision, group))
+	);
+}
+
+/**
+ * Drops decisions that no longer match a current tie group.
+ * @param challenge Challenge whose creature turns define factions and static initiatives.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @param tieDecisions Orders the DM chose for tied groups.
+ * @returns The decisions whose members exactly match a current tie group.
+ */
+export function pruneTieDecisions(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[]
+): StableId[][] {
+	const ties = findInitiativeTies(challenge, initiativeResults);
+	return tieDecisions
+		.filter((decision) => ties.some((group) => sameMembers(decision, group)))
+		.map((decision) => [...decision]);
+}
+
+/**
+ * Drops the decisions for every tie group containing a turn, as when the turn is rerolled.
+ * @param tieDecisions Orders the DM chose for tied groups.
+ * @param turnId ID of the turn whose groups lose their decisions.
+ * @returns The remaining decisions.
+ */
+export function discardTieDecisionsForTurn(
+	tieDecisions: readonly TieDecision[],
+	turnId: StableId
+): StableId[][] {
+	return tieDecisions.filter((decision) => !decision.includes(turnId)).map((d) => [...d]);
+}
+
+function filterFactionTurns(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>
+): [Map<StableId, InitiativeTurn[]>, HookedTurn[]] {
+	const turnsByFaction: Map<StableId, InitiativeTurn[]> = new Map();
+	const hookedTurns: HookedTurn[] = [];
+
+	for (const creature of challenge.creatures) {
+		let factionTurns = turnsByFaction.get(creature.factionId);
+		if (!factionTurns) {
+			factionTurns = [];
+			turnsByFaction.set(creature.factionId, factionTurns);
+		}
+
+		for (const turn of creature.turns) {
+			if (turn.initiative.kind === 'roll') {
+				const initiativeValue = initiativeResults[turn.id];
+				if (initiativeValue === undefined) {
+					continue;
+				}
+				factionTurns.push({ id: turn.id, initiative: initiativeValue });
+			} else if (turn.initiative.kind === 'static') {
+				factionTurns.push({ id: turn.id, initiative: turn.initiative.value });
+			} else if (turn.initiative.kind === 'fixed-position') {
+				hookedTurns.push({
+					id: turn.id,
+					kind: 'fixed-position',
+					from: turn.initiative.from,
+					position: turn.initiative.position
+				});
+			} else if (turn.initiative.kind === 'relative-position') {
+				hookedTurns.push({
+					id: turn.id,
+					kind: 'relative-position',
+					relation: turn.initiative.relation,
+					...(turn.initiative.index === undefined ? {} : { index: turn.initiative.index }),
+					targetTurnId: turn.initiative.targetTurnId
+				});
+			}
+		}
+	}
+
+	return [turnsByFaction, hookedTurns];
+}
+
+/**
+ * Generates a turn order from a challenge's setup and collected initiative results.
+ * The challenge's `fairnessWeight` balances faction distribution against initiative:
+ * 0	Pure value-based merge
+ * 1	Value has strong influence
+ * 3	Balanced approach
+ * 5	Stronger distribution fairness
+ * 10+	Nearly proportional round-robin
+ * @param challenge Challenge whose creature turns, placement rules and fairness weight define the order.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @param tieDecisions Orders chosen by the DM for tied same-faction turns; tied turns without a decision keep setup order.
+ * @returns Generated play order of turn entries followed by the Spawn entry.
+ * @throws {TurnOrderError} If relative targets are missing, placements form a cycle, or sibling indices are invalid.
+ */
+export function generateTurnOrder(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[] = []
+): GeneratedTurnOrder {
+	return generateTurnOrderWithWarnings(challenge, initiativeResults, tieDecisions).order;
+}
+
+function generateTurnOrderWithWarnings(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[]
+): { readonly order: GeneratedTurnOrder; readonly clampedTurnIds: readonly StableId[] } {
+	const { fairnessWeight } = challenge;
+	const tieRank = new Map<StableId, number>();
+	for (const decision of pruneTieDecisions(challenge, initiativeResults, tieDecisions)) {
+		decision.forEach((id, index) => tieRank.set(id, index));
+	}
+	const [turnsByFaction, hookedTurns] = filterFactionTurns(challenge, initiativeResults);
+	const relativeTurns = hookedTurns.filter(
+		(hook): hook is RelativeTurn => hook.kind === 'relative-position'
+	);
+	const invalidSiblingTurnIds = getInvalidSiblingTurnIds(relativeTurns);
+	if (invalidSiblingTurnIds.length > 0) throw new TurnOrderError(invalidSiblingTurnIds);
+
+	const totalInitiativeTurnCount = turnsByFaction
+		.values()
+		.reduce((sum, factionTurns) => sum + factionTurns.length, 0);
+	const factions = [...turnsByFaction.values()].map((factionTurns) => {
+		const totalFactionTurns = factionTurns.length;
+		const remainingFactionTurns = factionTurns.toSorted(
+			(a, b) => b.initiative - a.initiative || (tieRank.get(a.id) ?? 0) - (tieRank.get(b.id) ?? 0)
+		);
+
+		function takeNextTurn() {
+			return remainingFactionTurns.shift();
+		}
+		function remainingTurnCount() {
+			return remainingFactionTurns.length;
+		}
+		function hasRemainingTurns() {
+			return remainingTurnCount() > 0;
+		}
+		function priority(position: number) {
+			const remainingTurnCount = remainingFactionTurns.length;
+			if (remainingTurnCount === 0) return -Infinity;
+
+			const turnsTaken = totalFactionTurns - remainingTurnCount;
+			const expectedTurnCount = (position * totalFactionTurns) / totalInitiativeTurnCount;
+			const fairnessDeviation = turnsTaken - expectedTurnCount;
+			const nextInitiative = remainingFactionTurns[0].initiative;
+
+			return nextInitiative - fairnessWeight * fairnessDeviation;
+		}
+
+		return { totalTurns: totalFactionTurns, priority, takeNextTurn, hasRemainingTurns };
+	});
+
+	function hasRemainingTurns() {
+		return factions.some((faction) => faction.hasRemainingTurns());
+	}
+	const initiativeTurns: StableId[] = [];
+	const clampedTurnIds: StableId[] = [];
+	while (hasRemainingTurns()) {
+		const sortedTurnCount = initiativeTurns.length;
+		const nextTurn = [
+			...factions.map((faction) => ({
+				priority: faction.priority(sortedTurnCount),
+				takeTurn: faction.takeNextTurn
+			}))
+		]
+			.sort(({ priority: priorityA }, { priority: priorityB }) => priorityB - priorityA)[0]
+			.takeTurn();
+		if (nextTurn === undefined) break;
+		initiativeTurns.push(nextTurn.id);
+	}
+
+	const rootTurnIds = [...initiativeTurns];
+	const fixedTurns = hookedTurns.filter(
+		(hook): hook is FixedTurn => hook.kind === 'fixed-position'
+	);
+	for (const hook of fixedTurns) {
+		const index = hook.from === 'top' ? hook.position - 1 : rootTurnIds.length - hook.position + 1;
+		const clampedIndex = clamp(index, 0, rootTurnIds.length);
+		if (clampedIndex !== index) clampedTurnIds.push(hook.id);
+		rootTurnIds.splice(clampedIndex, 0, hook.id);
+	}
+
+	const unresolvedTurnIds = getUnresolvedRelativeTurnIds(relativeTurns, rootTurnIds);
+	if (unresolvedTurnIds.length > 0) throw new TurnOrderError(unresolvedTurnIds);
+
+	const hooksByTarget = new Map<StableId, { before: RelativeTurn[]; after: RelativeTurn[] }>();
+	for (const hook of relativeTurns) {
+		const group = hooksByTarget.get(hook.targetTurnId) ?? { before: [], after: [] };
+		group[hook.relation].push(hook);
+		hooksByTarget.set(hook.targetTurnId, group);
+	}
+
+	function orderedSiblings(siblings: readonly RelativeTurn[], relation: 'before' | 'after') {
+		const ordered = [...siblings].sort((a, b) => (a.index ?? 1) - (b.index ?? 1));
+		return relation === 'before' ? ordered.reverse() : ordered;
+	}
+
+	function expandTurn(turnId: StableId): StableId[] {
+		const hooks = hooksByTarget.get(turnId);
+		return [
+			...(hooks ? orderedSiblings(hooks.before, 'before').flatMap(({ id }) => expandTurn(id)) : []),
+			turnId,
+			...(hooks ? orderedSiblings(hooks.after, 'after').flatMap(({ id }) => expandTurn(id)) : [])
+		];
+	}
+
+	const orderedTurnIds = rootTurnIds.flatMap(expandTurn);
+
+	return {
+		order: [
+			...orderedTurnIds.map((turnId): GeneratedTurnOrderEntry => ({ kind: 'turn', turnId })),
+			{ kind: 'spawn' }
+		],
+		clampedTurnIds
+	};
+}
+
+function getInvalidSiblingTurnIds(relativeTurns: readonly RelativeTurn[]): StableId[] {
+	const groups = new Map<string, RelativeTurn[]>();
+	for (const turn of relativeTurns) {
+		const key = JSON.stringify([turn.targetTurnId, turn.relation]);
+		const group = groups.get(key) ?? [];
+		group.push(turn);
+		groups.set(key, group);
+	}
+
+	const invalidTurnIds = new Set<StableId>();
+	for (const group of groups.values()) {
+		const indices = group.map(({ index }) => index);
+		const validIndices = indices.filter(
+			(index): index is number =>
+				typeof index === 'number' && Number.isSafeInteger(index) && index > 0
+		);
+		if (validIndices.length !== group.length) {
+			if (group.length > 1 || indices.some((index) => index !== undefined)) {
+				group.forEach(({ id }) => invalidTurnIds.add(id));
+			}
+			continue;
+		}
+		if (group.length > 1) {
+			const distinctIndices = new Set(validIndices);
+			if (
+				distinctIndices.size !== group.length ||
+				Math.min(...validIndices) !== 1 ||
+				Math.max(...validIndices) !== group.length
+			) {
+				group.forEach(({ id }) => invalidTurnIds.add(id));
+			}
+		}
+	}
+	return relativeTurns.filter(({ id }) => invalidTurnIds.has(id)).map(({ id }) => id);
+}
+
+function getUnresolvedRelativeTurnIds(
+	relativeTurns: readonly RelativeTurn[],
+	rootTurnIds: readonly StableId[]
+): StableId[] {
+	const relativeById = new Map(relativeTurns.map((turn) => [turn.id, turn]));
+	const rootIds = new Set(rootTurnIds);
+	const unresolvedTurnIds = new Set<StableId>();
+
+	for (const turn of relativeTurns) {
+		const path: StableId[] = [];
+		const visited = new Set<StableId>();
+		let current: RelativeTurn | undefined = turn;
+		while (current) {
+			if (visited.has(current.id)) {
+				path.forEach((id) => unresolvedTurnIds.add(id));
+				break;
+			}
+			visited.add(current.id);
+			path.push(current.id);
+			const target = relativeById.get(current.targetTurnId);
+			if (target) {
+				current = target;
+				continue;
+			}
+			if (!rootIds.has(current.targetTurnId)) {
+				path.forEach((id) => unresolvedTurnIds.add(id));
+			}
+			break;
+		}
+	}
+
+	return relativeTurns.filter(({ id }) => unresolvedTurnIds.has(id)).map(({ id }) => id);
+}
+
+/** Outcome of {@link prepareTurnOrder}. */
+export type TurnOrderPreparation =
+	| {
+			/** The order was generated. */
+			readonly status: 'generated';
+			/** Generated play order of turn entries followed by the Spawn entry. */
+			readonly order: GeneratedTurnOrder;
+			/** Turn IDs whose fixed placement was clamped to the available root-turn bounds. */
+			readonly clampedTurnIds: readonly StableId[];
+	  }
+	| {
+			/** Generation is blocked because rolling turns have no initiative result. */
+			readonly status: 'missing-results';
+			/** IDs of every rolling turn without a result, in setup order. */
+			readonly turnIds: readonly StableId[];
+	  }
+	| {
+			/** Generation is blocked because same-faction turns with equal initiative are not ordered. */
+			readonly status: 'unresolved-ties';
+			/** Each unresolved group of tied turn IDs, in setup order. */
+			readonly groups: readonly (readonly StableId[])[];
+	  }
+	| {
+			/** Generation failed because targets, cycles, or sibling indices make placement invalid. */
+			readonly status: 'placement-error';
+			/** IDs of the turns whose placement could not be resolved, in setup order. */
+			readonly turnIds: readonly StableId[];
+	  };
+
+/**
+ * Generates a turn order only if every rolling turn has a result and every same-faction tie is resolved, reporting problems instead of throwing.
+ * @param challenge Challenge whose creature turns, placement rules and fairness weight define the order.
+ * @param initiativeResults Initiative values collected for rolling turns.
+ * @param tieDecisions Orders chosen by the DM for tied same-faction turns.
+ * @returns The generated order, every rolling turn missing a result, the unresolved tie groups, or the turns with unresolvable placement.
+ * @throws Any error other than {@link TurnOrderError} raised during generation.
+ */
+export function prepareTurnOrder(
+	challenge: DeepReadonly<Challenge>,
+	initiativeResults: Readonly<InitiativeResults>,
+	tieDecisions: readonly TieDecision[] = []
+): TurnOrderPreparation {
+	const missingTurnIds = challenge.creatures.flatMap((creature) =>
+		creature.turns
+			.filter((turn) => turn.initiative.kind === 'roll' && initiativeResults[turn.id] === undefined)
+			.map((turn) => turn.id)
+	);
+	if (missingTurnIds.length > 0) {
+		return { status: 'missing-results', turnIds: missingTurnIds };
+	}
+
+	const unresolvedTies = findUnresolvedTies(challenge, initiativeResults, tieDecisions);
+	if (unresolvedTies.length > 0) {
+		return { status: 'unresolved-ties', groups: unresolvedTies };
+	}
+
+	try {
+		const generated = generateTurnOrderWithWarnings(challenge, initiativeResults, tieDecisions);
+		return {
+			status: 'generated',
+			order: generated.order,
+			clampedTurnIds: generated.clampedTurnIds
+		};
+	} catch (error) {
+		if (error instanceof TurnOrderError) {
+			return { status: 'placement-error', turnIds: error.turnIds };
+		}
+		throw error;
+	}
+}

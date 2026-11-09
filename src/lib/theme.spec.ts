@@ -22,6 +22,10 @@ describe('theme state', () => {
 		expect(createThemeState(storage).isDarkMode).toBe(true);
 	});
 
+	it('initializes from a theme already applied to the document', () => {
+		expect(createThemeState(undefined, true).isDarkMode).toBe(true);
+	});
+
 	it('ignores unrecognized stored values', () => {
 		const storage = createMemoryStorage({ [THEME_STORAGE_KEY]: 'blue' });
 

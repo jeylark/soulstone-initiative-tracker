@@ -1,13 +1,11 @@
 <script lang="ts">
+	import LandingAction from './LandingAction.svelte';
 	import { resolve } from '$app/paths';
 </script>
 
 <svelte:head>
 	<title>Soulstone Initiative Tracker</title>
-	<meta
-		name="description"
-		content="Create a challenge, open a saved challenge, or join a live session."
-	/>
+	<meta name="description" content="Manage your own challenge or watch a running challenge." />
 </svelte:head>
 
 <section aria-labelledby="page-title">
@@ -15,22 +13,14 @@
 
 	<ul aria-label="Available actions">
 		<li>
-			<a class="action-button" href={resolve('/challenges/new')}>
-				<span>New challenge</span>
-				<span aria-hidden="true">→</span>
-			</a>
+			<LandingAction
+				href={resolve('/challenges')}
+				title="Host"
+				description="Manage your own challenge"
+			/>
 		</li>
 		<li>
-			<a class="action-button" href={resolve('/challenges')}>
-				<span>Open saved challenge</span>
-				<span aria-hidden="true">→</span>
-			</a>
-		</li>
-		<li>
-			<a class="action-button" href={resolve('/join')}>
-				<span>Join a live session</span>
-				<span aria-hidden="true">→</span>
-			</a>
+			<LandingAction href={resolve('/view')} title="Join" description="Watch a running challenge" />
 		</li>
 	</ul>
 </section>
@@ -60,40 +50,6 @@
 		margin: 0;
 	}
 
-	.action-button {
-		display: flex;
-		width: 100%;
-		min-height: 64px;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 0 16px;
-		border: 0;
-		border-bottom: 1px solid var(--color-border-subtle);
-		border-radius: 0;
-		background: transparent;
-		color: var(--color-foreground);
-		cursor: pointer;
-		font: inherit;
-		font-size: 15px;
-		text-align: left;
-		text-decoration: none;
-	}
-
-	.action-button span:last-child {
-		color: var(--color-accent);
-		font-size: 19px;
-	}
-
-	.action-button:hover {
-		background: var(--color-accent-hover);
-	}
-
-	.action-button:focus-visible {
-		outline: var(--focus-ring);
-		outline-offset: var(--focus-ring-offset);
-	}
-
 	@media (min-width: 760px) {
 		section {
 			display: grid;
@@ -108,16 +64,6 @@
 			margin: 0;
 			font-size: clamp(48px, 6vw, 76px);
 			line-height: 1.08;
-		}
-
-		.action-button {
-			min-height: clamp(72px, 10vh, 92px);
-			padding-inline: 20px;
-			font-size: clamp(16px, 1.5vw, 19px);
-		}
-
-		.action-button span:last-child {
-			font-size: 22px;
 		}
 	}
 

@@ -1,0 +1,193 @@
+import type { UUID as Uuid } from 'node:crypto';
+
+/** Current schema version for exported or persisted challenge libraries. */
+export const CHALLENGE_FORMAT_VERSION = 1 as const;
+
+/** UUID used to identify a saved entity or reference in the challenge model. */
+export type StableId = Uuid;
+
+/** Rolled initiative values, keyed by turn ID; turns without a result are omitted. */
+export type InitiativeResults = Partial<Record<StableId, number>>;
+
+/** Whether the app calculates a turn's initiative or the DM enters its result. */
+export type InitiativeRollMode = 'app' | 'manual';
+
+/** Entry in the generated order for a configured creature turn. */
+export interface GeneratedTurnEntry {
+	/** Marks the entry as a configured creature turn. */
+	kind: 'turn';
+	/** ID of the configured turn that takes this position. */
+	turnId: StableId;
+}
+
+/** Entry in the generated order for the end-of-round Spawn step. */
+export interface GeneratedSpawnEntry {
+	/** Marks the entry as the Spawn step. */
+	kind: 'spawn';
+}
+
+/** One position in the generated play order: a creature turn or the Spawn step. */
+export type GeneratedTurnOrderEntry = GeneratedTurnEntry | GeneratedSpawnEntry;
+
+/** Entries in play order, where the first entry is the current turn; Spawn is last when freshly generated and rotates as turns advance. */
+export type GeneratedTurnOrder = GeneratedTurnOrderEntry[];
+
+/** Saved permissions for an explicit, unfinished edit of the challenge at a Spawn step. */
+export interface SpawnEditState {
+	/** IDs of creatures added during this edit, which may still be configured. */
+	newCreatureIds: StableId[];
+	/** IDs of NPC types added during this edit, which may still be configured. */
+	newNpcTypeIds: StableId[];
+	/** IDs of turns added during this edit, including a new creature's automatic first turn. */
+	newTurnIds: StableId[];
+	/** IDs of turns whose initiative results existed when editing began, and so stay locked. */
+	lockedInitiativeTurnIds: StableId[];
+}
+
+/** Saved progress from initiative collection and turn-order generation. */
+export interface ChallengeRunState {
+	/** Initiative values already collected for turns configured to roll. */
+	initiativeResults: InitiativeResults;
+	/** Generated order of turns, when one has been created. */
+	generatedTurnOrder?: GeneratedTurnOrder;
+	/** Number of Spawn steps completed while running; absent means none. */
+	spawnCount?: number;
+	/** Orders chosen by the DM for groups of tied same-faction turns; each entry lists a group's turn IDs in play order. */
+	tieDecisions?: StableId[][];
+	/** Present only while Spawn editing is active; the generated order is then only the Spawn step. */
+	spawnEdit?: SpawnEditState;
+}
+
+/** Persistent library containing saved challenges. */
+export interface ChallengeLibrary {
+	/** Schema version used to interpret this library's data. */
+	formatVersion: typeof CHALLENGE_FORMAT_VERSION;
+	/** Challenges saved in this library. */
+	challenges: Challenge[];
+}
+
+/** Stable semantic color identifiers available to distinguish challenge factions. */
+export type FactionColor =
+	'blue' | 'red' | 'green' | 'amber' | 'violet' | 'teal' | 'pink' | 'olive';
+
+/** Group used to organize creatures in a challenge's turn order. */
+export interface Faction {
+	/** Unique faction identifier. */
+	id: StableId;
+	/** Faction's display name. */
+	name: string;
+	/** Palette color selected to identify this faction. */
+	color: FactionColor;
+}
+
+/** Reusable NPC definition, including the stat used for app initiative rolls. */
+export interface NpcType {
+	/** Unique NPC type identifier. */
+	id: StableId;
+	/** NPC type's display name. */
+	name: string;
+	/** Number of d6 rolled when the app calculates this NPC's initiative. */
+	initiativeStat: number;
+}
+
+/** A creature's individual turn and its initiative setup. */
+export interface Turn {
+	/** Unique turn identifier, also used to associate initiative results. */
+	id: StableId;
+	/** How this turn is placed in the order. */
+	initiative: TurnInitiative;
+}
+
+/** Initiative rule that determines a turn's placement in the generated order. */
+export type TurnInitiative =
+	| {
+			/** Collect an initiative result for this turn. */
+			kind: 'roll';
+			/** Whether the app calculates the result or the DM enters it. */
+			mode: InitiativeRollMode;
+	  }
+	| {
+			/** Use a predetermined initiative value for this turn. */
+			kind: 'static';
+			/** Initiative value used to order the turn. */
+			value: number;
+	  }
+	| {
+			/** Place the turn at a fixed position after the initiative list is ordered. */
+			kind: 'fixed-position';
+			/** End of the ordered list from which the position is counted. */
+			from: 'top' | 'bottom';
+			/** One-based position from the selected end of the list. */
+			position: number;
+	  }
+	| {
+			/** Place the turn immediately before or after its target within a sibling group. */
+			kind: 'relative-position';
+			/** Whether this turn is placed before or after its target. */
+			relation: 'before' | 'after';
+			/** One-based order among hooks sharing this target and relation; index 1 is nearest the target. */
+			index?: number;
+			/** ID of the turn that determines this turn's relative placement. */
+			targetTurnId: StableId;
+	  };
+
+/** A challenge creature representing a player character. */
+export interface CharacterCreature {
+	/** Unique creature-instance identifier. */
+	id: StableId;
+	/** Discriminator identifying this as a character creature. */
+	kind: 'character';
+	/** Character's display name. */
+	name: string;
+	/** Optional number of d6 used when the app calculates this character's initiative. */
+	initiativeStat?: number;
+	/** ID of the faction this creature belongs to. */
+	factionId: StableId;
+	/** Whether this creature and all its turns are hidden from read-only viewers. */
+	isHidden: boolean;
+	/** Turns taken by this creature in the challenge. */
+	turns: Turn[];
+}
+
+/** An NPC instance backed by a reusable NPC type. */
+export interface NpcCreature {
+	/** Unique creature-instance identifier. */
+	id: StableId;
+	/** Discriminator identifying this as an NPC creature. */
+	kind: 'npc';
+	/** ID of the NPC type used by this creature. */
+	creatureTypeId: StableId;
+	/** Custom identifier distinguishing this NPC from others of the same type. */
+	identifier: string;
+	/** ID of the faction this creature belongs to. */
+	factionId: StableId;
+	/** Whether this creature and all its turns are hidden from read-only viewers. */
+	isHidden: boolean;
+	/** Turns taken by this creature in the challenge. */
+	turns: Turn[];
+}
+
+/** Either a character creature or an NPC creature participating in a challenge. */
+export type ChallengeCreature = CharacterCreature | NpcCreature;
+
+/** Saved challenge setup and, when present, its resumable run state. */
+export interface Challenge {
+	/** Unique challenge identifier. */
+	id: StableId;
+	/** Challenge's display name. */
+	name: string;
+	/** Date and time when the challenge was created or copied. */
+	createdAt: Date;
+	/** Date and time when the challenge was most recently modified. */
+	updatedAt: Date;
+	/** Factions available to creatures in this challenge. */
+	factions: Faction[];
+	/** NPC types available to NPC creatures in this challenge. */
+	npcTypes: NpcType[];
+	/** Non-negative weight balancing faction distribution against initiative when generating the turn order; 0 orders purely by initiative. */
+	fairnessWeight: number;
+	/** Character and NPC instances participating in this challenge. */
+	creatures: ChallengeCreature[];
+	/** Saved initiative results and generated order for resuming the challenge. */
+	runState?: ChallengeRunState;
+}
