@@ -974,7 +974,7 @@ describe('spawn editing', () => {
 			spawnEdit: {
 				newCreatureIds: [],
 				newNpcTypeIds: [],
-				newTurnIds: extra.newTurnIds ?? [],
+				newTurnIds: [...(extra.newTurnIds ?? [])],
 				lockedInitiativeTurnIds: Object.keys(initiativeResults) as StableId[]
 			}
 		};
