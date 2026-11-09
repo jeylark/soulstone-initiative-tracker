@@ -4,12 +4,14 @@
 	import { onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
+		CHALLENGE_FORMAT_VERSION,
 		loadChallengeLibraryWithDiagnostics,
 		saveChallengeToLibrary,
 		getChallengeSetupIssues,
+		saveChallengeToJsonFile,
 		type Challenge
 	} from '#lib/challenge';
-	import { ErrorDisplay, ViewPage } from '#lib/components';
+	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import RollPanel from './RollPanel.svelte';
 	import RunPanel from './RunPanel.svelte';
 	import SetupPanel from './SetupPanel.svelte';
@@ -27,6 +29,7 @@
 	let challenge = $state<Challenge>();
 	let activeTab = $state<WorkflowTab>('setup');
 	let hasSaveError = $state(false);
+	let downloadErrorDetails = $state('');
 	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
 	let saveQueue: Promise<void> = Promise.resolve();
@@ -100,6 +103,23 @@
 		}
 	}
 
+	function downloadChallenge(): void {
+		if (!challenge) return;
+		downloadErrorDetails = '';
+		try {
+			const library = {
+				formatVersion: CHALLENGE_FORMAT_VERSION,
+				challenges: [$state.snapshot(challenge)]
+			};
+			saveChallengeToJsonFile(library, challenge.id);
+		} catch (error) {
+			downloadErrorDetails =
+				error instanceof Error
+					? `${error.name}: ${error.message}`
+					: 'An unexpected error occurred.';
+		}
+	}
+
 	async function selectTab(tab: WorkflowTab): Promise<void> {
 		if (tab === activeTab || isTransitioning) return;
 		if (tab !== 'setup' && setupIssues.length > 0) return;
@@ -148,6 +168,15 @@
 	</ViewPage>
 {:else}
 	<div class="challenge-workflow">
+		<div class="workflow-actions">
+			<ActionButton variant="neutral" onclick={downloadChallenge}>Download</ActionButton>
+		</div>
+		{#if downloadErrorDetails}
+			<ErrorDisplay
+				message="The challenge could not be downloaded."
+				details={downloadErrorDetails}
+			/>
+		{/if}
 		<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
 			{#each workflowTabs as tab (tab)}
 				<button
@@ -192,6 +221,12 @@
 <style>
 	.challenge-workflow {
 		padding-top: 20px;
+	}
+
+	.workflow-actions {
+		display: flex;
+		justify-content: flex-end;
+		padding-bottom: 12px;
 	}
 
 	.workflow-tabs {
