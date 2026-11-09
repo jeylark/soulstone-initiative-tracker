@@ -25,17 +25,8 @@ under the same category, keeping its task number and wording.
 
 #### Run
 
-- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
-- 2.21: Label turn-order generation **Start challenge** and remove the
-  recalculation action while a challenge is running. This does not rename
-  the separate per-turn **Calculate roll** action.
-- 2.22: After turn-order generation starts the challenge, lock setup and
-  rolling until the challenge is reset.
-- 2.23: Show the challenge name in the run view.
-- 2.25: Remove turn numbers from card titles and order indices from run-view
-  cards.
+- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it.
 - 2.27: Rework faction colors so they stand out from the page background in light and dark mode and are distinguishable from one another.
-- 2.31: Add **Next** and **Previous** buttons to the run view.
 
 ### 3. Challenge library and file workflows
 
@@ -230,6 +221,14 @@ under the same category, keeping its task number and wording.
 - 2.13: Add the end-of-round Spawn step for adding or removing creatures.
 - 2.14: After Spawn changes, recollect initiatives as needed and regenerate
   the order.
+- 2.21: Label turn-order generation **Start challenge** and remove the
+  recalculation action while a challenge is running. This does not rename
+  the separate per-turn **Calculate roll** action.
+- 2.22: After turn-order generation starts the challenge, lock setup and
+  rolling until the challenge is reset.
+- 2.23: Show the challenge name in the run view.
+- 2.31: Add **Next** and **Previous** buttons to the run view.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 
 ### 6. Quality and release readiness
 
