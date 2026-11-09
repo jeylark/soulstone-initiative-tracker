@@ -291,3 +291,24 @@ export async function resumeLiveSession(
 	}
 	return getSessionDescriptor(body.session);
 }
+
+/**
+ * Ends a live session using its saved DM reconnect credential.
+ *
+ * An already-missing session is treated as ended so stale credentials can be cleared after a server
+ * restart.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @returns A promise that resolves when the session is ended or already missing.
+ * @throws {LiveSessionRequestError} If the server refuses the request or returns an invalid response.
+ */
+export async function endLiveSession(
+	credential: DeepReadonly<LiveSessionCredential>
+): Promise<void> {
+	const response = await fetch(`/api/sessions/${encodeURIComponent(credential.sessionId)}`, {
+		method: 'DELETE',
+		headers: new Headers([['authorization', `Bearer ${credential.reconnectToken}`]])
+	});
+	if (response.status === 204 || response.status === 404) return;
+	await readApiResponse(response);
+}

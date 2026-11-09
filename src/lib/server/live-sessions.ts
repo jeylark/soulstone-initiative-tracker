@@ -203,6 +203,28 @@ export class InMemoryLiveSessionRegistry {
 		return true;
 	}
 
+	/**
+	 * Ends an active session when its reconnect token matches.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param reconnectToken Secret returned once when the session was created.
+	 * @returns `true` when the session was ended.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
+	 */
+	endAuthorized(sessionId: string, reconnectToken: string): true {
+		const storedDigest = this.reconnectTokenDigests.get(sessionId);
+		if (!this.sessions.has(sessionId) || !storedDigest) throw new LiveSessionNotFoundError();
+
+		const suppliedDigest = this.hashReconnectToken(reconnectToken);
+		if (!timingSafeEqual(storedDigest, suppliedDigest)) {
+			throw new LiveSessionAuthorizationError();
+		}
+
+		this.end(sessionId);
+		return true;
+	}
+
 	private hashReconnectToken(reconnectToken: string): Buffer {
 		return createHash('sha256').update(reconnectToken).digest();
 	}
