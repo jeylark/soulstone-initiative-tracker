@@ -90,11 +90,12 @@
 	}
 
 	.initiative-card-tone :global(.initiative-card) {
+		border-left: 6px solid var(--faction-color, var(--color-border));
 		width: auto;
 		max-width: 100%;
 		background: color-mix(
 			in srgb,
-			var(--faction-color, var(--color-surface)) 12%,
+			var(--faction-color, var(--color-surface)) 22%,
 			var(--color-surface)
 		);
 	}

@@ -106,6 +106,6 @@ describe('Turn', () => {
 			container
 				.querySelector<HTMLElement>('.turn-order-card-tone')
 				?.style.getPropertyValue('--faction-color')
-		).toBe('#5687c8');
+		).toBe('light-dark(#1f5fbf, #5c9dff)');
 	});
 });

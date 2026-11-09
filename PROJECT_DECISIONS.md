@@ -23,6 +23,7 @@ This document records the product and architecture decisions discussed so far. I
 - A tie is two or more turns in the same faction with equal initiative, whether rolled or static. After initiatives are collected, the DM decides the order of each tied group, and the decisions are saved in the challenge's run state. Turn-order generation is blocked until every tie is resolved, and the unresolved groups are shown to the DM. Rerolling a turn discards the decisions for tie groups it belonged to; recalculating the order keeps the remaining decisions. Ties between turns in different factions are not decided by the DM; the fairness weight handles them.
 - The DM can hide or show a creature's turns in the list. In the DM view, hidden turns remain visible but are greyed out and are skipped by **Next turn**. In read-only view, hidden turns are omitted.
 - At the end of the turn list, each round has a **Spawn** step. The DM can add creatures to or remove creatures from the challenge there. Changes may require the turn order to be recalculated.
+- Faction colors have a separate hex for light and dark mode (applied via CSS `light-dark()`). Each color keeps at least 3:1 contrast against its theme's card surface and a CIELAB distance of at least 30 from every other color in the same theme. Turn cards tint their background with the faction color and show a solid faction-colored left border.
 
 ## Challenge workflow
 

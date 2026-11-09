@@ -655,7 +655,14 @@ describe('running challenge storage', () => {
 		const cardTints = [...document.querySelectorAll<HTMLElement>('.initiative-card-tone')].map(
 			(card) => card.style.getPropertyValue('--faction-color')
 		);
-		expect(cardTints).toEqual(['#5687c8', '#5687c8', '#5687c8', '#5687c8', '#c76a6e', '#c76a6e']);
+		expect(cardTints).toEqual([
+			'light-dark(#1f5fbf, #5c9dff)',
+			'light-dark(#1f5fbf, #5c9dff)',
+			'light-dark(#1f5fbf, #5c9dff)',
+			'light-dark(#1f5fbf, #5c9dff)',
+			'light-dark(#d32f2f, #ff6b6b)',
+			'light-dark(#d32f2f, #ff6b6b)'
+		]);
 	});
 
 	it('rolls and rerolls app turns by their initiative stats and restores results', async () => {

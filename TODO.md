@@ -34,7 +34,7 @@ under the same category, keeping its task number and wording.
 - 2.23: Show the challenge name in the run view.
 - 2.25: Remove turn numbers from card titles and order indices from run-view
   cards.
-- 2.27: Make faction colors stand out more clearly from the background.
+- 2.27: Rework faction colors so they stand out from the page background in light and dark mode and are distinguishable from one another.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
 
 ### 3. Challenge library and file workflows

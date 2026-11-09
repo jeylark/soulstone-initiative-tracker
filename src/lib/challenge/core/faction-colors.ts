@@ -6,20 +6,41 @@ interface FactionColorOption {
 	readonly value: FactionColor;
 	/** Human-readable color name shown in the selector. */
 	readonly label: string;
-	/** CSS hex color used to render the swatch. */
+	/** Hex color tuned for the light theme's surface. */
+	readonly lightHex: string;
+	/** Hex color tuned for the dark theme's surface. */
+	readonly darkHex: string;
+	/** CSS `light-dark()` color that follows the active theme's `color-scheme`. */
 	readonly hex: string;
+}
+
+/**
+ * Builds a palette option whose CSS color switches with the active theme.
+ * @param value Stable semantic identifier.
+ * @param label Human-readable name.
+ * @param lightHex Hex color for the light theme.
+ * @param darkHex Hex color for the dark theme.
+ * @returns The complete palette option.
+ */
+function color(
+	value: FactionColor,
+	label: string,
+	lightHex: string,
+	darkHex: string
+): FactionColorOption {
+	return { value, label, lightHex, darkHex, hex: `light-dark(${lightHex}, ${darkHex})` };
 }
 
 /** Palette of supported faction colors in default-selection preference order. */
 export const FACTION_COLORS: readonly FactionColorOption[] = [
-	{ value: 'blue', label: 'Blue', hex: '#5687c8' },
-	{ value: 'red', label: 'Red', hex: '#c76a6e' },
-	{ value: 'green', label: 'Green', hex: '#4a906b' },
-	{ value: 'amber', label: 'Amber', hex: '#a87930' },
-	{ value: 'violet', label: 'Violet', hex: '#9279be' },
-	{ value: 'teal', label: 'Teal', hex: '#4a8f91' },
-	{ value: 'pink', label: 'Pink', hex: '#b96693' },
-	{ value: 'olive', label: 'Olive', hex: '#788842' }
+	color('blue', 'Blue', '#1f5fbf', '#5c9dff'),
+	color('red', 'Red', '#d32f2f', '#ff6b6b'),
+	color('green', 'Green', '#2e8b3e', '#4fd16a'),
+	color('amber', 'Amber', '#c77300', '#ffb020'),
+	color('violet', 'Violet', '#7b3fc4', '#b085ff'),
+	color('teal', 'Teal', '#00899a', '#26d0e0'),
+	color('pink', 'Pink', '#d6247f', '#ff6eb4'),
+	color('olive', 'Olive', '#7d7d00', '#c5c53a')
 ];
 
 /**
