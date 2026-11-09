@@ -303,6 +303,9 @@ function mergeImportedChallenge(
 	).map(sanitizeChallenge);
 	const retainedLibrary = { ...library, challenges: retainedChallenges };
 	const usedIds = new Set(getLibraryEntityIds(retainedLibrary));
+	if (options?.resolution === 'copy') {
+		for (const id of getLibraryEntityIds(importedLibrary)) usedIds.add(id);
+	}
 	const remapped = importChallengeEntities(importedChallenge, usedIds);
 	const sanitizedChallenge = sanitizeChallenge(remapped.challenge);
 	const copyTimestamp = options?.resolution === 'copy' ? new Date() : undefined;
