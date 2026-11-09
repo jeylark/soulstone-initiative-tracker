@@ -392,8 +392,8 @@
 		if (!canManageCreaturesAndTurns) return;
 		if (!newNpcTypeId) return;
 
-		const existingNpcs = challenge.creatures.filter(
-			(creature) => creature.kind === 'npc' && creature.creatureTypeId === newNpcTypeId
+		const existingNpcs = challenge.creatures.flatMap((creature) =>
+			creature.kind === 'npc' && creature.creatureTypeId === newNpcTypeId ? [creature] : []
 		);
 		const blankIdentifierNpcs = existingNpcs.filter((creature) => creature.identifier === '');
 		const lockedBlankIdentifierNpcs = blankIdentifierNpcs.filter(
