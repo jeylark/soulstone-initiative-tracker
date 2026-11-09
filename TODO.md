@@ -34,8 +34,6 @@ under the same category, keeping its task number and wording.
   importing data.
 - 3.8: Ask before migrating older supported formats.
 - 3.9: Explain when an unsupported format needs a compatible app version.
-- 3.2: Add UI for restoring the whole library only after the complete backup
-  has validated; leave existing data unchanged on failure.
 - 3.6: Present partial-import issues and require confirmation before importing
   valid sections; import the challenge only when its structure and references
   are complete and valid.
@@ -231,6 +229,8 @@ under the same category, keeping its task number and wording.
 ### 3. Challenge library and file workflows
 
 - 3.1: Add UI for backing up the whole library.
+- 3.2: Add UI for restoring the whole library only after the complete backup
+  has validated; leave existing data unchanged on failure.
 - 3.3: Add UI for saving one challenge with run state (including tie
   decisions).
 
