@@ -28,7 +28,7 @@ beforeEach(async () => {
 });
 
 describe('turn list', () => {
-	it('renders faction-colored cards without position indices or faction names', async () => {
+	it('renders faction-titled, faction-colored cards without position indices', async () => {
 		const challenge = createRunChallenge();
 		challenge.creatures[1]!.factionId = '00000000-0000-4000-8000-000000000003' as StableId;
 		challenge.runState!.generatedTurnOrder = [
@@ -43,13 +43,13 @@ describe('turn list', () => {
 		const savedOrder = await screen.findByRole('list', { name: 'Generated turn order' });
 		const items = within(savedOrder).getAllByRole('listitem');
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
-			'Rook',
-			'Aria',
+			'Enemies',
+			'Players',
 			'Spawn'
 		]);
 		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
-		expect(items[0]?.textContent).not.toContain('Enemies');
-		expect(items[1]?.textContent).not.toContain('Players');
+		expect(items[0]?.querySelector('.turn-order-creature-name')?.textContent).toBe('Rook');
+		expect(items[1]?.querySelector('.turn-order-creature-name')?.textContent).toBe('Aria');
 		expect(
 			items.map((item) =>
 				item
