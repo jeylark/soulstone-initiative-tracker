@@ -107,6 +107,19 @@ afterEach(async () => {
 });
 
 describe('challenge file workflows', () => {
+	it('assigns fresh IDs to every copied entity even without local identity collisions', async () => {
+		const readResult = await readChallengeFile(createChallengeJson(library, challengeId));
+		const copied = prepareChallengeImport(emptyLibrary, readResult, {
+			resolution: 'copy'
+		}).challenge;
+		expect(copied.id).not.toBe(challengeId);
+		expect(copied.factions[0]?.id).not.toBe(factionId);
+		expect(copied.creatures[0]?.id).not.toBe(creatureId);
+		expect(copied.creatures[0]?.turns[0]?.id).not.toBe(turnId);
+		expect(copied.creatures[0]?.turns[1]?.id).not.toBe(secondTurnId);
+		expect(validateChallengeLibrary({ formatVersion: 1, challenges: [copied] }).isValid).toBe(true);
+	});
+
 	it('saves a running challenge snapshot with its initiative state', async () => {
 		const createObjectUrl = vi.fn(() => 'blob:challenge');
 		const revokeObjectUrl = vi.fn();

@@ -6,6 +6,7 @@ import {
 	loadChallengeLibrary,
 	loadChallengeLibraryWithDiagnostics,
 	saveChallengeLibrary,
+	saveChallengesToLibrary,
 	saveChallengeToLibrary
 } from './storage';
 import { createUuid } from '../core/uuid';
@@ -77,6 +78,39 @@ beforeEach(async () => {
 });
 
 describe('challenge library storage', () => {
+	it('saves a batch together while retaining existing challenges and unreadable records', async () => {
+		await seedStoredLibrary({
+			...library,
+			challenges: [...library.challenges, { name: 'Broken' }]
+		});
+		const imported = [createChallenge('First'), createChallenge('Second')];
+		await saveChallengesToLibrary(imported, indexedDbFactory);
+		const result = await loadChallengeLibraryWithDiagnostics(indexedDbFactory);
+		expect(result.library.challenges).toEqual([...library.challenges, ...imported]);
+		expect(result.unreadableChallenges[0]?.name).toBe('Broken');
+	});
+
+	it('leaves storage unchanged when any challenge in a batch has conflicting identities', async () => {
+		await saveChallengeLibrary(library, indexedDbFactory);
+		const first = createChallenge('First');
+		const second: Challenge = {
+			...createChallenge('Second'),
+			factions: [{ id: first.id, name: 'Conflict', color: 'blue' }]
+		};
+		await expect(saveChallengesToLibrary([first, second], indexedDbFactory)).rejects.toBeInstanceOf(
+			ChallengeLibraryValidationError
+		);
+		expect(await loadChallengeLibrary(indexedDbFactory)).toEqual(library);
+	});
+
+	it('keeps editable invalid drafts when adding a batch', async () => {
+		const draft = { ...createChallenge('Draft'), fairnessWeight: -1 };
+		await saveChallengeToLibrary(draft, indexedDbFactory);
+		const imported = [createChallenge('First'), createChallenge('Second')];
+		await saveChallengesToLibrary(imported, indexedDbFactory);
+		expect((await loadChallengeLibrary(indexedDbFactory)).challenges).toEqual([draft, ...imported]);
+	});
+
 	it('returns an empty versioned library when none has been saved', async () => {
 		await expect(loadChallengeLibrary(indexedDbFactory)).resolves.toEqual(emptyLibrary);
 	});

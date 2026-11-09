@@ -319,15 +319,37 @@ export async function saveChallengeToLibrary(
 	challenge: DeepReadonly<Challenge>,
 	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
 ): Promise<void> {
+	await saveChallengesToLibrary([challenge], indexedDbFactory);
+}
+
+/**
+ * Saves a batch of challenges in one write, replacing readable challenges with matching IDs.
+ * Unrelated challenges, editable drafts, and unreadable raw records are preserved.
+ * @param challenges Challenges to add or replace; all must have distinct identities.
+ * @param indexedDbFactory IndexedDB factory used for storage; defaults to the browser's global factory.
+ * @returns A promise that resolves after the entire batch has been saved.
+ * @throws {ChallengeLibraryValidationError} If any challenge is unreadable, identities conflict, or the stored envelope is unsupported.
+ * @throws {ChallengeLibraryStorageError} If storage cannot be accessed or the batch write fails.
+ */
+export async function saveChallengesToLibrary(
+	challenges: DeepReadonly<readonly Challenge[]>,
+	indexedDbFactory: Readonly<IDBFactory> = globalThis.indexedDB
+): Promise<void> {
 	const storedLibrary = await readStoredLibraryValue(indexedDbFactory);
 	const rawChallenges = storedLibrary.hasValue ? getStoredChallenges(storedLibrary.value) : [];
 	const recovery = storedLibrary.hasValue
 		? recoverLibrary(storedLibrary.value)
 		: { library: createEmptyChallengeLibrary(), unreadableChallenges: [] };
-	const id = challenge.id.toLowerCase();
+	const ids = new Set(challenges.map(({ id }) => id.toLowerCase()));
 	if (
-		!recovery.library.challenges.some((saved) => saved.id.toLowerCase() === id) &&
-		recovery.unreadableChallenges.some((entry) => entry.id?.toLowerCase() === id)
+		recovery.unreadableChallenges.some(
+			(entry) =>
+				entry.id !== undefined &&
+				ids.has(entry.id.toLowerCase()) &&
+				!recovery.library.challenges.some(
+					(saved) => saved.id.toLowerCase() === entry.id?.toLowerCase()
+				)
+		)
 	) {
 		throw new ChallengeLibraryValidationError([
 			{ path: '$.id', message: 'An unreadable saved challenge already uses this identifier.' }
@@ -337,8 +359,8 @@ export async function saveChallengeToLibrary(
 		sanitizeChallengeLibraryData({
 			formatVersion: CHALLENGE_FORMAT_VERSION,
 			challenges: [
-				...recovery.library.challenges.filter((saved) => saved.id.toLowerCase() !== id),
-				challenge
+				...recovery.library.challenges.filter((saved) => !ids.has(saved.id.toLowerCase())),
+				...challenges
 			]
 		})
 	);
@@ -347,16 +369,18 @@ export async function saveChallengeToLibrary(
 		result.value.challenges.map((saved) => [saved.id.toLowerCase(), saved])
 	);
 	const unreadableIndices = new Set(recovery.unreadableChallenges.map((entry) => entry.index));
-	let hasChallenge = false;
-	const challenges = rawChallenges.map((saved, index) => {
+	const retainedIds = new Set<string>();
+	const mergedChallenges = rawChallenges.map((saved, index) => {
 		if (unreadableIndices.has(index)) return saved;
 		const savedId = (saved as Readonly<Challenge>).id.toLowerCase();
-		if (savedId === id) hasChallenge = true;
+		retainedIds.add(savedId);
 		return readableById.get(savedId);
 	});
-	if (!hasChallenge) challenges.push(readableById.get(id));
+	for (const id of ids) {
+		if (!retainedIds.has(id)) mergedChallenges.push(readableById.get(id));
+	}
 	await writeStoredLibrary(
-		{ formatVersion: CHALLENGE_FORMAT_VERSION, challenges },
+		{ formatVersion: CHALLENGE_FORMAT_VERSION, challenges: mergedChallenges },
 		indexedDbFactory
 	);
 }

@@ -1,13 +1,19 @@
-import { IDBFactory } from 'fake-indexeddb';
+import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './+page.svelte';
 import {
 	loadChallengeLibrary,
 	loadChallengeLibraryWithDiagnostics,
-	saveChallengeToLibrary
+	saveChallengeToLibrary,
+	createChallengeLibraryJson,
+	createUuid
 } from '#lib/challenge';
-import { createSetupChallenge, seedStoredChallengeLibrary } from '../view-test-support';
+import {
+	createSetupChallenge,
+	createSpawnEditChallenge,
+	seedStoredChallengeLibrary
+} from '../view-test-support';
 
 const { mockedGoto } = vi.hoisted(() => ({ mockedGoto: vi.fn() }));
 
@@ -24,6 +30,224 @@ beforeEach(() => {
 });
 
 describe('challenge hub', () => {
+	async function uploadLibrary(json: string): Promise<void> {
+		await fireEvent.change(screen.getByLabelText('Library JSON file'), {
+			target: { files: [new File([json], 'library.json', { type: 'application/json' })] }
+		});
+	}
+
+	it('merges all uploaded challenges only after confirmation and refreshes the cards', async () => {
+		const local = { ...createSetupChallenge(), name: 'Local' };
+		await saveChallengeToLibrary(local);
+		const imported = [1, 2].map((number) => ({
+			...createSetupChallenge(),
+			id: createUuid(),
+			name: `Imported ${number}`,
+			factions: []
+		}));
+		render(savedChallengesPage);
+		await screen.findByText('Local');
+		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: imported }));
+		await screen.findByRole('button', { name: 'Import challenges' });
+		expect((await loadChallengeLibrary()).challenges).toEqual([local]);
+		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('heading', { name: 'Imported 2' });
+		expect((await loadChallengeLibrary()).challenges).toEqual([local, ...imported]);
+		expect(screen.getByRole('status').textContent).toContain('2 challenges imported');
+		await vi.waitFor(() =>
+			expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload Library' }))
+		);
+	});
+
+	it.each(['replace', 'copy', 'skip'])(
+		'asks how to %s a duplicate challenge',
+		async (resolution) => {
+			const local = { ...createSetupChallenge(), name: 'Local' };
+			const imported = { ...local, name: 'Uploaded' };
+			await saveChallengeToLibrary(local);
+			render(savedChallengesPage);
+			await screen.findByText('Local');
+			await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: [imported] }));
+			const choice = await screen.findByRole('combobox', { name: 'Uploaded' });
+			expect(
+				screen.getByRole('button', { name: 'Import challenges' }).hasAttribute('disabled')
+			).toBe(true);
+			await fireEvent.change(choice, { target: { value: resolution } });
+			await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+			await screen.findByRole('status');
+			const saved = (await loadChallengeLibrary()).challenges;
+			if (resolution === 'replace') expect(saved).toEqual([imported]);
+			if (resolution === 'skip') expect(saved).toEqual([local]);
+			if (resolution === 'copy') {
+				expect(saved).toHaveLength(2);
+				expect(saved[0]).toEqual(local);
+				expect(saved[1]?.name).toBe('Uploaded');
+				expect(saved[1]?.id).not.toBe(local.id);
+				expect(saved[1]?.factions[0]?.id).not.toBe(local.factions[0]?.id);
+			}
+		}
+	);
+
+	it('cancels without saving and permits selecting the same file again', async () => {
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		const json = createChallengeLibraryJson({
+			formatVersion: 1,
+			challenges: [createSetupChallenge()]
+		});
+		await uploadLibrary(json);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Cancel import' }));
+		await vi.waitFor(() =>
+			expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload Library' }))
+		);
+		expect((await loadChallengeLibrary()).challenges).toEqual([]);
+		await uploadLibrary(json);
+		expect(await screen.findByRole('button', { name: 'Import challenges' })).toBeTruthy();
+	});
+
+	it.each([
+		'not json',
+		'{"formatVersion":99,"challenges":[]}',
+		JSON.stringify({ formatVersion: 1, challenges: [createSetupChallenge(), { name: 'Broken' }] })
+	])('rejects invalid uploads without changing the saved library', async (json) => {
+		const local = { ...createSetupChallenge(), name: 'Local' };
+		await saveChallengeToLibrary(local);
+		render(savedChallengesPage);
+		await screen.findByText('Local');
+		await uploadLibrary(json);
+		expect(await screen.findByText('The challenge library could not be uploaded.')).toBeTruthy();
+		expect((await loadChallengeLibrary()).challenges).toEqual([local]);
+		expect(screen.queryByRole('button', { name: 'Import challenges' })).toBeNull();
+	});
+
+	it('preserves unreadable local records while importing', async () => {
+		await seedStoredChallengeLibrary({ formatVersion: 1, challenges: [{ name: 'Broken' }] });
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		await uploadLibrary(
+			createChallengeLibraryJson({ formatVersion: 1, challenges: [createSetupChallenge()] })
+		);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		const saved = await loadChallengeLibraryWithDiagnostics();
+		expect(saved.library.challenges).toHaveLength(1);
+		expect(saved.unreadableChallenges[0]?.name).toBe('Broken');
+	});
+
+	it('opens the file picker from the upload button', async () => {
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		const click = vi.spyOn(screen.getByLabelText('Library JSON file'), 'click');
+		await fireEvent.click(screen.getByRole('button', { name: 'Upload Library' }));
+		expect(click).toHaveBeenCalledOnce();
+	});
+
+	it('requires an independent decision for every conflict before saving a mixed merge', async () => {
+		const local = [1, 2, 3].map((number) => ({
+			...createSetupChallenge(),
+			id: createUuid(),
+			name: `Local ${number}`,
+			factions: []
+		}));
+		await seedStoredChallengeLibrary({ formatVersion: 1, challenges: local });
+		const imported = local.map((challenge, index) => ({
+			...challenge,
+			name: `Uploaded ${index + 1}`
+		}));
+		render(savedChallengesPage);
+		await screen.findByText('Local 1');
+		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: imported }));
+		await fireEvent.change(await screen.findByRole('combobox', { name: 'Uploaded 1' }), {
+			target: { value: 'replace' }
+		});
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Uploaded 2' }), {
+			target: { value: 'copy' }
+		});
+		expect(screen.getByRole('button', { name: 'Import challenges' }).hasAttribute('disabled')).toBe(
+			true
+		);
+		expect((await loadChallengeLibrary()).challenges).toEqual(local);
+		await fireEvent.change(screen.getByRole('combobox', { name: 'Uploaded 3' }), {
+			target: { value: 'skip' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		const saved = (await loadChallengeLibrary()).challenges;
+		expect(saved.map(({ name }) => name)).toEqual([
+			'Uploaded 1',
+			'Local 2',
+			'Local 3',
+			'Uploaded 2'
+		]);
+		expect(saved[3]?.id).not.toBe(local[1]?.id);
+	});
+
+	it('preserves dates and saved progress when importing a running challenge', async () => {
+		const challenge = createSpawnEditChallenge();
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: [challenge] }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		expect((await loadChallengeLibrary()).challenges).toEqual([challenge]);
+	});
+
+	it('offers copy or skip for an unreadable duplicate without deleting the original', async () => {
+		const challenge = { ...createSetupChallenge(), name: 'Uploaded' };
+		await seedStoredChallengeLibrary({
+			formatVersion: 1,
+			challenges: [{ id: challenge.id, name: 'Broken' }]
+		});
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: [challenge] }));
+		const choice = await screen.findByRole('combobox', { name: 'Uploaded' });
+		expect(screen.queryByRole('option', { name: 'Replace existing challenge' })).toBeNull();
+		await fireEvent.change(choice, { target: { value: 'copy' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		const saved = await loadChallengeLibraryWithDiagnostics();
+		expect(saved.unreadableChallenges[0]?.id).toBe(challenge.id);
+		expect(saved.library.challenges[0]?.id).not.toBe(challenge.id);
+	});
+
+	it('reports file-read errors without offering an import', async () => {
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		const file = new File([], 'unreadable.json');
+		vi.spyOn(file, 'text').mockRejectedValue(new Error('Read failed'));
+		await fireEvent.change(screen.getByLabelText('Library JSON file'), {
+			target: { files: [file] }
+		});
+		expect(await screen.findByText('The challenge library could not be uploaded.')).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Import challenges' })).toBeNull();
+	});
+
+	it('retains the pending import for retry after a failed batch write', async () => {
+		const local = { ...createSetupChallenge(), name: 'Local' };
+		await saveChallengeToLibrary(local);
+		const imported = [1, 2].map((number) => ({
+			...createSetupChallenge(),
+			id: createUuid(),
+			name: `Imported ${number}`,
+			factions: []
+		}));
+		render(savedChallengesPage);
+		await screen.findByText('Local');
+		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: imported }));
+		await screen.findByRole('button', { name: 'Import challenges' });
+		const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+			throw new DOMException('Storage full', 'QuotaExceededError');
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+		await screen.findByText('The challenge library could not be uploaded.');
+		expect((await loadChallengeLibrary()).challenges).toEqual([local]);
+		put.mockRestore();
+		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		expect((await loadChallengeLibrary()).challenges).toEqual([local, ...imported]);
+	});
+
 	it('reports unreadable challenges alongside healthy cards and permits creation without deleting them', async () => {
 		const challenge = { ...createSetupChallenge(), name: 'Healthy' };
 		await seedStoredChallengeLibrary({
