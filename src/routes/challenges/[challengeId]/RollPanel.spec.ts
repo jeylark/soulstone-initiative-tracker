@@ -947,9 +947,12 @@ describe('spawn editing', () => {
 	);
 
 	async function saveEditingChallenge(
-		turns: readonly { id: StableId; mode: 'manual' | 'app' }[],
-		initiativeResults: Record<StableId, number>,
-		extra: { tieDecisions?: StableId[][]; newTurnIds?: StableId[] } = {}
+		turns: readonly { readonly id: StableId; readonly mode: 'manual' | 'app' }[],
+		initiativeResults: Readonly<Record<StableId, number>>,
+		extra: {
+			readonly tieDecisions?: readonly (readonly StableId[])[];
+			readonly newTurnIds?: readonly StableId[];
+		} = {}
 	): Promise<void> {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [
@@ -978,8 +981,8 @@ describe('spawn editing', () => {
 		await saveChallengeToLibrary(challenge);
 	}
 
-	function isDisabled(element: HTMLElement): boolean {
-		return (element as HTMLButtonElement | HTMLInputElement).matches(':disabled');
+	function isDisabled(element: Pick<HTMLElement, 'matches'>): boolean {
+		return element.matches(':disabled');
 	}
 
 	it('locks collected results but lets missing results be collected', async () => {
