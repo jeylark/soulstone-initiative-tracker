@@ -21,7 +21,6 @@ under the same category, keeping its task number and wording.
 #### Rolling
 
 - 2.16: Add an animated "rolling" effect for initiative rolls.
-- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 
 ### 3. Challenge library and file workflows
 
@@ -190,6 +189,7 @@ under the same category, keeping its task number and wording.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
 - 2.35: Validate setup values.
