@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -78,5 +78,55 @@ describe('writeDiagnosticLog', () => {
 		expect(serialized).not.toContain('VIEWER-SECRET');
 		expect(serialized).not.toContain('TOKEN-SECRET');
 		expect(serialized).not.toContain('AUTH-SECRET');
+	});
+
+	it('rotates log files and evicts the oldest entries to stay within the retained-size limit', () => {
+		logDirectory = mkdtempSync(join(tmpdir(), 'soulstone-diagnostics-'));
+		const logPath = join(logDirectory, 'diagnostics.jsonl');
+		const maxRetainedLogSizeBytes = 600;
+
+		for (let index = 1; index <= 6; index += 1) {
+			writeDiagnosticLog(
+				{
+					severity: 'info',
+					event: `event-${index}`,
+					source: '/test',
+					correlationId: `request-${index}`
+				},
+				logPath,
+				maxRetainedLogSizeBytes
+			);
+		}
+
+		const logFiles = readdirSync(logDirectory)
+			.filter((fileName) => fileName.startsWith('diagnostics.jsonl'))
+			.map((fileName) => join(logDirectory, fileName));
+		const totalSize = logFiles.reduce((size, filePath) => size + statSync(filePath).size, 0);
+		const retainedEvents = logFiles
+			.flatMap((filePath) => readLogEntries(filePath).map((entry) => entry.event))
+			.sort((left, right) => String(left).localeCompare(String(right)));
+
+		expect(logFiles).toContain(logPath);
+		expect(totalSize).toBeLessThanOrEqual(maxRetainedLogSizeBytes);
+		expect(retainedEvents).toEqual(['event-3', 'event-4', 'event-5', 'event-6']);
+	});
+
+	it('rejects a record larger than the retained-size limit without writing it', () => {
+		logDirectory = mkdtempSync(join(tmpdir(), 'soulstone-diagnostics-'));
+		const logPath = join(logDirectory, 'diagnostics.jsonl');
+
+		expect(() =>
+			writeDiagnosticLog(
+				{
+					severity: 'info',
+					event: 'too-large',
+					source: '/test',
+					correlationId: 'request-id'
+				},
+				logPath,
+				1
+			)
+		).toThrow('The diagnostic log entry exceeds the retained log size limit.');
+		expect(readdirSync(logDirectory)).toEqual([]);
 	});
 });

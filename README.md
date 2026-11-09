@@ -66,3 +66,8 @@ Entries include a timestamp, severity, event, source route, correlation ID, and
 safe request metadata. Error records include stack frames but omit error
 messages. Request URLs and bodies, challenge contents, viewer codes, reconnect
 tokens, and authorization headers are not logged.
+The active log rotates into numbered `.1` through `.4` archives. Rotation keeps
+the combined size of the active file and archives within
+`maxRetainedLogSizeBytes`, removing the oldest archives first. An individual
+record larger than that limit is rejected rather than exceeding the configured
+bound.

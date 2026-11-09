@@ -52,8 +52,6 @@ under the same category, keeping its task number and wording.
 
 ### 5. Hosting and operations
 
-- 5.3: Add bounded log rotation and retention using the configured maximum
-  retained log size.
 - 5.4: Document configuration-change behavior and session loss on server
   restart.
 - 5.5: Document reverse-proxy requirements for long-lived SSE.
@@ -212,6 +210,8 @@ under the same category, keeping its task number and wording.
 - 5.2: Write structured diagnostic logs to the mounted directory and exclude
   challenge contents, viewer codes, reconnect tokens, and authorization
   headers.
+- 5.3: Add bounded log rotation and retention using the configured maximum
+  retained log size.
 
 ### 6. Quality and release readiness
 
