@@ -223,6 +223,28 @@ describe('turn-order run route', () => {
 		expect(screen.getByRole('button', { name: 'End live session' })).toBeTruthy();
 	});
 
+	it('shows the server message when the active-session limit is reached', async () => {
+		const challenge = createRunChallenge();
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json(
+						{ message: 'The server has reached its active session limit.' },
+						{ status: 503 }
+					)
+				)
+		);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+
+		expect(
+			await screen.findByText(/The server has reached its active session limit\./)
+		).toBeTruthy();
+	});
+
 	it('resumes a saved live session with its authorization header after reload', async () => {
 		const challenge = createRunChallenge();
 		const credential: LiveSessionCredential = {
@@ -276,6 +298,31 @@ describe('turn-order run route', () => {
 
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+	});
+
+	it('removes reconnect credentials when the server reports an ended session', async () => {
+		const challenge = createRunChallenge();
+		const credential: LiveSessionCredential = {
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		};
+		await saveLiveSessionCredential(credential);
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'The live session is no longer active.' }, { status: 404 })
+				)
+		);
+
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await waitFor(async () =>
+			expect(await loadLiveSessionCredential(challenge.id)).toBeUndefined()
+		);
+		expect(await screen.findByRole('button', { name: 'Start live session' })).toBeTruthy();
 	});
 
 	it('restores a saved order without offering generation again', async () => {

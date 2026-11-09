@@ -30,7 +30,9 @@ describe('in-memory live session registry', () => {
 
 		expect(session.id).toBeTruthy();
 		expect(session.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
-		expect(registry.findByViewerCode(session.viewerCode.toLowerCase())).toEqual(session);
+		const lowercaseViewerCode = session.viewerCode.toLowerCase();
+		expect(registry.findByViewerCode(lowercaseViewerCode)).toEqual(session);
+		expect(registry.findByViewerCode(lowercaseViewerCode.toUpperCase())).toEqual(session);
 	});
 
 	it('isolates the stored challenge from input and returned mutations', () => {
