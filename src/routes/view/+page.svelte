@@ -1,24 +1,38 @@
 <script lang="ts">
 	import { ActionButton, TextInput, ViewPage } from '#lib/components';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { joinLiveSession, LiveSessionRequestError } from '../../lib/live-session-client';
 
 	let sessionCode = $state('');
 	let invalidMessage = $state('');
-	let hasSubmittedValidCode = $state(false);
+	let isJoining = $state(false);
 
-	function submitSessionCode() {
+	async function submitSessionCode(): Promise<void> {
+		if (isJoining) return;
 		sessionCode = sessionCode.trim().toUpperCase();
-		hasSubmittedValidCode = false;
 		if (!sessionCode) {
 			invalidMessage = 'Enter a session code.';
 			return;
 		}
 		if (!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/.test(sessionCode)) {
-			invalidMessage =
-				'Enter an 8-character code using letters A-Z (except I and O) and numbers 2-9.';
+			invalidMessage = 'Enter an 8-character code.';
 			return;
 		}
 		invalidMessage = '';
-		hasSubmittedValidCode = true;
+		const submittedCode = sessionCode;
+		isJoining = true;
+		try {
+			await joinLiveSession(submittedCode);
+			await goto(resolve('/view/[sessioncode]', { sessioncode: submittedCode }));
+		} catch (error) {
+			invalidMessage =
+				error instanceof LiveSessionRequestError
+					? error.message
+					: 'Unable to join the live session. Check the code and try again.';
+		} finally {
+			isJoining = false;
+		}
 	}
 </script>
 
@@ -26,7 +40,7 @@
 	<form
 		onsubmit={(event) => {
 			event.preventDefault();
-			submitSessionCode();
+			void submitSessionCode();
 		}}
 	>
 		<TextInput
@@ -35,17 +49,17 @@
 			value={sessionCode}
 			autocomplete="off"
 			spellcheck={false}
+			disabled={isJoining}
 			isInvalid={invalidMessage !== ''}
 			{invalidMessage}
 			oninput={(event) => {
 				sessionCode = event.currentTarget.value;
 				invalidMessage = '';
-				hasSubmittedValidCode = false;
 			}}
 		/>
-		<ActionButton type="submit">Join session</ActionButton>
-		{#if hasSubmittedValidCode}
-			<p role="status">Joining live sessions is not available yet.</p>
+		<ActionButton type="submit" disabled={isJoining}>Join session</ActionButton>
+		{#if isJoining}
+			<p role="status">Joining live session...</p>
 		{/if}
 	</form>
 </ViewPage>

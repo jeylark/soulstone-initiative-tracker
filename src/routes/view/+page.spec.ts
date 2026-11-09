@@ -1,10 +1,21 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import joinSessionPage from './+page.svelte';
+
+const { mockedGoto, mockedResolve } = vi.hoisted(() => ({
+	mockedGoto: vi.fn(),
+	mockedResolve: vi.fn(
+		(_route: string, params: { sessioncode: string }) => `/view/${params.sessioncode}`
+	)
+}));
+
+vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
+vi.mock('$app/paths', () => ({ resolve: mockedResolve }));
 
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.clearAllMocks();
 });
 
 describe('viewer entry page', () => {
@@ -53,29 +64,102 @@ describe('viewer entry page', () => {
 		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
-		expect(screen.getByRole('alert').textContent).toBe(
-			'Enter an 8-character code using letters A-Z (except I and O) and numbers 2-9.'
-		);
+		expect(screen.getByRole('alert').textContent).toBe('Enter an 8-character code.');
 		expect(screen.queryByRole('status')).toBeNull();
 	});
 
 	it.each(['ABC2345Z', 'abc2345z', '  abc2345z  '])(
-		'normalizes a valid code %j and reports that joining is unavailable without a request',
+		'normalizes a valid code %j and navigates after the active session is found',
 		async (code) => {
-			const fetchSpy = vi.spyOn(globalThis, 'fetch');
+			const fetchMock = vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } })
+				);
+			vi.stubGlobal('fetch', fetchMock);
 			render(joinSessionPage);
 			const input = screen.getByRole('textbox', { name: 'Session code' });
 			await fireEvent.input(input, { target: { value: code } });
 			await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
+			await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/ABC2345Z'));
 			expect((input as HTMLInputElement).value).toBe('ABC2345Z');
-			expect(screen.getByRole('status').textContent).toBe(
-				'Joining live sessions is not available yet.'
+			expect(fetchMock).toHaveBeenCalledWith(
+				'/api/sessions/join',
+				expect.objectContaining({
+					method: 'POST',
+					body: JSON.stringify({ viewerCode: 'ABC2345Z' })
+				})
 			);
+			expect(mockedResolve).toHaveBeenCalledWith('/view/[sessioncode]', {
+				sessioncode: 'ABC2345Z'
+			});
 			expect(screen.queryByRole('alert')).toBeNull();
-			expect(fetchSpy).not.toHaveBeenCalled();
 		}
 	);
+
+	it('shows the inactive-session error without navigating', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'No active session was found for this code.' }, { status: 404 })
+				)
+		);
+		render(joinSessionPage);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
+			target: { value: 'ABC2345Z' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
+
+		expect((await screen.findByRole('alert')).textContent).toBe(
+			'No active session was found for this code.'
+		);
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('shows a safe error when the join request cannot reach the server', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof fetch>().mockRejectedValue(new Error('Connection refused.'))
+		);
+		render(joinSessionPage);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
+			target: { value: 'ABC2345Z' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
+
+		expect((await screen.findByRole('alert')).textContent).toBe(
+			'Unable to join the live session. Check the code and try again.'
+		);
+		expect(mockedGoto).not.toHaveBeenCalled();
+	});
+
+	it('prevents duplicate submissions while the lookup is pending', async () => {
+		let resolveFetch: (response: Response) => void = () => undefined;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof fetch>().mockReturnValue(
+				new Promise((resolve) => {
+					resolveFetch = resolve;
+				})
+			)
+		);
+		render(joinSessionPage);
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
+			target: { value: 'ABC2345Z' }
+		});
+		const joinButton = screen.getByRole('button', { name: 'Join session' });
+		const sessionCodeInput = screen.getByRole('textbox', { name: 'Session code' });
+		await fireEvent.click(joinButton);
+
+		expect(joinButton.hasAttribute('disabled')).toBe(true);
+		expect(sessionCodeInput.hasAttribute('disabled')).toBe(true);
+		expect(screen.getByRole('status').textContent).toBe('Joining live session...');
+		resolveFetch(Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } }));
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/ABC2345Z'));
+	});
 
 	it('handles form submission without the default navigation', async () => {
 		render(joinSessionPage);
@@ -87,9 +171,8 @@ describe('viewer entry page', () => {
 		const isDefaultAllowed = await fireEvent.submit(form);
 
 		expect(isDefaultAllowed).toBe(false);
-		expect(screen.getByRole('status').textContent).toBe(
-			'Joining live sessions is not available yet.'
-		);
+		expect(screen.queryByRole('alert')).toBeNull();
+		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
 	it('clears a stale validation error when the code is edited', async () => {
@@ -106,16 +189,23 @@ describe('viewer entry page', () => {
 		expect((input as HTMLInputElement).value).toBe('a');
 	});
 
-	it('clears the unavailable status when the code is edited', async () => {
+	it('clears a stale join error when the code is edited', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'No active session was found for this code.' }, { status: 404 })
+				)
+		);
 		render(joinSessionPage);
 		const input = screen.getByRole('textbox', { name: 'Session code' });
 		await fireEvent.input(input, { target: { value: 'ABC2345Z' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
-		expect(screen.getByRole('status')).toBeTruthy();
+		expect(await screen.findByRole('alert')).toBeTruthy();
 
 		await fireEvent.input(input, { target: { value: 'ABC2345Y' } });
 
-		expect(screen.queryByRole('status')).toBeNull();
 		expect(screen.queryByRole('alert')).toBeNull();
 	});
 });

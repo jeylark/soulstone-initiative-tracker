@@ -4,6 +4,7 @@ import { createUuid, type Challenge } from '#lib/challenge';
 import {
 	createLiveSession,
 	deleteLiveSessionCredential,
+	joinLiveSession,
 	loadLiveSessionCredential,
 	LiveSessionRequestError,
 	resumeLiveSession,
@@ -79,6 +80,42 @@ describe('live session client', () => {
 				body: JSON.stringify({ challenge })
 			})
 		);
+	});
+
+	it('looks up an active session using its viewer code', async () => {
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		await expect(joinLiveSession('ABC2345Z')).resolves.toEqual({
+			id: 'session-id',
+			viewerCode: 'ABC2345Z'
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/join',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({ viewerCode: 'ABC2345Z' })
+			})
+		);
+	});
+
+	it('preserves inactive viewer-code errors', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'No active session was found for this code.' }, { status: 404 })
+				)
+		);
+
+		await expect(joinLiveSession('ABC2345Z')).rejects.toMatchObject({
+			constructor: LiveSessionRequestError,
+			status: 404,
+			message: 'No active session was found for this code.'
+		});
 	});
 
 	it('sends a bearer credential when resuming a session', async () => {

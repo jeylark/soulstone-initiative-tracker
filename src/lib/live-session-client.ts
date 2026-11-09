@@ -267,6 +267,26 @@ export async function createLiveSession(
 }
 
 /**
+ * Looks up an active live session using its viewer code.
+ *
+ * @param viewerCode Eight-character code supplied by the viewer.
+ * @returns Public details for the active session.
+ * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
+ */
+export async function joinLiveSession(viewerCode: string): Promise<LiveSessionDescriptor> {
+	const response = await fetch('/api/sessions/join', {
+		method: 'POST',
+		headers: new Headers([['content-type', 'application/json']]),
+		body: JSON.stringify({ viewerCode })
+	});
+	const body = await readApiResponse(response);
+	if (typeof body !== 'object' || body === null || !('session' in body)) {
+		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
+	}
+	return getSessionDescriptor(body.session);
+}
+
+/**
  * Reconnects to an active session using its saved DM credential.
  *
  * @param credential Session identifier and reconnect token.
