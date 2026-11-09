@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-	mockedPage.params = { sessioncode: 'ABC2345Z' };
+	mockedPage.params = { sessioncode: 'A234' };
 });
 
 describe('viewer session placeholder', () => {
@@ -22,7 +22,7 @@ describe('viewer session placeholder', () => {
 		render(viewerSessionPage);
 
 		expect(screen.getByRole('heading', { level: 1, name: 'Live session' })).toBeTruthy();
-		expect(screen.getByText('ABC2345Z', { selector: 'code' })).toBeTruthy();
+		expect(screen.getByText('A234', { selector: 'code' })).toBeTruthy();
 		expect(screen.getByRole('status').textContent).toBe(
 			'The live session view is not available yet.'
 		);

@@ -9,13 +9,13 @@ import {
 import { loadServerConfig } from './server-config';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-const VIEWER_CODE_LENGTH = 8;
+const VIEWER_CODE_LENGTH = 4;
 
 /** A sanitized challenge exposed through a live session. */
 export interface LiveSession {
 	/** Unique identifier used to end the session. */
 	id: string;
-	/** Eight-character code viewers can use to find this session. */
+	/** Four-character code viewers can use to find this session. */
 	viewerCode: string;
 	/** Snapshot of the challenge associated with this session. */
 	challenge: Challenge;

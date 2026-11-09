@@ -27,7 +27,7 @@ describe('viewer entry page', () => {
 		const input = screen.getByRole('textbox', { name: 'Session code' });
 		expect(input.getAttribute('autocomplete')).toBe('off');
 		expect(input.getAttribute('spellcheck')).toBe('false');
-		expect(input.hasAttribute('maxlength')).toBe(false);
+		expect(input.getAttribute('maxlength')).toBe('4');
 		expect(screen.getByRole('button', { name: 'Join session' }).getAttribute('type')).toBe(
 			'submit'
 		);
@@ -48,51 +48,43 @@ describe('viewer entry page', () => {
 		expect(screen.queryByRole('status')).toBeNull();
 	});
 
-	it.each([
-		'ABC2345',
-		'ABC234567',
-		'ABC2345!',
-		'ABC 2345',
-		'ABC23450',
-		'ABC23451',
-		'ABC2345I',
-		'ABC2345O'
-	])('rejects a malformed code %j', async (code) => {
-		render(joinSessionPage);
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
-			target: { value: code }
-		});
-		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
+	it.each(['ABC', 'A2345', 'A23!', 'A 34', 'A230', 'A231', 'A23I', 'A23O'])(
+		'rejects a malformed code %j',
+		async (code) => {
+			render(joinSessionPage);
+			await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
+				target: { value: code }
+			});
+			await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
-		expect(screen.getByRole('alert').textContent).toBe('Enter an 8-character code.');
-		expect(screen.queryByRole('status')).toBeNull();
-	});
+			expect(screen.getByRole('alert').textContent).toBe('Enter a 4-character code.');
+			expect(screen.queryByRole('status')).toBeNull();
+		}
+	);
 
-	it.each(['ABC2345Z', 'abc2345z', '  abc2345z  '])(
+	it.each(['A234', 'a234', '  a234  '])(
 		'normalizes a valid code %j and navigates after the active session is found',
 		async (code) => {
 			const fetchMock = vi
 				.fn<typeof fetch>()
-				.mockResolvedValue(
-					Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } })
-				);
+				.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
 			vi.stubGlobal('fetch', fetchMock);
 			render(joinSessionPage);
 			const input = screen.getByRole('textbox', { name: 'Session code' });
 			await fireEvent.input(input, { target: { value: code } });
 			await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
-			await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/ABC2345Z'));
-			expect((input as HTMLInputElement).value).toBe('ABC2345Z');
+			await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/A234'));
+			expect((input as HTMLInputElement).value).toBe('A234');
 			expect(fetchMock).toHaveBeenCalledWith(
 				'/api/sessions/join',
 				expect.objectContaining({
 					method: 'POST',
-					body: JSON.stringify({ viewerCode: 'ABC2345Z' })
+					body: JSON.stringify({ viewerCode: 'A234' })
 				})
 			);
 			expect(mockedResolve).toHaveBeenCalledWith('/view/[sessioncode]', {
-				sessioncode: 'ABC2345Z'
+				sessioncode: 'A234'
 			});
 			expect(screen.queryByRole('alert')).toBeNull();
 		}
@@ -109,7 +101,7 @@ describe('viewer entry page', () => {
 		);
 		render(joinSessionPage);
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
-			target: { value: 'ABC2345Z' }
+			target: { value: 'A234' }
 		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
@@ -126,7 +118,7 @@ describe('viewer entry page', () => {
 		);
 		render(joinSessionPage);
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
-			target: { value: 'ABC2345Z' }
+			target: { value: 'A234' }
 		});
 		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
@@ -148,7 +140,7 @@ describe('viewer entry page', () => {
 		);
 		render(joinSessionPage);
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Session code' }), {
-			target: { value: 'ABC2345Z' }
+			target: { value: 'A234' }
 		});
 		const joinButton = screen.getByRole('button', { name: 'Join session' });
 		const sessionCodeInput = screen.getByRole('textbox', { name: 'Session code' });
@@ -157,14 +149,14 @@ describe('viewer entry page', () => {
 		expect(joinButton.hasAttribute('disabled')).toBe(true);
 		expect(sessionCodeInput.hasAttribute('disabled')).toBe(true);
 		expect(screen.getByRole('status').textContent).toBe('Joining live session...');
-		resolveFetch(Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } }));
-		await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/ABC2345Z'));
+		resolveFetch(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/A234'));
 	});
 
 	it('handles form submission without the default navigation', async () => {
 		render(joinSessionPage);
 		const input = screen.getByRole('textbox', { name: 'Session code' });
-		await fireEvent.input(input, { target: { value: 'ABC2345Z' } });
+		await fireEvent.input(input, { target: { value: 'A234' } });
 		const form = input.closest('form');
 		if (!form) throw new Error('Expected the session-code input to be in a form.');
 
@@ -200,11 +192,11 @@ describe('viewer entry page', () => {
 		);
 		render(joinSessionPage);
 		const input = screen.getByRole('textbox', { name: 'Session code' });
-		await fireEvent.input(input, { target: { value: 'ABC2345Z' } });
+		await fireEvent.input(input, { target: { value: 'A234' } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 		expect(await screen.findByRole('alert')).toBeTruthy();
 
-		await fireEvent.input(input, { target: { value: 'ABC2345Y' } });
+		await fireEvent.input(input, { target: { value: 'A23Y' } });
 
 		expect(screen.queryByRole('alert')).toBeNull();
 	});

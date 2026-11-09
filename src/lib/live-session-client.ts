@@ -269,7 +269,7 @@ export async function createLiveSession(
 /**
  * Looks up an active live session using its viewer code.
  *
- * @param viewerCode Eight-character code supplied by the viewer.
+ * @param viewerCode Four-character code supplied by the viewer.
  * @returns Public details for the active session.
  * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
  */

@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	const viewerCode = isRecord(body) ? body.viewerCode : undefined;
 	if (
 		typeof viewerCode !== 'string' ||
-		!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/i.test(viewerCode)
+		!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/i.test(viewerCode)
 	) {
 		return Response.json({ message: 'The viewer code is invalid.' }, { status: 400 });
 	}

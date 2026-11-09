@@ -45,7 +45,7 @@ describe('turn-order run route', () => {
 				JSON.stringify({
 					session: {
 						id: 'session-id',
-						viewerCode: '23456789',
+						viewerCode: 'A234',
 						challenge
 					},
 					reconnectToken: 'secret-reconnect-token'
@@ -58,7 +58,7 @@ describe('turn-order run route', () => {
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
 
-		expect(await screen.findByText('23456789')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions',
 			expect.objectContaining({ method: 'POST' })
@@ -104,7 +104,7 @@ describe('turn-order run route', () => {
 			.fn<typeof fetch>()
 			.mockResolvedValue(
 				new Response(
-					JSON.stringify({ session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge } }),
+					JSON.stringify({ session: { id: 'session-id', viewerCode: 'A234', challenge } }),
 					{ status: 200 }
 				)
 			);
@@ -112,7 +112,7 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage, { sharedChallenge: challenge });
 
-		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/session-id',
 			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ challenge }) })
@@ -135,7 +135,7 @@ describe('turn-order run route', () => {
 			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }))
 			.mockResolvedValueOnce(
 				Response.json({
-					session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge }
+					session: { id: 'session-id', viewerCode: 'A234', challenge }
 				})
 			);
 		vi.stubGlobal('fetch', fetchMock);
@@ -144,7 +144,7 @@ describe('turn-order run route', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Retry session resume' }));
 
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 	});
 
 	it('removes reconnect credentials when the server reports an ended session', async () => {

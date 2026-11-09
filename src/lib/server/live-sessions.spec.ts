@@ -29,7 +29,7 @@ describe('in-memory live session registry', () => {
 		const { session } = registry.create(challenge);
 
 		expect(session.id).toBeTruthy();
-		expect(session.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
+		expect(session.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/);
 		const lowercaseViewerCode = session.viewerCode.toLowerCase();
 		expect(registry.findByViewerCode(lowercaseViewerCode)).toEqual(session);
 		expect(registry.findByViewerCode(lowercaseViewerCode.toUpperCase())).toEqual(session);

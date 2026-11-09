@@ -61,7 +61,7 @@ describe('live session client', () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					session: { id: 'session-id', viewerCode: '23456789', challenge },
+					session: { id: 'session-id', viewerCode: 'A234', challenge },
 					reconnectToken: 'secret-token'
 				}),
 				{ status: 201 }
@@ -70,7 +70,7 @@ describe('live session client', () => {
 		vi.stubGlobal('fetch', fetchMock);
 
 		await expect(createLiveSession(challenge)).resolves.toEqual({
-			session: { id: 'session-id', viewerCode: '23456789' },
+			session: { id: 'session-id', viewerCode: 'A234' },
 			reconnectToken: 'secret-token'
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
@@ -85,18 +85,18 @@ describe('live session client', () => {
 	it('looks up an active session using its viewer code', async () => {
 		const fetchMock = vi
 			.fn<typeof fetch>()
-			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'ABC2345Z' } }));
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
 		vi.stubGlobal('fetch', fetchMock);
 
-		await expect(joinLiveSession('ABC2345Z')).resolves.toEqual({
+		await expect(joinLiveSession('A234')).resolves.toEqual({
 			id: 'session-id',
-			viewerCode: 'ABC2345Z'
+			viewerCode: 'A234'
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/join',
 			expect.objectContaining({
 				method: 'POST',
-				body: JSON.stringify({ viewerCode: 'ABC2345Z' })
+				body: JSON.stringify({ viewerCode: 'A234' })
 			})
 		);
 	});
@@ -111,7 +111,7 @@ describe('live session client', () => {
 				)
 		);
 
-		await expect(joinLiveSession('ABC2345Z')).rejects.toMatchObject({
+		await expect(joinLiveSession('A234')).rejects.toMatchObject({
 			constructor: LiveSessionRequestError,
 			status: 404,
 			message: 'No active session was found for this code.'
@@ -122,7 +122,7 @@ describe('live session client', () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge: createChallenge() }
+					session: { id: 'session-id', viewerCode: 'A234', challenge: createChallenge() }
 				}),
 				{ status: 200 }
 			)
@@ -137,7 +137,7 @@ describe('live session client', () => {
 		const challenge = createChallenge();
 		await expect(resumeLiveSession(credential, challenge)).resolves.toEqual({
 			id: 'session-id',
-			viewerCode: 'ABCDEFGH'
+			viewerCode: 'A234'
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/session-id',
