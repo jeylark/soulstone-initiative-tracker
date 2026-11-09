@@ -6,6 +6,7 @@ import {
 	type Challenge,
 	type ValidationIssue
 } from '../challenge';
+import { loadServerConfig } from './server-config';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 8;
@@ -215,4 +216,4 @@ export class InMemoryLiveSessionRegistry {
 }
 
 /** Process-wide in-memory session registry used by the API routes. */
-export const liveSessionRegistry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 100 });
+export const liveSessionRegistry = new InMemoryLiveSessionRegistry(loadServerConfig());
