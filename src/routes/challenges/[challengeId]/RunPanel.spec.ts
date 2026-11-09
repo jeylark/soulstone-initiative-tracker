@@ -70,6 +70,159 @@ describe('turn-order run route', () => {
 		});
 	});
 
+	it('confirms session ending, then removes the server session and saved credential', async () => {
+		const challenge = createRunChallenge();
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						session: { id: 'session-id', viewerCode: '23456789', challenge },
+						reconnectToken: 'secret-reconnect-token'
+					},
+					{ status: 201 }
+				)
+			)
+			.mockResolvedValueOnce(new Response(null, { status: 204 }));
+		vi.stubGlobal('fetch', fetchMock);
+		const confirmation = vi
+			.spyOn(window, 'confirm')
+			.mockReturnValueOnce(false)
+			.mockReturnValueOnce(true);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		const startButton = await screen.findByRole('button', { name: 'Start live session' });
+		await waitFor(() => expect((startButton as HTMLButtonElement).disabled).toBe(false));
+		await fireEvent.click(startButton);
+		expect(await screen.findByText('23456789')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'End live session' }));
+
+		expect(confirmation).toHaveBeenCalledTimes(1);
+		expect(screen.getByText('23456789')).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'End live session' }));
+
+		expect(confirmation).toHaveBeenCalledTimes(2);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		await expect(loadLiveSessionCredential(challenge.id)).resolves.toBeUndefined();
+		await screen.findByRole('button', { name: 'Start live session' });
+		expect(screen.queryByText('23456789')).toBeNull();
+		const deleteOptions = fetchMock.mock.calls[1]?.[1];
+		expect(deleteOptions?.method).toBe('DELETE');
+		expect(new Headers(deleteOptions?.headers).get('authorization')).toBe(
+			'Bearer secret-reconnect-token'
+		);
+	});
+
+	it('retains the live session and credential after a temporary end failure', async () => {
+		const challenge = createRunChallenge();
+		const credential: LiveSessionCredential = {
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		};
+		await saveLiveSessionCredential(credential);
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json({ session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge } })
+			)
+			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }));
+		vi.stubGlobal('fetch', fetchMock);
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'End live session' }));
+
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		expect(screen.getByText('ABCDEFGH')).toBeTruthy();
+		await expect(loadLiveSessionCredential(challenge.id)).resolves.toEqual(credential);
+	});
+
+	it('clears a saved credential when ending a session that could not be resumed', async () => {
+		const challenge = createRunChallenge();
+		const credential: LiveSessionCredential = {
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		};
+		await saveLiveSessionCredential(credential);
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }))
+			.mockResolvedValueOnce(
+				Response.json({ message: 'The live session is no longer active.' }, { status: 404 })
+			);
+		vi.stubGlobal('fetch', fetchMock);
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await screen.findByRole('button', { name: 'Retry session resume' });
+		await fireEvent.click(screen.getByRole('button', { name: 'End live session' }));
+
+		await screen.findByRole('button', { name: 'Start live session' });
+		await expect(loadLiveSessionCredential(challenge.id)).resolves.toBeUndefined();
+	});
+
+	it('cleans up a new server session when its reconnect credential cannot be saved', async () => {
+		const challenge = createRunChallenge();
+		vi.stubGlobal('indexedDB', undefined);
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						session: { id: 'session-id', viewerCode: '23456789', challenge },
+						reconnectToken: 'secret-reconnect-token'
+					},
+					{ status: 201 }
+				)
+			)
+			.mockResolvedValueOnce(new Response(null, { status: 204 }));
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		await screen.findByRole('alert');
+		expect(screen.queryByText('23456789')).toBeNull();
+		expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('DELETE');
+		expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('authorization')).toBe(
+			'Bearer secret-reconnect-token'
+		);
+	});
+
+	it('keeps an unpersisted session available for ending when cleanup fails', async () => {
+		const challenge = createRunChallenge();
+		vi.stubGlobal('indexedDB', undefined);
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						session: { id: 'session-id', viewerCode: '23456789', challenge },
+						reconnectToken: 'secret-reconnect-token'
+					},
+					{ status: 201 }
+				)
+			)
+			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }));
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+
+		await screen.findByText('23456789');
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(await screen.findByRole('alert')).toBeTruthy();
+		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
+		await waitFor(() => expect(screen.getByText(/The session could not be ended\./)).toBeTruthy());
+		expect(screen.getByRole('button', { name: 'End live session' })).toBeTruthy();
+	});
+
 	it('shows the server message when the active-session limit is reached', async () => {
 		const challenge = createRunChallenge();
 		vi.stubGlobal(

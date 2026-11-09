@@ -43,8 +43,6 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
-- 4.2: End sessions by removing their data; server restarts may lose active
-  sessions.
 - 4.7: Allow viewer-code regeneration to invalidate the previous code.
 - 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
@@ -225,13 +223,15 @@ under the same category, keeping its task number and wording.
 ### 4. Live sessions and read-only viewers
 
 - 4.1: Implement in-memory session creation and resume flows.
-- 4.6: Generate case-insensitive viewer codes that avoid easily confused
-  characters.
+- 4.2: End sessions by removing their data; server restarts may lose active
+  sessions.
+- 4.3: Add a configurable active-session limit and refuse new sessions with a
+  clear message without evicting existing sessions.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
-- 4.3: Add a configurable active-session limit and refuse new sessions with a
-  clear message without evicting existing sessions.
+- 4.6: Generate case-insensitive viewer codes that avoid easily confused
+  characters.
 
 ### 6. Quality and release readiness
 
