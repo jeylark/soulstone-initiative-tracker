@@ -41,7 +41,17 @@ proxy configured to pass Server-Sent Events without buffering when live viewer
 updates are implemented.
 
 Compose mounts `./data/config` read-only at `/app/config` and `./data/logs` at
-`/app/logs` for the planned server configuration and logs. The current prototype
-does not yet read configuration or write logs to these locations. The container
-runs as the unprivileged `node` user; on Linux, ensure the host log directory is
-writable by UID 1000.
+`/app/logs` for server configuration and logs. To set the active-session limit,
+place a `server.json` file in `./data/config`:
+
+```json
+{
+	"maxActiveSessions": 100
+}
+```
+
+The limit defaults to 100 when the file or property is absent. It must be a
+non-negative safe integer; invalid configuration prevents the server from
+starting. Configuration changes take effect after restarting the app container.
+The container runs as the unprivileged `node` user; on Linux, ensure the host log
+directory is writable by UID 1000. The app does not yet write logs to `/app/logs`.

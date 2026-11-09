@@ -45,8 +45,6 @@ under the same category, keeping its task number and wording.
 
 - 4.2: End sessions by removing their data; server restarts may lose active
   sessions.
-- 4.3: Add a configurable active-session limit and refuse new sessions with a
-  clear message without evicting existing sessions.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.
 - 4.7: Allow viewer-code regeneration to invalidate the previous code.
@@ -232,6 +230,8 @@ under the same category, keeping its task number and wording.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
+- 4.3: Add a configurable active-session limit and refuse new sessions with a
+  clear message without evicting existing sessions.
 
 ### 6. Quality and release readiness
 
