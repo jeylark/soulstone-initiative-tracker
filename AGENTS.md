@@ -3,19 +3,20 @@
 Follow these instructions for every task in this repository.
 
 ## Before changing files
+
 - Check if there are any uncommitted changes in the working tree. If so, ask
   the user on how to proceed with them.
 - Never merge into or push to `main`.
 - Check if the current branch has an appropriate name for the task and, if not,
   suggest to the user a new branch to create and switch to.
 - Before doing any additions or changes to the code, clarify the expected
-  behavior and write appropriate tests.  Do not write app code while the
+  behavior and write appropriate tests. Do not write app code while the
   expected behavior is unclear.
-- App behavior and architecture is documented in 
+- App behavior and architecture is documented in
   [PROJECT_DECISIONS.md](./PROJECT_DECISIONS.md). Refer to these, but when in
   doubt check back with the user. Update the documentation when new decisions
   are made.
-  If decisions are made concerning the app's behavior 
+  If decisions are made concerning the app's behavior
 - Try to split large changes into separate edits that are also commited
   individually.
 - Do not run app-wide `npm run check`, `npm run lint` or `npm test`. This will
@@ -23,6 +24,7 @@ Follow these instructions for every task in this repository.
   should be ran.
 
 ## Coding guidelines
+
 - Public API documentation is mandatory for every exported symbol, including
   paramters, return types, generics and each public field. When making changes
   to such a symbol, verify that the documentation is still valid.
@@ -45,9 +47,10 @@ Follow these instructions for every task in this repository.
 - Make the app usable on mobile devices. Use available space on larger screens
   where possible.
 - Every production module and UI component must have its own colocated test
-  file covering behavior owned by that unit.  Integration tests supplement but
+  file covering behavior owned by that unit. Integration tests supplement but
   do not replace module- or component-owned tests.
 - Write comments to explain non-obvious intent, not to restate the code.
 
 ## Before commiting changes
+
 - Run `npx prettier --write` on every changed file.
