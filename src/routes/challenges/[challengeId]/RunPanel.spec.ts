@@ -125,6 +125,31 @@ describe('turn-order run route', () => {
 		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
 	});
 
+	it('removes reconnect credentials when the server reports an ended session', async () => {
+		const challenge = createRunChallenge();
+		const credential: LiveSessionCredential = {
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		};
+		await saveLiveSessionCredential(credential);
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'The live session is no longer active.' }, { status: 404 })
+				)
+		);
+
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await waitFor(async () =>
+			expect(await loadLiveSessionCredential(challenge.id)).toBeUndefined()
+		);
+		expect(await screen.findByRole('button', { name: 'Start live session' })).toBeTruthy();
+	});
+
 	it('restores a saved order without offering generation again', async () => {
 		const challenge = createRunChallenge();
 		await saveChallengeToLibrary(challenge);
