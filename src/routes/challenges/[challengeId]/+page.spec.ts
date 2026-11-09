@@ -26,6 +26,45 @@ beforeEach(async () => {
 });
 
 describe('challenge workflow tabs', () => {
+	it('downloads the challenge as a versioned file with its current run state', async () => {
+		const challenge = createRunChallenge();
+		challenge.name = 'Saved encounter';
+		await saveChallengeToLibrary(challenge);
+
+		const createObjectUrl = vi.fn(() => 'blob:challenge');
+		const revokeObjectUrl = vi.fn();
+		const urlConstructor = class extends URL {};
+		Reflect.set(urlConstructor, 'createObjectURL', createObjectUrl);
+		Reflect.set(urlConstructor, 'revokeObjectURL', revokeObjectUrl);
+		vi.stubGlobal('URL', urlConstructor);
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Download' }));
+
+		expect(createObjectUrl).toHaveBeenCalledOnce();
+		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0] as Blob;
+		const downloadedLibrary = JSON.parse(await downloadedBlob.text());
+		expect(downloadedLibrary).toMatchObject({
+			formatVersion: 1,
+			challenges: [
+				{
+					id: challenge.id,
+					name: 'Saved encounter',
+					runState: {
+						initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 },
+						generatedTurnOrder: [
+							{ kind: 'turn', turnId: ariaTurnId },
+							{ kind: 'turn', turnId: rookTurnId },
+							{ kind: 'spawn' }
+						]
+					}
+				}
+			]
+		});
+		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:challenge');
+	});
+
 	it('loads a healthy challenge despite an unrelated unreadable record', async () => {
 		const challenge = { ...createSetupChallenge(), name: 'Healthy' };
 		await seedStoredChallengeLibrary({ formatVersion: 1, challenges: [null, challenge] });
