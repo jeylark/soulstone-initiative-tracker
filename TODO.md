@@ -25,7 +25,8 @@ under the same category, keeping its task number and wording.
 
 ### 3. Challenge library and file workflows
 
-- 3.1: Add UI for backing up the whole library.
+- 3.2: Add UI for restoring the whole library only after the complete backup
+  has validated; leave existing data unchanged on failure.
 - 3.7: Reject malformed JSON and unsupported versions without partially
   importing data.
 - 3.8: Ask before migrating older supported formats.
@@ -226,8 +227,6 @@ under the same category, keeping its task number and wording.
 ### 3. Challenge library and file workflows
 
 - 3.1: Add UI for backing up the whole library.
-- 3.2: Add UI for restoring the whole library only after the complete backup
-  has validated; leave existing data unchanged on failure.
 - 3.3: Add UI for saving one challenge with run state (including tie
   decisions).
 
