@@ -1,6 +1,11 @@
-import { randomInt, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DeepReadonly } from '../DeepReadonly';
-import { sanitizeChallenge, type Challenge } from '../challenge';
+import {
+	sanitizeChallenge,
+	validateChallengeLibrary,
+	type Challenge,
+	type ValidationIssue
+} from '../challenge';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 8;
@@ -15,12 +20,75 @@ export interface LiveSession {
 	challenge: Challenge;
 }
 
+/** A newly created session and its one-time DM reconnect credential. */
+export interface CreatedLiveSession {
+	/** Session details that can be shared with viewers. */
+	session: LiveSession;
+	/** Secret required to resume DM access; store it separately from challenge data. */
+	reconnectToken: string;
+}
+
+/** Result of validating a challenge received by the live-session API. */
+export type LiveSessionChallengeResult =
+	| Readonly<{ isValid: true; challenge: Challenge }>
+	| Readonly<{ isValid: false; issues: readonly ValidationIssue[] }>;
+
 /** Thrown when creating a session would exceed the registry's configured capacity. */
 export class LiveSessionLimitError extends Error {
 	constructor() {
 		super('The server has reached its active session limit.');
 		this.name = 'LiveSessionLimitError';
 	}
+}
+
+/** Thrown when a session exists but the supplied DM reconnect credential is invalid. */
+export class LiveSessionAuthorizationError extends Error {
+	constructor() {
+		super('The reconnect credential is invalid.');
+		this.name = 'LiveSessionAuthorizationError';
+	}
+}
+
+/** Thrown when trying to resume a session that is no longer active. */
+export class LiveSessionNotFoundError extends Error {
+	constructor() {
+		super('The live session is no longer active.');
+		this.name = 'LiveSessionNotFoundError';
+	}
+}
+
+/**
+ * Parses and validates a challenge snapshot received as JSON.
+ *
+ * @param value Untrusted challenge data, with dates serialized as ISO strings.
+ * @returns A validated challenge with `Date` instances, or all validation issues.
+ */
+export function validateLiveSessionChallenge(value: unknown): LiveSessionChallengeResult {
+	if (!isRecord(value)) {
+		return {
+			isValid: false,
+			issues: [{ path: '$.challenge', message: 'Expected a challenge object.' }]
+		};
+	}
+
+	const challenge = { ...value };
+	for (const key of ['createdAt', 'updatedAt'] as const) {
+		if (typeof challenge[key] === 'string') challenge[key] = new Date(challenge[key]);
+	}
+	const result = validateChallengeLibrary({ formatVersion: 1, challenges: [challenge] });
+	if (!result.isValid) return { isValid: false, issues: result.issues };
+	const validatedChallenge = result.value.challenges[0];
+	if (!validatedChallenge) {
+		return {
+			isValid: false,
+			issues: [{ path: '$.challenge', message: 'A challenge is required.' }]
+		};
+	}
+	return { isValid: true, challenge: validatedChallenge };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**
@@ -32,6 +100,7 @@ export class LiveSessionLimitError extends Error {
 export class InMemoryLiveSessionRegistry {
 	private readonly sessions = new Map<string, LiveSession>();
 	private readonly sessionIdsByViewerCode = new Map<string, string>();
+	private readonly reconnectTokenDigests = new Map<string, Buffer>();
 	private readonly maxActiveSessions: number;
 
 	/**
@@ -56,7 +125,7 @@ export class InMemoryLiveSessionRegistry {
 	 *
 	 * @throws {LiveSessionLimitError} If the registry is already at capacity.
 	 */
-	create(challenge: DeepReadonly<Challenge>): LiveSession {
+	create(challenge: DeepReadonly<Challenge>): CreatedLiveSession {
 		if (this.sessions.size >= this.maxActiveSessions) {
 			throw new LiveSessionLimitError();
 		}
@@ -71,9 +140,11 @@ export class InMemoryLiveSessionRegistry {
 			viewerCode,
 			challenge: sanitizeChallenge(challenge)
 		};
+		const reconnectToken = randomBytes(32).toString('base64url');
 		this.sessions.set(session.id, session);
 		this.sessionIdsByViewerCode.set(viewerCode, session.id);
-		return structuredClone(session);
+		this.reconnectTokenDigests.set(session.id, this.hashReconnectToken(reconnectToken));
+		return { session: structuredClone(session), reconnectToken };
 	}
 
 	/**
@@ -85,6 +156,34 @@ export class InMemoryLiveSessionRegistry {
 		const sessionId = this.sessionIdsByViewerCode.get(viewerCode.trim().toUpperCase());
 		const session = sessionId === undefined ? undefined : this.sessions.get(sessionId);
 		return session === undefined ? undefined : structuredClone(session);
+	}
+
+	/**
+	 * Resumes an active DM session when its reconnect token matches.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param reconnectToken Secret returned once when the session was created.
+	 * @param challenge Latest challenge snapshot to store when resuming, if supplied.
+	 * @returns A cloned active session.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
+	 */
+	resume(
+		sessionId: string,
+		reconnectToken: string,
+		challenge?: DeepReadonly<Challenge>
+	): LiveSession {
+		const session = this.sessions.get(sessionId);
+		const storedDigest = this.reconnectTokenDigests.get(sessionId);
+		if (!session || !storedDigest) throw new LiveSessionNotFoundError();
+
+		const suppliedDigest = this.hashReconnectToken(reconnectToken);
+		if (!timingSafeEqual(storedDigest, suppliedDigest)) {
+			throw new LiveSessionAuthorizationError();
+		}
+
+		if (challenge) session.challenge = sanitizeChallenge(challenge);
+		return structuredClone(session);
 	}
 
 	/**
@@ -100,7 +199,12 @@ export class InMemoryLiveSessionRegistry {
 
 		this.sessions.delete(sessionId);
 		this.sessionIdsByViewerCode.delete(session.viewerCode);
+		this.reconnectTokenDigests.delete(sessionId);
 		return true;
+	}
+
+	private hashReconnectToken(reconnectToken: string): Buffer {
+		return createHash('sha256').update(reconnectToken).digest();
 	}
 
 	private createViewerCode(): string {
@@ -109,3 +213,6 @@ export class InMemoryLiveSessionRegistry {
 		).join('');
 	}
 }
+
+/** Process-wide in-memory session registry used by the API routes. */
+export const liveSessionRegistry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 100 });

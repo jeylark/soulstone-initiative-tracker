@@ -8,6 +8,11 @@ import {
 	type Challenge,
 	type StableId
 } from '#lib/challenge';
+import {
+	loadLiveSessionCredential,
+	saveLiveSessionCredential,
+	type LiveSessionCredential
+} from '../../../lib/live-session-client';
 import { createSetupChallenge, expectPageError } from '../../view-test-support';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 
@@ -33,6 +38,93 @@ beforeEach(async () => {
 });
 
 describe('turn-order run route', () => {
+	it('starts a live session and stores its reconnect credential separately', async () => {
+		const challenge = createRunChallenge();
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					session: {
+						id: 'session-id',
+						viewerCode: '23456789',
+						challenge
+					},
+					reconnectToken: 'secret-reconnect-token'
+				}),
+				{ status: 201 }
+			)
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+
+		expect(await screen.findByText('23456789')).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions',
+			expect.objectContaining({ method: 'POST' })
+		);
+		await expect(loadLiveSessionCredential(challenge.id)).resolves.toEqual({
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		});
+	});
+
+	it('resumes a saved live session with its authorization header after reload', async () => {
+		const challenge = createRunChallenge();
+		const credential: LiveSessionCredential = {
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		};
+		await saveLiveSessionCredential(credential);
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(
+				new Response(
+					JSON.stringify({ session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge } }),
+					{ status: 200 }
+				)
+			);
+		vi.stubGlobal('fetch', fetchMock);
+
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id',
+			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ challenge }) })
+		);
+		const requestOptions = fetchMock.mock.calls[0]?.[1];
+		const headers = new Headers(requestOptions?.headers);
+		expect(headers.get('authorization')).toBe('Bearer secret-reconnect-token');
+		expect(headers.get('content-type')).toBe('application/json');
+	});
+
+	it('keeps reconnect details after a temporary resume failure and retries', async () => {
+		const challenge = createRunChallenge();
+		await saveLiveSessionCredential({
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		});
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }))
+			.mockResolvedValueOnce(
+				Response.json({
+					session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge }
+				})
+			);
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Retry session resume' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+	});
+
 	it('restores a saved order without offering generation again', async () => {
 		const challenge = createRunChallenge();
 		await saveChallengeToLibrary(challenge);

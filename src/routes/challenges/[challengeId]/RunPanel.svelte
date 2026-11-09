@@ -17,6 +17,16 @@
 		type StableId
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import {
+		createLiveSession,
+		deleteLiveSessionCredential,
+		loadLiveSessionCredential,
+		LiveSessionRequestError,
+		resumeLiveSession,
+		saveLiveSessionCredential,
+		type LiveSessionCredential,
+		type LiveSessionDescriptor
+	} from '../../../lib/live-session-client';
 	import TurnList from './run/TurnList.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
@@ -34,6 +44,11 @@
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
 	let isSaving = $state(false);
+	let isLoadingLiveSession = $state(true);
+	let isStartingLiveSession = $state(false);
+	let savedLiveSessionCredential = $state<LiveSessionCredential>();
+	let liveSession = $state<LiveSessionDescriptor>();
+	let liveSessionErrorDetails = $state('');
 	let localChallenge = $state<Challenge>();
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
@@ -70,6 +85,7 @@
 	onMount(() => {
 		if (sharedChallenge) {
 			loadStatus = 'ready';
+			void restoreLiveSession();
 			return;
 		}
 		void (async () => {
@@ -84,11 +100,95 @@
 				}
 				localChallenge = loadedChallenge;
 				loadStatus = 'ready';
+				void restoreLiveSession();
 			} catch {
 				loadStatus = 'error';
 			}
 		})();
 	});
+
+	async function restoreLiveSession(): Promise<void> {
+		if (!challenge) {
+			isLoadingLiveSession = false;
+			return;
+		}
+		try {
+			const credential = await loadLiveSessionCredential(challenge.id);
+			if (!credential) return;
+			savedLiveSessionCredential = credential;
+			isLoadingLiveSession = false;
+			await resumeSavedLiveSession();
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
+		} finally {
+			isLoadingLiveSession = false;
+		}
+	}
+
+	async function resumeSavedLiveSession(): Promise<void> {
+		if (!challenge || !savedLiveSessionCredential) return;
+
+		isLoadingLiveSession = true;
+		liveSessionErrorDetails = '';
+		try {
+			liveSession = await resumeLiveSession(savedLiveSessionCredential, $state.snapshot(challenge));
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
+			if (
+				error instanceof LiveSessionRequestError &&
+				(error.status === 401 || error.status === 404)
+			) {
+				try {
+					await deleteLiveSessionCredential(challenge.id);
+					savedLiveSessionCredential = undefined;
+				} catch (storageError) {
+					liveSessionErrorDetails += `\n${describeSessionError(storageError)}`;
+				}
+			}
+		} finally {
+			isLoadingLiveSession = false;
+		}
+	}
+
+	function describeSessionError(error: unknown): string {
+		return error instanceof Error
+			? `${error.name}: ${error.message}`
+			: 'An unexpected error occurred.';
+	}
+
+	async function startLiveSession(): Promise<void> {
+		if (
+			!challenge ||
+			!generatedOrderDisplay ||
+			isStartingLiveSession ||
+			liveSession ||
+			savedLiveSessionCredential
+		) {
+			return;
+		}
+
+		isStartingLiveSession = true;
+		liveSessionErrorDetails = '';
+		try {
+			const created = await createLiveSession($state.snapshot(challenge));
+			liveSession = created.session;
+			await saveLiveSessionCredential({
+				challengeId: challenge.id,
+				sessionId: created.session.id,
+				reconnectToken: created.reconnectToken
+			});
+		} catch (error) {
+			liveSessionErrorDetails =
+				error instanceof Error
+					? `${error.name}: ${error.message}`
+					: 'An unexpected error occurred.';
+			if (liveSession) {
+				liveSessionErrorDetails = `The session started, but its reconnect credential could not be saved.\n${liveSessionErrorDetails}`;
+			}
+		} finally {
+			isStartingLiveSession = false;
+		}
+	}
 
 	function enqueueSave(snapshotChallenge: DeepReadonly<Challenge>): Promise<void> {
 		const toSave = { ...snapshotChallenge, updatedAt: new Date() };
@@ -271,6 +371,31 @@
 					<ActionButton disabled={isSaving || isEditing || !isSpawnCurrent} onclick={startEditing}>
 						Edit Challenge
 					</ActionButton>
+					<section aria-label="Live session">
+						<h2>Live session</h2>
+						{#if liveSession}
+							<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
+						{:else if savedLiveSessionCredential}
+							<p>A saved live session could not be resumed.</p>
+							<ActionButton disabled={isLoadingLiveSession} onclick={resumeSavedLiveSession}>
+								Retry session resume
+							</ActionButton>
+						{:else}
+							<p>Start a live session to let viewers join this challenge.</p>
+							<ActionButton
+								disabled={isLoadingLiveSession || isStartingLiveSession}
+								onclick={startLiveSession}
+							>
+								{isStartingLiveSession ? 'Starting…' : 'Start live session'}
+							</ActionButton>
+						{/if}
+						{#if liveSessionErrorDetails}
+							<ErrorDisplay
+								message="The live session could not be started or resumed."
+								details={liveSessionErrorDetails}
+							/>
+						{/if}
+					</section>
 				{/if}
 				{#if !challenge.runState?.generatedTurnOrder || isEditing}
 					<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
