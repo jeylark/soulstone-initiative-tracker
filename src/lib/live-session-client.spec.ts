@@ -7,6 +7,7 @@ import {
 	endLiveSession,
 	loadLiveSessionCredential,
 	LiveSessionRequestError,
+	regenerateViewerCode,
 	resumeLiveSession,
 	saveLiveSessionCredential
 } from './live-session-client';
@@ -111,6 +112,29 @@ describe('live session client', () => {
 		const headers = new Headers(requestOptions?.headers);
 		expect(headers.get('authorization')).toBe('Bearer secret-token');
 		expect(headers.get('content-type')).toBe('application/json');
+	});
+
+	it('regenerates a viewer code with the saved DM credential', async () => {
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'ABCDEFGH' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		const credential = {
+			challengeId: createUuid(),
+			sessionId: 'session-id',
+			reconnectToken: 'secret-token'
+		};
+
+		await expect(regenerateViewerCode(credential)).resolves.toEqual({
+			id: 'session-id',
+			viewerCode: 'ABCDEFGH'
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id/viewer-code',
+			expect.objectContaining({ method: 'POST' })
+		);
+		const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+		expect(headers.get('authorization')).toBe('Bearer secret-token');
 	});
 
 	it('ends a session with its bearer reconnect credential', async () => {
