@@ -7,6 +7,7 @@ import {
 	loadChallengeLibraryWithDiagnostics,
 	saveChallengeToLibrary,
 	createChallengeLibraryJson,
+	createChallengeJson,
 	createUuid
 } from '#lib/challenge';
 import {
@@ -57,6 +58,18 @@ describe('challenge hub', () => {
 		await vi.waitFor(() =>
 			expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload Library' }))
 		);
+	});
+
+	it('imports a single downloaded challenge through the library upload workflow', async () => {
+		const challenge = createSetupChallenge();
+		render(savedChallengesPage);
+		await screen.findByText('No saved challenges yet.');
+		await uploadLibrary(
+			createChallengeJson({ formatVersion: 1, challenges: [challenge] }, challenge.id)
+		);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Import challenges' }));
+		await screen.findByRole('status');
+		expect((await loadChallengeLibrary()).challenges).toEqual([challenge]);
 	});
 
 	it.each(['replace', 'copy', 'skip'])(
