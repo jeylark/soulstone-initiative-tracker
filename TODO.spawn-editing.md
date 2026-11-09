@@ -256,7 +256,7 @@ none. Commit: `1b23456`.
 
 ### SPAWN-04: Missing Initiatives and Ties
 
-- [ ] Complete and commit `feat: collect missing initiatives during Spawn edits`.
+- [x] Complete and commit `feat: collect missing initiatives during Spawn edits`.
 
 **Dependencies:** SPAWN-02. Sequential sessions should finish SPAWN-03 first to
 avoid overlapping shared-file edits. Integration requires both steps.
@@ -282,7 +282,15 @@ affected decisions are discarded; normal running remains fully locked.
 **Gate:** RollPanel and touched initiative/tie component tests; formatting;
 `npm run check`; step diff.
 
-**Completion:** Not started.
+**Completion:** 2026-11-08, Copilot session on branch `feat/spawn-missing-initiatives`.
+Changed: `RollPanel.svelte` (per-turn locks from `lockedInitiativeTurnIds`, no rerolls
+while editing, pending Spawn order preserved, **Roll all** renamed **Roll all
+remaining**), `InitiativeFactionSection.svelte`, `InitiativeTurnCard.svelte`
+(`isInputLocked`/`isRollLocked`), and their specs. Checks: `npx vitest run
+"src/routes/challenges/[challengeId]"` (184 tests passed); prettier applied.
+`npm run check` reports 5 pre-existing errors in SetupPanel.svelte and
+TurnEditor.integration.spec.ts (SPAWN-03 files), none in touched files. Manual
+checks: none. Blockers: none.
 
 ### SPAWN-05: Integration and Product Documentation
 

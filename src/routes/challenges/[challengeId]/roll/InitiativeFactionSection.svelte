@@ -18,6 +18,10 @@
 		initiativeResults: Readonly<InitiativeResults>;
 		initiativeInputs: Readonly<Partial<Record<StableId, string>>>;
 		isInvalidInput: (value: string) => boolean;
+		/** Whether a turn's manual result is read-only. */
+		isInputLocked: (turnId: StableId) => boolean;
+		/** Whether a turn's app result cannot be rolled or rerolled. */
+		isRollLocked: (turnId: StableId) => boolean;
 		canRoll: (creature: DeepReadonly<ChallengeCreature>) => boolean;
 		onInput: (turnId: StableId, value: string) => void;
 		onRoll: (creature: DeepReadonly<ChallengeCreature>, turnId: StableId) => void;
@@ -31,6 +35,8 @@
 		initiativeInputs,
 		isInvalidInput,
 		canRoll,
+		isInputLocked,
+		isRollLocked,
 		onInput,
 		onRoll
 	}: Props = $props();
@@ -76,6 +82,8 @@
 							{inputValue}
 							isInvalid={isInvalidInput(inputValue)}
 							canRoll={canRoll(creature)}
+							isInputLocked={isInputLocked(turn.id)}
+							isRollLocked={isRollLocked(turn.id)}
 							onInput={(value) => onInput(turn.id, value)}
 							onRoll={() => onRoll(creature, turn.id)}
 						/>
