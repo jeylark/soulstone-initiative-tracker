@@ -43,7 +43,6 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
-- 4.1: Implement in-memory session creation and resume flows.
 - 4.2: End sessions by removing their data; server restarts may lose active
   sessions.
 - 4.3: Add a configurable active-session limit and refuse new sessions with a
@@ -229,6 +228,10 @@ under the same category, keeping its task number and wording.
 - 3.1: Add UI for backing up the whole library.
 - 3.3: Add UI for saving one challenge with run state (including tie
   decisions).
+
+### 4. Live sessions and read-only viewers
+
+- 4.1: Implement in-memory session creation and resume flows.
 
 ### 6. Quality and release readiness
 

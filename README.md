@@ -11,8 +11,9 @@ npm install
 npm run dev
 ```
 
-The current landing page is a visual prototype. Challenge setup, loading saved
-challenges, and joining live sessions are not connected yet.
+The app supports challenge setup, saved-challenge loading, and starting or
+resuming an in-memory live session from the Run view. Joining as a read-only
+viewer and streaming live updates are not implemented yet.
 
 ## Validation
 

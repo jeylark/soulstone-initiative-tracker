@@ -95,8 +95,8 @@ Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[chal
 - The single-challenge file reader returns recovered content together with unreadable-field issues and an explicit partial-read indicator. Import preparation is separate and does not persist data; callers save the prepared library through the storage layer only after the DM confirms the import.
 - Data migrations are required when a released challenge data format changes and data from the previous release must remain usable; model changes during development before release do not require migrations.
 - Reject files with unsupported or unrecognized format versions without changing the library, and explain that a compatible app version is needed.
-- Starting or resuming a challenge sends the data needed for sharing to the server, which keeps the active session **in memory only**.
-- The DM must be able to reload or restart their browser and regain access to the session they were managing, as long as the server session is still running.
+- Starting or resuming a live session sends the current challenge and run state to the server, which keeps the active session **in memory only**. The DM's browser stores a reconnect credential separately from the challenge library and uses it to resume the active session after a reload.
+- The DM must be able to reload or restart their browser and regain access to the session they were managing, as long as the server session is still running and the browser's reconnect credential is available.
 - Ending a session removes its data from server memory.
 - Because there is no server-side persistence in this design, a server restart or crash loses active sessions. The DM can restore from their local challenge and start a new session; viewers would need to reconnect.
 - PostgreSQL and other persistent server-side databases are not part of the current design.

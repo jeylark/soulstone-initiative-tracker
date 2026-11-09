@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '../challenge';
-import { InMemoryLiveSessionRegistry, LiveSessionLimitError } from './live-sessions';
+import {
+	InMemoryLiveSessionRegistry,
+	LiveSessionAuthorizationError,
+	LiveSessionLimitError,
+	LiveSessionNotFoundError
+} from './live-sessions';
 
 function createChallenge(): Challenge {
 	const now = new Date('2026-11-03T12:00:00.000Z');
@@ -21,7 +26,7 @@ describe('in-memory live session registry', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 2 });
 		const challenge = createChallenge();
 
-		const session = registry.create(challenge);
+		const { session } = registry.create(challenge);
 
 		expect(session.id).toBeTruthy();
 		expect(session.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
@@ -31,7 +36,7 @@ describe('in-memory live session registry', () => {
 	it('isolates the stored challenge from input and returned mutations', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
 		const challenge = createChallenge();
-		const session = registry.create(challenge);
+		const { session } = registry.create(challenge);
 		challenge.name = 'Changed outside the session';
 		session.challenge.name = 'Changed through a lookup';
 
@@ -40,7 +45,7 @@ describe('in-memory live session registry', () => {
 
 	it('refuses creation at capacity without evicting the existing session', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
-		const firstSession = registry.create(createChallenge());
+		const { session: firstSession } = registry.create(createChallenge());
 
 		expect(() => registry.create(createChallenge())).toThrow(LiveSessionLimitError);
 		expect(registry.findByViewerCode(firstSession.viewerCode)).toEqual(firstSession);
@@ -48,11 +53,34 @@ describe('in-memory live session registry', () => {
 
 	it('ends a session and makes its capacity available again', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
-		const session = registry.create(createChallenge());
+		const { session, reconnectToken } = registry.create(createChallenge());
 
 		expect(registry.end(session.id)).toBe(true);
 		expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
 		expect(registry.end(session.id)).toBe(false);
-		expect(registry.create(createChallenge()).id).not.toBe(session.id);
+		expect(registry.create(createChallenge()).session.id).not.toBe(session.id);
+		expect(() => registry.resume(session.id, reconnectToken)).toThrow(LiveSessionNotFoundError);
+	});
+
+	it('resumes a session only with its reconnect token', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session, reconnectToken } = registry.create(createChallenge());
+		const updatedChallenge = { ...createChallenge(), name: 'Updated challenge' };
+
+		expect(registry.resume(session.id, reconnectToken)).toEqual(session);
+		expect(registry.resume(session.id, reconnectToken, updatedChallenge).challenge.name).toBe(
+			'Updated challenge'
+		);
+		expect(() => registry.resume(session.id, 'incorrect-token')).toThrow(
+			LiveSessionAuthorizationError
+		);
+	});
+
+	it('does not expose the reconnect token through session lookups', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session, reconnectToken } = registry.create(createChallenge());
+
+		expect(registry.findByViewerCode(session.viewerCode)).not.toHaveProperty('reconnectToken');
+		expect(JSON.stringify(session)).not.toContain(reconnectToken);
 	});
 });
