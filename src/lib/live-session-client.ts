@@ -291,3 +291,27 @@ export async function resumeLiveSession(
 	}
 	return getSessionDescriptor(body.session);
 }
+
+/**
+ * Regenerates the viewer code for an active session.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @returns Public details for the session with its new viewer code.
+ * @throws {LiveSessionRequestError} If the session is missing, credentials are rejected, or the response is invalid.
+ */
+export async function regenerateViewerCode(
+	credential: DeepReadonly<LiveSessionCredential>
+): Promise<LiveSessionDescriptor> {
+	const response = await fetch(
+		`/api/sessions/${encodeURIComponent(credential.sessionId)}/viewer-code`,
+		{
+			method: 'POST',
+			headers: new Headers([['authorization', `Bearer ${credential.reconnectToken}`]])
+		}
+	);
+	const body = await readApiResponse(response);
+	if (typeof body !== 'object' || body === null || !('session' in body)) {
+		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
+	}
+	return getSessionDescriptor(body.session);
+}

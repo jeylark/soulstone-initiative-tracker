@@ -188,6 +188,35 @@ export class InMemoryLiveSessionRegistry {
 	}
 
 	/**
+	 * Replaces the viewer code for an active session.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param reconnectToken Secret returned once when the session was created.
+	 * @returns A cloned session with its new viewer code.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
+	 */
+	regenerateViewerCode(sessionId: string, reconnectToken: string): LiveSession {
+		const session = this.sessions.get(sessionId);
+		const storedDigest = this.reconnectTokenDigests.get(sessionId);
+		if (!session || !storedDigest) throw new LiveSessionNotFoundError();
+
+		const suppliedDigest = this.hashReconnectToken(reconnectToken);
+		if (!timingSafeEqual(storedDigest, suppliedDigest)) {
+			throw new LiveSessionAuthorizationError();
+		}
+
+		let viewerCode = this.createViewerCode();
+		while (this.sessionIdsByViewerCode.has(viewerCode)) {
+			viewerCode = this.createViewerCode();
+		}
+		this.sessionIdsByViewerCode.delete(session.viewerCode);
+		session.viewerCode = viewerCode;
+		this.sessionIdsByViewerCode.set(viewerCode, session.id);
+		return structuredClone(session);
+	}
+
+	/**
 	 * Ends an active session and frees its viewer code and capacity.
 	 *
 	 * @returns `true` if the session existed, otherwise `false`.

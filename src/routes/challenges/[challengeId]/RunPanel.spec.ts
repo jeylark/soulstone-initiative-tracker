@@ -123,6 +123,37 @@ describe('turn-order run route', () => {
 		expect(headers.get('content-type')).toBe('application/json');
 	});
 
+	it('regenerates the viewer code for the resumed session', async () => {
+		const challenge = createRunChallenge();
+		await saveLiveSessionCredential({
+			challengeId: challenge.id,
+			sessionId: 'session-id',
+			reconnectToken: 'secret-reconnect-token'
+		});
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json({
+					session: { id: 'session-id', viewerCode: '23456789', challenge }
+				})
+			)
+			.mockResolvedValueOnce(
+				Response.json({ session: { id: 'session-id', viewerCode: 'ABCDEFGH' } })
+			);
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		expect(await screen.findByText('23456789')).toBeTruthy();
+		await fireEvent.click(await screen.findByRole('button', { name: 'Regenerate viewer code' }));
+
+		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(screen.queryByText('23456789')).toBeNull();
+		expect(fetchMock).toHaveBeenLastCalledWith(
+			'/api/sessions/session-id/viewer-code',
+			expect.objectContaining({ method: 'POST' })
+		);
+	});
+
 	it('keeps reconnect details after a temporary resume failure and retries', async () => {
 		const challenge = createRunChallenge();
 		await saveLiveSessionCredential({

@@ -22,6 +22,7 @@
 		deleteLiveSessionCredential,
 		loadLiveSessionCredential,
 		LiveSessionRequestError,
+		regenerateViewerCode,
 		resumeLiveSession,
 		saveLiveSessionCredential,
 		type LiveSessionCredential,
@@ -46,6 +47,7 @@
 	let isSaving = $state(false);
 	let isLoadingLiveSession = $state(true);
 	let isStartingLiveSession = $state(false);
+	let isRegeneratingViewerCode = $state(false);
 	let savedLiveSessionCredential = $state<LiveSessionCredential>();
 	let liveSession = $state<LiveSessionDescriptor>();
 	let liveSessionErrorDetails = $state('');
@@ -187,6 +189,20 @@
 			}
 		} finally {
 			isStartingLiveSession = false;
+		}
+	}
+
+	async function regenerateLiveSessionViewerCode(): Promise<void> {
+		if (!liveSession || !savedLiveSessionCredential || isRegeneratingViewerCode) return;
+
+		isRegeneratingViewerCode = true;
+		liveSessionErrorDetails = '';
+		try {
+			liveSession = await regenerateViewerCode(savedLiveSessionCredential);
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
+		} finally {
+			isRegeneratingViewerCode = false;
 		}
 	}
 
@@ -375,6 +391,14 @@
 						<h2>Live session</h2>
 						{#if liveSession}
 							<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
+							{#if savedLiveSessionCredential}
+								<ActionButton
+									disabled={isRegeneratingViewerCode}
+									onclick={regenerateLiveSessionViewerCode}
+								>
+									{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
+								</ActionButton>
+							{/if}
 						{:else if savedLiveSessionCredential}
 							<p>A saved live session could not be resumed.</p>
 							<ActionButton disabled={isLoadingLiveSession} onclick={resumeSavedLiveSession}>
@@ -391,7 +415,7 @@
 						{/if}
 						{#if liveSessionErrorDetails}
 							<ErrorDisplay
-								message="The live session could not be started or resumed."
+								message="The live session request failed."
 								details={liveSessionErrorDetails}
 							/>
 						{/if}
