@@ -33,7 +33,12 @@ export function loadServerConfig(configPath: string = SERVER_CONFIG_PATH): Serve
 		contents = readFileSync(configPath, 'utf8');
 	} catch (error) {
 		if (isNodeError(error) && error.code === 'ENOENT') {
-			return { maxActiveSessions: DEFAULT_MAX_ACTIVE_SESSIONS };
+			return {
+				maxActiveSessions: DEFAULT_MAX_ACTIVE_SESSIONS,
+				maxViewerConnectionsPerSession: DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION,
+				sessionInactivityTimeoutMs: DEFAULT_SESSION_INACTIVITY_TIMEOUT_MS,
+				maxRetainedLogSizeBytes: DEFAULT_MAX_RETAINED_LOG_SIZE_BYTES
+			};
 		}
 		throw new Error('Unable to read the server configuration file.', { cause: error });
 	}
