@@ -294,7 +294,7 @@ checks: none. Blockers: none.
 
 ### SPAWN-05: Integration and Product Documentation
 
-- [ ] Complete and commit `test: verify and document Spawn editing workflow`.
+- [x] Complete and commit `test: verify and document Spawn editing workflow`.
 
 **Dependencies:** SPAWN-03 and SPAWN-04.
 
@@ -318,7 +318,16 @@ Disclose manual checks that could not be performed.
 `npm test`, `npm run lint`, `npm run check`, and `npm run build` as required by the
 repository. Record exact results rather than assuming earlier checks cover them.
 
-**Completion:** Not started.
+**Completion:** 2026-11-09, Copilot session on branch `test/spawn-editing-integration`.
+Changed: `+page.spec.ts` (three Spawn editing integration tests: full
+Edit -> Setup -> Roll -> Run -> Calculate -> Next flow with relocking and a single
+count increment; reload mid-edit retaining permissions and locks; missing result
+blocking Calculate with Next still disabled), PROJECT_DECISIONS.md, TODO.md (2.13
+and 2.14 moved to Done), and this handoff. Checks: `npx vitest run src/routes/challenges src/lib/challenge` (494 tests passed);
+`npm run check` reports the same 5 pre-existing errors in SetupPanel.svelte and
+TurnEditor.integration.spec.ts (none in touched files); Prettier applied. Manual checks: none; desktop/mobile, keyboard and focus were not verified
+manually. Skipped: failed-save and unresolved-tie flows at page level (covered by
+RunPanel/RollPanel specs), app-wide lint/test/build per AGENTS.md. Blockers: none.
 
 ## Focused Check Commands
 

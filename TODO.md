@@ -26,9 +26,6 @@ under the same category, keeping its task number and wording.
 #### Run
 
 - 2.30: Disable editing of a running challenge outside of **Spawn** turns.
-- 2.13: Add the end-of-round Spawn step for adding or removing creatures.
-- 2.14: After Spawn changes, recollect initiatives as needed and regenerate
-  the order.
 - 2.21: Label turn-order generation **Start challenge** and remove the
   recalculation action while a challenge is running. This does not rename
   the separate per-turn **Calculate roll** action.
@@ -230,6 +227,9 @@ under the same category, keeping its task number and wording.
   the list.
 - 2.24: Make the creature name prominent inside each turn card and show its
   numeric initiative when one exists.
+- 2.13: Add the end-of-round Spawn step for adding or removing creatures.
+- 2.14: After Spawn changes, recollect initiatives as needed and regenerate
+  the order.
 
 ### 6. Quality and release readiness
 
