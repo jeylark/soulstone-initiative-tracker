@@ -25,9 +25,7 @@ under the same category, keeping its task number and wording.
 
 #### Run
 
-- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
-- 2.25: Remove turn numbers from card titles and order indices from run-view
-  cards.
+- 2.25: For turn cards in run view: Use the faction name as the cards title. The creature name (i.e. type name + index) should be a large label inside the card, by far the most prominent item in it. The turn index doesn't need to be displayed at all.
 - 2.27: Make faction colors stand out more clearly from the background.
 
 ### 3. Challenge library and file workflows
@@ -230,6 +228,7 @@ under the same category, keeping its task number and wording.
   rolling until the challenge is reset.
 - 2.23: Show the challenge name in the run view.
 - 2.31: Add **Next** and **Previous** buttons to the run view.
+- 2.30: Disable editing of a running challenge outside of **Spawn** turns.
 
 ### 6. Quality and release readiness
 
