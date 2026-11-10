@@ -69,6 +69,7 @@ describe('viewer entry page', () => {
 			const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 				Response.json({
 					session: { id: 'session-id', viewerCode: normalizedCode },
+					challengeName: 'The Sunken Hall',
 					turnOrder: []
 				})
 			);
@@ -154,7 +155,11 @@ describe('viewer entry page', () => {
 		expect(sessionCodeInput.hasAttribute('disabled')).toBe(true);
 		expect(screen.getByRole('status').textContent).toBe('Joining live session...');
 		resolveFetch(
-			Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
+			Response.json({
+				session: { id: 'session-id', viewerCode: 'A234' },
+				challengeName: 'The Sunken Hall',
+				turnOrder: []
+			})
 		);
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/A234'));
 	});
