@@ -23,14 +23,17 @@ describe('EntityListItem', () => {
 		expect(group.contains(screen.getByRole('button', { name: 'Remove Player 1' }))).toBe(true);
 	});
 
-	it('shows "Remove" by default and removeText when provided', () => {
+	it('shows a remove icon with default and custom tooltip text', () => {
 		const { unmount } = render(EntityListItem, {
 			legend: 'A',
 			removeLabel: 'Remove A',
 			onRemove: vi.fn(),
 			children: content
 		});
-		expect(screen.getByRole('button', { name: 'Remove A' }).textContent?.trim()).toBe('Remove');
+		const defaultButton = screen.getByRole('button', { name: 'Remove A' });
+		expect(defaultButton.textContent?.trim()).toBe('');
+		expect(defaultButton.getAttribute('title')).toBe('Remove');
+		expect(defaultButton.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
 		unmount();
 
 		render(EntityListItem, {
@@ -40,7 +43,7 @@ describe('EntityListItem', () => {
 			onRemove: vi.fn(),
 			children: content
 		});
-		expect(screen.getByRole('button', { name: 'Remove B' }).textContent?.trim()).toBe(
+		expect(screen.getByRole('button', { name: 'Remove B' }).getAttribute('title')).toBe(
 			'Remove creature'
 		);
 	});
