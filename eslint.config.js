@@ -75,6 +75,11 @@ export default defineConfig(
 					}
 				},
 				{
+					selector: 'classProperty',
+					modifiers: ['static', 'readonly'],
+					format: ['UPPER_CASE']
+				},
+				{
 					selector: ['property', 'parameter', 'function', 'method', 'accessor'],
 					format: ['camelCase'],
 					custom: {
