@@ -708,58 +708,60 @@
 				{/if}
 			</section>
 		{/if}
-		<fieldset aria-label="Challenge setup editing" class="setup-editing">
-			<div class="challenge-setup">
-				<ChallengeSettings
-					name={challenge.name}
-					fairnessWeight={challenge.fairnessWeight}
-					isDisabled={!canManageFactions}
-					{setupIssues}
-					onNameChange={updateChallengeName}
-					onFairnessWeightChange={updateFairnessWeight}
-				/>
+		<div class="setup-wide" data-layout="full-width">
+			<fieldset aria-label="Challenge setup editing" class="setup-editing">
+				<div class="challenge-setup">
+					<ChallengeSettings
+						name={challenge.name}
+						fairnessWeight={challenge.fairnessWeight}
+						isDisabled={!canManageFactions}
+						{setupIssues}
+						onNameChange={updateChallengeName}
+						onFairnessWeightChange={updateFairnessWeight}
+					/>
 
-				<NpcTypeEditor
-					npcTypes={challenge.npcTypes}
-					{setupIssues}
-					canManageNpcTypes={canManageCreaturesAndTurns}
-					isNpcTypeConfigurable={canConfigureNpcType}
-					creationError={npcCreationError}
-					onCreate={addNpcType}
-					onRename={renameNpcType}
-					onInitiativeStatChange={updateNpcTypeInitiativeStat}
-					onRemove={removeNpcType}
-				/>
+					<NpcTypeEditor
+						npcTypes={challenge.npcTypes}
+						{setupIssues}
+						canManageNpcTypes={canManageCreaturesAndTurns}
+						isNpcTypeConfigurable={canConfigureNpcType}
+						creationError={npcCreationError}
+						onCreate={addNpcType}
+						onRename={renameNpcType}
+						onInitiativeStatChange={updateNpcTypeInitiativeStat}
+						onRemove={removeNpcType}
+					/>
 
-				<CreatureSetup
-					factions={challenge.factions}
-					creatures={challenge.creatures}
-					npcTypes={challenge.npcTypes}
-					{setupIssues}
-					npcTypeId={newNpcTypeId}
-					{canManageFactions}
-					{canManageCreaturesAndTurns}
-					isCreatureConfigurable={canConfigureCreature}
-					isTurnConfigurable={canConfigureTurn}
-					onCreateFaction={addFaction}
-					onRenameFaction={renameFaction}
-					onFactionColorChange={updateFactionColor}
-					onRemoveFaction={removeFaction}
-					onCreateCharacter={addCharacter}
-					onCreateNpc={addNpc}
-					onCreatureVisibilityChange={updateCreatureVisibility}
-					onCreatureFactionChange={updateCreatureFaction}
-					onNpcTypeChange={updateNpcType}
-					onCharacterNameChange={updateCharacterName}
-					onCharacterInitiativeStatChange={updateCharacterInitiativeStat}
-					onNpcIdentifierChange={updateNpcIdentifier}
-					onTurnChange={updateTurnInitiative}
-					onAddTurn={addTurn}
-					onRemoveTurn={removeTurn}
-					onRemoveCreature={removeCreature}
-				/>
-			</div>
-		</fieldset>
+					<CreatureSetup
+						factions={challenge.factions}
+						creatures={challenge.creatures}
+						npcTypes={challenge.npcTypes}
+						{setupIssues}
+						npcTypeId={newNpcTypeId}
+						{canManageFactions}
+						{canManageCreaturesAndTurns}
+						isCreatureConfigurable={canConfigureCreature}
+						isTurnConfigurable={canConfigureTurn}
+						onCreateFaction={addFaction}
+						onRenameFaction={renameFaction}
+						onFactionColorChange={updateFactionColor}
+						onRemoveFaction={removeFaction}
+						onCreateCharacter={addCharacter}
+						onCreateNpc={addNpc}
+						onCreatureVisibilityChange={updateCreatureVisibility}
+						onCreatureFactionChange={updateCreatureFaction}
+						onNpcTypeChange={updateNpcType}
+						onCharacterNameChange={updateCharacterName}
+						onCharacterInitiativeStatChange={updateCharacterInitiativeStat}
+						onNpcIdentifierChange={updateNpcIdentifier}
+						onTurnChange={updateTurnInitiative}
+						onAddTurn={addTurn}
+						onRemoveTurn={removeTurn}
+						onRemoveCreature={removeCreature}
+					/>
+				</div>
+			</fieldset>
+		</div>
 		{#if setupIssues.length > 0}
 			<ActionButton disabled>Roll Initiatives</ActionButton>
 		{:else if sharedChallenge}
@@ -778,6 +780,14 @@
 </ViewPage>
 
 <style>
+	/* Breaks out of the shell's centered column to use the full viewport width. */
+	.setup-wide {
+		width: 100vw;
+		margin-inline: calc(50% - 50vw);
+		padding-inline: 20px;
+		box-sizing: border-box;
+	}
+
 	.setup-editing {
 		min-width: 0;
 		margin: 0;
