@@ -701,11 +701,11 @@
 						<li>{issue.path}: {issue.message}</li>
 					{/each}
 				</ul>
-				{#if setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
-					<ActionButton variant="danger" onclick={resetSavedProgress}
-						>Reset saved progress</ActionButton
-					>
-				{/if}
+				<ActionButton
+					variant="danger"
+					disabled={!setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
+					onclick={resetSavedProgress}>Reset saved progress</ActionButton
+				>
 			</section>
 		{/if}
 		<div class="setup-wide" data-layout="full-width">

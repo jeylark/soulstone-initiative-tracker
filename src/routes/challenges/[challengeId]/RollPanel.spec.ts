@@ -752,7 +752,9 @@ describe('running challenge storage', () => {
 		expect(await screen.findAllByText('Initiative result: 7')).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Roll all remaining' }) as HTMLButtonElement).disabled
+		).toBe(true);
 	});
 
 	it('rolls zero-stat creatures as 0 without randomness and surfaces the tie', async () => {
@@ -1088,7 +1090,9 @@ describe('spawn editing', () => {
 		expect(
 			isDisabled(screen.getByRole('button', { name: 'Reroll initiative for Aria - Turn 3' }))
 		).toBe(true);
-		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Roll all remaining' }) as HTMLButtonElement).disabled
+		).toBe(true);
 	});
 
 	it('resolves ties, keeping valid decisions and discarding affected ones', async () => {
