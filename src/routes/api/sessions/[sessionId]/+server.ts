@@ -4,7 +4,7 @@ import {
 	LiveSessionNotFoundError,
 	liveSessionRegistry,
 	validateLiveSessionChallenge
-} from '../../../../lib/server/live-sessions';
+} from '#lib/server';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);

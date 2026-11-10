@@ -16,7 +16,7 @@
 		type ChallengeRunState,
 		type StableId
 	} from '#lib/challenge';
-	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
+	import { ActionButton, ErrorDisplay, TurnOrderList, ViewPage } from '#lib/components';
 	import {
 		createLiveSession,
 		deleteLiveSessionCredential,
@@ -26,10 +26,10 @@
 		regenerateViewerCode,
 		resumeLiveSession,
 		saveLiveSessionCredential,
+		updateLiveSession,
 		type LiveSessionCredential,
 		type LiveSessionDescriptor
-	} from '../../../lib/live-session-client';
-	import TurnList from './run/TurnList.svelte';
+	} from '#lib';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -162,6 +162,18 @@
 			: 'An unexpected error occurred.';
 	}
 
+	async function publishLiveSessionUpdate(): Promise<void> {
+		const credential = liveSessionCredential ?? savedLiveSessionCredential;
+		if (!challenge || !credential) return;
+
+		try {
+			liveSession = await updateLiveSession(credential, $state.snapshot(challenge));
+			liveSessionErrorDetails = '';
+		} catch (error) {
+			liveSessionErrorDetails = describeSessionError(error);
+		}
+	}
+
 	async function startLiveSession(): Promise<void> {
 		if (
 			!challenge ||
@@ -277,6 +289,7 @@
 			if (sharedChallenge && onSave) await onSave();
 			else await enqueueSave(challengeToSave);
 			hasSaveError = false;
+			await publishLiveSessionUpdate();
 			return true;
 		} catch {
 			challenge.runState = previousRunState as ChallengeRunState | undefined;
@@ -362,6 +375,7 @@
 		try {
 			if (sharedChallenge && onSave) await onSave();
 			else await enqueueSave($state.snapshot(challenge));
+			await publishLiveSessionUpdate();
 		} catch {
 			creature.isHidden = isCreatureHiddenBeforeUpdate;
 			hasSaveError = true;
@@ -489,7 +503,7 @@
 
 			{#if generatedOrderDisplay}
 				<section aria-label="Turn cards">
-					<TurnList
+					<TurnOrderList
 						items={generatedOrderDisplay.items}
 						onVisibilityChange={updateCreatureVisibility}
 					/>

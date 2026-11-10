@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { writeDiagnosticLog } from './lib/server/diagnostic-logger';
+import { writeDiagnosticLog } from '#lib/server';
 import { handle, handleError } from './hooks.server';
 
 vi.mock('./lib/server/diagnostic-logger', () => ({

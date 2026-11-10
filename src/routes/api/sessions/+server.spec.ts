@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
-import { liveSessionRegistry } from '../../../lib/server/live-sessions';
+import { liveSessionRegistry } from '#lib/server';
 import { POST } from './+server';
 
 function createChallenge(): Challenge {
@@ -30,11 +30,12 @@ describe('POST /api/sessions', () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(201);
-		expect(body.session.challenge.id).toBe(challenge.id);
+		expect(body.session).toHaveProperty('turnOrder');
+		expect(body.session.challengeName).toBe(challenge.name);
+		expect(body.session).not.toHaveProperty('challenge');
+		expect(JSON.stringify(body)).not.toContain(challenge.id);
 		expect(body.reconnectToken).toBeTruthy();
-		expect(liveSessionRegistry.resume(body.session.id, body.reconnectToken).challenge).toEqual(
-			challenge
-		);
+		expect(liveSessionRegistry.resume(body.session.id, body.reconnectToken).turnOrder).toEqual([]);
 		liveSessionRegistry.end(body.session.id);
 	});
 

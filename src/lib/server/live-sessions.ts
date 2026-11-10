@@ -1,24 +1,31 @@
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DeepReadonly } from '../DeepReadonly';
 import {
-	sanitizeChallenge,
 	validateChallengeLibrary,
 	type Challenge,
-	type ValidationIssue
+	type ValidationIssue,
+	type ViewerTurnOrderDisplayItem
 } from '../challenge';
 import { loadServerConfig } from './server-config';
+import { createViewerTurnOrder } from './viewer-turn-order';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-const VIEWER_CODE_LENGTH = 8;
+const VIEWER_CODE_LENGTH = 4;
+const REGENERATED_VIEWER_CODE_LENGTH = 8;
+const DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION = 100;
 
-/** A sanitized challenge exposed through a live session. */
+type LiveSessionUpdateListener = (session: Readonly<LiveSession> | undefined) => void;
+
+/** Minimal snapshot needed to render the read-only viewer. */
 export interface LiveSession {
 	/** Unique identifier used to end the session. */
 	id: string;
-	/** Eight-character code viewers can use to find this session. */
+	/** Code viewers can use to find this session. */
 	viewerCode: string;
-	/** Snapshot of the challenge associated with this session. */
-	challenge: Challenge;
+	/** Challenge title shown above the viewer's turn order. */
+	challengeName: string;
+	/** Visible turn cards and Spawn entry; challenge data is not retained. */
+	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
 
 /** A newly created session and its one-time DM reconnect credential. */
@@ -55,6 +62,14 @@ export class LiveSessionNotFoundError extends Error {
 	constructor() {
 		super('The live session is no longer active.');
 		this.name = 'LiveSessionNotFoundError';
+	}
+}
+
+/** Thrown when a session already has its configured number of viewer connections. */
+export class LiveSessionViewerLimitError extends Error {
+	constructor() {
+		super('This live session has reached its viewer connection limit.');
+		this.name = 'LiveSessionViewerLimitError';
 	}
 }
 
@@ -102,24 +117,41 @@ export class InMemoryLiveSessionRegistry {
 	private readonly sessions = new Map<string, LiveSession>();
 	private readonly sessionIdsByViewerCode = new Map<string, string>();
 	private readonly reconnectTokenDigests = new Map<string, Buffer>();
+	private readonly updateListeners = new Map<string, Set<LiveSessionUpdateListener>>();
 	private readonly maxActiveSessions: number;
+	private readonly maxViewerConnectionsPerSession: number;
 
 	/**
 	 * Creates an empty registry with a fixed session capacity.
 	 *
 	 * @param options.maxActiveSessions Maximum number of active sessions; must be a non-negative safe integer.
+	 * @param options.maxViewerConnectionsPerSession Maximum viewers per session; defaults to 100.
 	 * @throws {RangeError} If the capacity is not a non-negative safe integer.
 	 */
-	constructor(options: Readonly<{ maxActiveSessions: number }>) {
+	constructor(
+		options: Readonly<{
+			maxActiveSessions: number;
+			maxViewerConnectionsPerSession?: number;
+		}>
+	) {
 		if (!Number.isSafeInteger(options.maxActiveSessions) || options.maxActiveSessions < 0) {
 			throw new RangeError('The maximum active session count must be a non-negative integer.');
 		}
+		const maxViewerConnectionsPerSession =
+			options.maxViewerConnectionsPerSession ?? DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION;
+		if (
+			!Number.isSafeInteger(maxViewerConnectionsPerSession) ||
+			maxViewerConnectionsPerSession < 0
+		) {
+			throw new RangeError('The maximum viewer connection count must be a non-negative integer.');
+		}
 
 		this.maxActiveSessions = options.maxActiveSessions;
+		this.maxViewerConnectionsPerSession = maxViewerConnectionsPerSession;
 	}
 
 	/**
-	 * Creates a session from a sanitized snapshot of a challenge.
+	 * Creates a session from a challenge, retaining only its viewer display projection.
 	 *
 	 * The returned session is a clone; later mutations to the input or returned value do not
 	 * change the session stored in this registry.
@@ -139,7 +171,8 @@ export class InMemoryLiveSessionRegistry {
 		const session: LiveSession = {
 			id: randomUUID(),
 			viewerCode,
-			challenge: sanitizeChallenge(challenge)
+			challengeName: challenge.name,
+			turnOrder: createViewerTurnOrder(challenge)
 		};
 		const reconnectToken = randomBytes(32).toString('base64url');
 		this.sessions.set(session.id, session);
@@ -164,7 +197,7 @@ export class InMemoryLiveSessionRegistry {
 	 *
 	 * @param sessionId Identifier returned when the session was created.
 	 * @param reconnectToken Secret returned once when the session was created.
-	 * @param challenge Latest challenge snapshot to store when resuming, if supplied.
+	 * @param challenge Latest challenge snapshot to project into viewer data, if supplied.
 	 * @returns A cloned active session.
 	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
 	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
@@ -183,8 +216,52 @@ export class InMemoryLiveSessionRegistry {
 			throw new LiveSessionAuthorizationError();
 		}
 
-		if (challenge) session.challenge = sanitizeChallenge(challenge);
+		if (challenge) {
+			session.challengeName = challenge.name;
+			session.turnOrder = createViewerTurnOrder(challenge);
+			this.notifyUpdate(sessionId, session);
+		}
 		return structuredClone(session);
+	}
+
+	/**
+	 * Subscribes to sanitized session snapshots and immediately provides the current snapshot.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param listener Called with each updated session, or `undefined` when it ends.
+	 * @returns Function that removes this viewer subscription; repeated calls have no effect.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionViewerLimitError} If the session has reached its viewer limit.
+	 */
+	subscribeToUpdates(sessionId: string, listener: LiveSessionUpdateListener): () => void {
+		const session = this.sessions.get(sessionId);
+		if (!session) throw new LiveSessionNotFoundError();
+
+		let listeners = this.updateListeners.get(sessionId);
+		if (!listeners) {
+			listeners = new Set();
+			this.updateListeners.set(sessionId, listeners);
+		}
+		if (listeners.size >= this.maxViewerConnectionsPerSession) {
+			if (listeners.size === 0) this.updateListeners.delete(sessionId);
+			throw new LiveSessionViewerLimitError();
+		}
+		listeners.add(listener);
+
+		let isSubscribed = true;
+		const unsubscribe = () => {
+			if (!isSubscribed) return;
+			isSubscribed = false;
+			listeners?.delete(listener);
+			if (listeners?.size === 0) this.updateListeners.delete(sessionId);
+		};
+		try {
+			listener(structuredClone(session));
+		} catch (error) {
+			unsubscribe();
+			throw error;
+		}
+		return unsubscribe;
 	}
 
 	/**
@@ -206,9 +283,9 @@ export class InMemoryLiveSessionRegistry {
 			throw new LiveSessionAuthorizationError();
 		}
 
-		let viewerCode = this.createViewerCode();
+		let viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
 		while (this.sessionIdsByViewerCode.has(viewerCode)) {
-			viewerCode = this.createViewerCode();
+			viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
 		}
 		this.sessionIdsByViewerCode.delete(session.viewerCode);
 		session.viewerCode = viewerCode;
@@ -230,6 +307,7 @@ export class InMemoryLiveSessionRegistry {
 		this.sessions.delete(sessionId);
 		this.sessionIdsByViewerCode.delete(session.viewerCode);
 		this.reconnectTokenDigests.delete(sessionId);
+		this.notifyUpdate(sessionId, undefined);
 		return true;
 	}
 
@@ -259,12 +337,26 @@ export class InMemoryLiveSessionRegistry {
 		return createHash('sha256').update(reconnectToken).digest();
 	}
 
-	private createViewerCode(): string {
-		return Array.from({ length: VIEWER_CODE_LENGTH }, () =>
+	private notifyUpdate(sessionId: string, session: Readonly<LiveSession> | undefined): void {
+		const listeners = this.updateListeners.get(sessionId);
+		if (!listeners) return;
+		for (const listener of listeners) {
+			try {
+				listener(session ? structuredClone(session) : undefined);
+			} catch {
+				listeners.delete(listener);
+			}
+		}
+		if (listeners.size === 0) this.updateListeners.delete(sessionId);
+	}
+
+	private createViewerCode(length = VIEWER_CODE_LENGTH): string {
+		return Array.from({ length }, () =>
 			VIEWER_CODE_ALPHABET.charAt(randomInt(VIEWER_CODE_ALPHABET.length))
 		).join('');
 	}
 }
 
 /** Process-wide in-memory session registry used by the API routes. */
-export const liveSessionRegistry = new InMemoryLiveSessionRegistry(loadServerConfig());
+const serverConfig = loadServerConfig();
+export const liveSessionRegistry = new InMemoryLiveSessionRegistry(serverConfig);
