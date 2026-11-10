@@ -86,6 +86,15 @@ describe('EntityListItem', () => {
 		expect(group.contains(screen.getByRole('button', { name: 'Remove Player 1' }))).toBe(true);
 	});
 
+	it('omits the remove button when no removal callback is provided', () => {
+		render(EntityListItem, {
+			legend: 'Read-only entity',
+			children: content
+		});
+
+		expect(screen.queryByRole('button')).toBeNull();
+	});
+
 	it('shows a remove icon with default and custom tooltip text', () => {
 		const { unmount } = render(EntityListItem, {
 			legend: 'A',

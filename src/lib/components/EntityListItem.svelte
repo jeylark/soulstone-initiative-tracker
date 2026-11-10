@@ -16,13 +16,13 @@
 		/** Padding of the card. Defaults to standard. */
 		spacing?: 'standard' | 'compact';
 		/** Accessible name of the remove button. */
-		removeLabel: string;
+		removeLabel?: string;
 		/** Tooltip text for the remove button. */
 		removeText?: string;
 		/** Disables the remove button without disabling the rest of the entity. */
 		isRemoveDisabled?: boolean;
 		/** Called when the remove button is clicked. */
-		onRemove: () => void;
+		onRemove?: () => void;
 		/** Entity-specific content, rendered after the remove button. */
 		children: Snippet;
 	}
@@ -45,20 +45,22 @@
 <Card title={legend} {headingLevel} {headerSize} {variant} {spacing}>
 	<fieldset {...rest}>
 		<legend>{legend}</legend>
-		<ActionButton
-			variant="danger"
-			class="entity-remove-button"
-			aria-label={removeLabel}
-			title={removeText}
-			disabled={isRemoveDisabled}
-			onclick={onRemove}
-		>
-			<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
-				<path
-					d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 4v8m4-8v8"
-				/>
-			</svg>
-		</ActionButton>
+		{#if removeLabel && onRemove}
+			<ActionButton
+				variant="danger"
+				class="entity-remove-button"
+				aria-label={removeLabel}
+				title={removeText}
+				disabled={isRemoveDisabled}
+				onclick={onRemove}
+			>
+				<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+					<path
+						d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 4v8m4-8v8"
+					/>
+				</svg>
+			</ActionButton>
+		{/if}
 		{@render children()}
 	</fieldset>
 </Card>
