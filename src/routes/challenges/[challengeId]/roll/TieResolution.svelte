@@ -60,12 +60,11 @@
 							</li>
 						{/each}
 					</ol>
-					{#if !decision}
-						<ActionButton
-							aria-label={`Confirm default order for tie ${groupIndex + 1}`}
-							onclick={() => onDecide(order)}>Confirm default order</ActionButton
-						>
-					{/if}
+					<ActionButton
+						disabled={!!decision}
+						aria-label={`Confirm default order for tie ${groupIndex + 1}`}
+						onclick={() => onDecide(order)}>Confirm default order</ActionButton
+					>
 				</div>
 			{/each}
 		</Card>
