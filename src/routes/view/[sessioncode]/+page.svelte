@@ -40,6 +40,12 @@
 				hasConnectionError = false;
 				hasEnded = true;
 			});
+			eventSource.addEventListener('viewer-limit', () => {
+				eventSource.close();
+				hasConnectionError = false;
+				errorMessage =
+					'This live session has reached its viewer connection limit. Try again later.';
+			});
 			eventSource.onopen = () => (hasConnectionError = false);
 			eventSource.onerror = () => {
 				hasConnectionError = true;

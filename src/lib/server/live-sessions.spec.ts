@@ -153,6 +153,79 @@ describe('in-memory live session registry', () => {
 		expect(registry.findByViewerCode(regeneratedSession.viewerCode)).toEqual(regeneratedSession);
 	});
 
+	it('refuses excess viewers per session without interrupting existing updates', () => {
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 2,
+			maxViewerConnectionsPerSession: 1
+		});
+		const { session, reconnectToken } = registry.create(createChallenge());
+		const { session: otherSession } = registry.create(createChallenge());
+		const updates: (typeof session | undefined)[] = [];
+		const unsubscribe = registry.subscribeToUpdates(session.id, (update) => updates.push(update));
+
+		expect(() => registry.subscribeToUpdates(session.id, () => undefined)).toThrow(
+			LiveSessionViewerLimitError
+		);
+		const unsubscribeOther = registry.subscribeToUpdates(otherSession.id, () => undefined);
+		registry.resume(session.id, reconnectToken, { ...createChallenge(), name: 'Still connected' });
+
+		expect(updates).toHaveLength(2);
+		expect(updates[1]?.challengeName).toBe('Still connected');
+		unsubscribe();
+		unsubscribeOther();
+	});
+
+	it('releases viewer capacity exactly once even after a replacement viewer connects', () => {
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 1,
+			maxViewerConnectionsPerSession: 1
+		});
+		const { session, reconnectToken } = registry.create(createChallenge());
+		const unsubscribe = registry.subscribeToUpdates(session.id, () => undefined);
+		unsubscribe();
+		const updates: (typeof session | undefined)[] = [];
+		const unsubscribeReplacement = registry.subscribeToUpdates(session.id, (update) =>
+			updates.push(update)
+		);
+		unsubscribe();
+
+		expect(() => registry.subscribeToUpdates(session.id, () => undefined)).toThrow(
+			LiveSessionViewerLimitError
+		);
+		registry.resume(session.id, reconnectToken, { ...createChallenge(), name: 'Replacement' });
+		expect(updates[1]?.challengeName).toBe('Replacement');
+		unsubscribeReplacement();
+	});
+
+	it('refuses every viewer when the configured viewer limit is zero', () => {
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 1,
+			maxViewerConnectionsPerSession: 0
+		});
+		const { session } = registry.create(createChallenge());
+
+		expect(() => registry.subscribeToUpdates(session.id, () => undefined)).toThrow(
+			LiveSessionViewerLimitError
+		);
+		expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+	});
+
+	it('allows 100 concurrent viewers by default and refuses the next one', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session } = registry.create(createChallenge());
+		const unsubscribeViewers = Array.from({ length: 100 }, () =>
+			registry.subscribeToUpdates(session.id, () => undefined)
+		);
+
+		expect(() => registry.subscribeToUpdates(session.id, () => undefined)).toThrow(
+			LiveSessionViewerLimitError
+		);
+		unsubscribeViewers.forEach((unsubscribe) => unsubscribe());
+		const unsubscribe = registry.subscribeToUpdates(session.id, () => undefined);
+		expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+		unsubscribe();
+	});
+
 	it('requires the reconnect token to regenerate a viewer code', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
 		const { session } = registry.create(createChallenge());

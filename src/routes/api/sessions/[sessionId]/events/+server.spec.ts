@@ -1,7 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
-import { liveSessionRegistry } from '../../../../../lib/server/live-sessions';
+import {
+	InMemoryLiveSessionRegistry,
+	liveSessionRegistry
+} from '../../../../../lib/server/live-sessions';
 import { GET } from './+server';
+
+afterEach(() => {
+	vi.restoreAllMocks();
+});
 
 function createChallenge(): Challenge {
 	const now = new Date('2026-11-03T12:00:00.000Z');
@@ -97,5 +104,66 @@ describe('GET /api/sessions/[sessionId]/events', () => {
 		} as never);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('sends a terminal refusal when full while keeping existing viewers connected', async () => {
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 1,
+			maxViewerConnectionsPerSession: 1
+		});
+		vi.spyOn(liveSessionRegistry, 'subscribeToUpdates').mockImplementation(
+			registry.subscribeToUpdates.bind(registry)
+		);
+		const { session, reconnectToken } = registry.create(createChallenge());
+		const abortController = new AbortController();
+		const connect = (signal?: Readonly<AbortSignal>) =>
+			GET({
+				params: { sessionId: session.id },
+				request: new Request(`http://localhost/api/sessions/${session.id}/events`, { signal })
+			} as never);
+		const firstResponse = await connect(abortController.signal);
+		const reader = firstResponse.body!.getReader();
+
+		try {
+			await reader.read();
+			const refusal = await connect();
+			expect(refusal.status).toBe(200);
+			expect(refusal.headers.get('content-type')).toContain('text/event-stream');
+			expect(await refusal.text()).toBe('event: viewer-limit\ndata: {}\n\n');
+
+			registry.resume(session.id, reconnectToken, {
+				...createChallenge(),
+				name: 'Existing viewer still connected'
+			});
+			expect(new TextDecoder().decode((await reader.read()).value)).toContain(
+				'Existing viewer still connected'
+			);
+
+			abortController.abort();
+			const replacement = await connect();
+			try {
+				expect(replacement.status).toBe(200);
+				await reader.cancel();
+				const secondRefusal = await connect();
+				expect(await secondRefusal.text()).toBe('event: viewer-limit\ndata: {}\n\n');
+			} finally {
+				await replacement.body?.cancel();
+			}
+
+			const afterCancellation = await connect();
+			try {
+				expect(afterCancellation.headers.get('content-type')).toContain('text/event-stream');
+				const replacementReader = afterCancellation.body!.getReader();
+				expect(new TextDecoder().decode((await replacementReader.read()).value)).toContain(
+					'event: turn-order'
+				);
+				await replacementReader.cancel();
+			} finally {
+				registry.end(session.id);
+			}
+		} finally {
+			await reader.cancel();
+			registry.end(session.id);
+		}
 	});
 });

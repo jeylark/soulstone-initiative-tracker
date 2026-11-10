@@ -229,7 +229,7 @@ export class InMemoryLiveSessionRegistry {
 	 *
 	 * @param sessionId Identifier returned when the session was created.
 	 * @param listener Called with each updated session, or `undefined` when it ends.
-	 * @returns Function that removes this viewer subscription.
+	 * @returns Function that removes this viewer subscription; repeated calls have no effect.
 	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
 	 * @throws {LiveSessionViewerLimitError} If the session has reached its viewer limit.
 	 */
@@ -248,7 +248,10 @@ export class InMemoryLiveSessionRegistry {
 		}
 		listeners.add(listener);
 
+		let isSubscribed = true;
 		const unsubscribe = () => {
+			if (!isSubscribed) return;
+			isSubscribed = false;
 			listeners?.delete(listener);
 			if (listeners?.size === 0) this.updateListeners.delete(sessionId);
 		};

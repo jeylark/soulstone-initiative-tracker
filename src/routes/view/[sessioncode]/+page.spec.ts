@@ -145,6 +145,34 @@ describe('viewer session page', () => {
 		expect(await screen.findByText('The active session has no generated turn order.')).toBeTruthy();
 	});
 
+	it.each([{ turnOrder: [] }, { turnOrder: [{ kind: 'spawn' }] }])(
+		'shows a terminal viewer-limit message and closes the stream with $turnOrder',
+		async ({ turnOrder }) => {
+			vi.stubGlobal(
+				'fetch',
+				vi.fn<typeof fetch>().mockResolvedValue(
+					Response.json({
+						session: { id: 'session-id', viewerCode: 'A234' },
+						challengeName: 'Ashen Company',
+						turnOrder
+					})
+				)
+			);
+			vi.stubGlobal('EventSource', MockEventSource);
+			render(viewerSessionPage);
+			await waitFor(() => expect(eventSources).toHaveLength(1));
+
+			eventSources[0]?.dispatchEvent(new MessageEvent('viewer-limit', { data: '{}' }));
+
+			expect((await screen.findByRole('alert')).textContent).toBe(
+				'This live session has reached its viewer connection limit. Try again later.'
+			);
+			expect(eventSources[0]?.isClosed).toBe(true);
+			expect(screen.queryByText('Connection lost. Reconnecting...')).toBeNull();
+			expect(screen.queryByRole('list')).toBeNull();
+		}
+	);
+
 	it('shows an error when the viewer code no longer identifies an active session', async () => {
 		vi.stubGlobal(
 			'fetch',

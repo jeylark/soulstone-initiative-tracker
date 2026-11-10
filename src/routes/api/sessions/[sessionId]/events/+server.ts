@@ -6,8 +6,19 @@ import {
 } from '../../../../../lib/server/live-sessions';
 
 const encoder = new TextEncoder();
+const STREAM_HEADERS = new Headers([
+	['cache-control', 'no-cache, no-transform'],
+	['connection', 'keep-alive'],
+	['content-type', 'text/event-stream; charset=utf-8'],
+	['x-accel-buffering', 'no']
+]);
 
-/** Streams viewer-safe turn-order snapshots for an active session. */
+/**
+ * Streams viewer-safe turn-order snapshots, or a terminal `viewer-limit` event when full.
+ *
+ * @param event Request and session identifier supplied by SvelteKit.
+ * @returns An SSE response, or HTTP 404 when the session is inactive.
+ */
 export const GET: RequestHandler = ({ params, request }) => {
 	let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
 	let unsubscribe: () => void = () => {};
@@ -48,7 +59,8 @@ export const GET: RequestHandler = ({ params, request }) => {
 			return Response.json({ message: error.message }, { status: 404 });
 		}
 		if (error instanceof LiveSessionViewerLimitError) {
-			return Response.json({ message: error.message }, { status: 503 });
+			// EventSource cannot expose an HTTP error body to the viewer.
+			return new Response('event: viewer-limit\ndata: {}\n\n', { headers: STREAM_HEADERS });
 		}
 		throw error;
 	}
@@ -86,11 +98,6 @@ export const GET: RequestHandler = ({ params, request }) => {
 	});
 
 	return new Response(stream, {
-		headers: {
-			'cache-control': 'no-cache, no-transform',
-			connection: 'keep-alive',
-			'content-type': 'text/event-stream; charset=utf-8',
-			'x-accel-buffering': 'no'
-		}
+		headers: STREAM_HEADERS
 	});
 };
