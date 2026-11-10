@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, type Challenge } from '../challenge';
 import {
 	InMemoryLiveSessionRegistry,
@@ -24,6 +24,212 @@ function createChallenge(): Challenge {
 }
 
 describe('in-memory live session registry', () => {
+	describe('inactivity expiry', () => {
+		beforeEach(() => {
+			vi.useFakeTimers();
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('automatically ends at the configured deadline, notifying viewers and freeing capacity', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 1,
+				sessionInactivityTimeoutMs: 1_000
+			});
+			const { session, reconnectToken } = registry.create(createChallenge());
+			const listener = vi.fn();
+			registry.subscribeToUpdates(session.id, listener);
+
+			vi.advanceTimersByTime(999);
+			expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+			expect(listener).toHaveBeenCalledTimes(1);
+			vi.advanceTimersByTime(1);
+
+			expect(listener).toHaveBeenLastCalledWith(undefined);
+			expect(listener).toHaveBeenCalledTimes(2);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+			expect(() => registry.resume(session.id, reconnectToken)).toThrow(LiveSessionNotFoundError);
+			expect(() => registry.subscribeToUpdates(session.id, listener)).toThrow(
+				LiveSessionNotFoundError
+			);
+			expect(registry.end(session.id)).toBe(false);
+			expect(registry.create(createChallenge()).session.id).not.toBe(session.id);
+		});
+
+		it('does not refresh expiry for viewer lookups, connections, refused connections, or disconnects', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 1,
+				maxViewerConnectionsPerSession: 1,
+				sessionInactivityTimeoutMs: 1_000
+			});
+			const { session } = registry.create(createChallenge());
+			vi.advanceTimersByTime(500);
+			expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+			const unsubscribe = registry.subscribeToUpdates(session.id, vi.fn());
+			expect(() => registry.subscribeToUpdates(session.id, vi.fn())).toThrow(
+				LiveSessionViewerLimitError
+			);
+			unsubscribe();
+			const listener = vi.fn();
+			registry.subscribeToUpdates(session.id, listener);
+
+			vi.advanceTimersByTime(500);
+			expect(listener).toHaveBeenLastCalledWith(undefined);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		});
+
+		it.each(['resume', 'update', 'regenerate'] as const)(
+			'refreshes expiry after an authenticated DM %s',
+			(activity) => {
+				const registry = new InMemoryLiveSessionRegistry({
+					maxActiveSessions: 1,
+					sessionInactivityTimeoutMs: 1_000
+				});
+				const { session, reconnectToken } = registry.create(createChallenge());
+				const listener = vi.fn();
+				registry.subscribeToUpdates(session.id, listener);
+				vi.advanceTimersByTime(900);
+
+				const refreshedSession =
+					activity === 'regenerate'
+						? registry.regenerateViewerCode(session.id, reconnectToken)
+						: registry.resume(
+								session.id,
+								reconnectToken,
+								activity === 'update' ? createChallenge() : undefined
+							);
+
+				vi.advanceTimersByTime(999);
+				expect(registry.findByViewerCode(refreshedSession.viewerCode)).toEqual(refreshedSession);
+				vi.advanceTimersByTime(1);
+				expect(listener).toHaveBeenLastCalledWith(undefined);
+				expect(registry.findByViewerCode(refreshedSession.viewerCode)).toBeUndefined();
+			}
+		);
+
+		it('does not refresh expiry for failed DM authorization', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 1,
+				sessionInactivityTimeoutMs: 1_000
+			});
+			const { session } = registry.create(createChallenge());
+			vi.advanceTimersByTime(900);
+			expect(() => registry.resume(session.id, 'wrong')).toThrow(LiveSessionAuthorizationError);
+			expect(() => registry.regenerateViewerCode(session.id, 'wrong')).toThrow(
+				LiveSessionAuthorizationError
+			);
+			expect(() => registry.endAuthorized(session.id, 'wrong')).toThrow(
+				LiveSessionAuthorizationError
+			);
+
+			vi.advanceTimersByTime(100);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		});
+
+		it.each(['lookup', 'resume', 'subscribe', 'regenerate', 'end', 'create'] as const)(
+			'enforces the deadline during %s even before a delayed timer callback runs',
+			(operation) => {
+				const registry = new InMemoryLiveSessionRegistry({
+					maxActiveSessions: 1,
+					sessionInactivityTimeoutMs: 1_000
+				});
+				const { session, reconnectToken } = registry.create(createChallenge());
+				const listener = vi.fn();
+				registry.subscribeToUpdates(session.id, listener);
+				vi.setSystemTime(Date.now() + 1_000);
+
+				switch (operation) {
+					case 'lookup':
+						expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+						break;
+					case 'resume':
+						expect(() => registry.resume(session.id, reconnectToken)).toThrow(
+							LiveSessionNotFoundError
+						);
+						break;
+					case 'subscribe':
+						expect(() => registry.subscribeToUpdates(session.id, vi.fn())).toThrow(
+							LiveSessionNotFoundError
+						);
+						break;
+					case 'regenerate':
+						expect(() => registry.regenerateViewerCode(session.id, reconnectToken)).toThrow(
+							LiveSessionNotFoundError
+						);
+						break;
+					case 'end':
+						expect(() => registry.endAuthorized(session.id, reconnectToken)).toThrow(
+							LiveSessionNotFoundError
+						);
+						break;
+					case 'create':
+						expect(registry.create(createChallenge()).session.id).not.toBe(session.id);
+						break;
+				}
+				expect(listener).toHaveBeenLastCalledWith(undefined);
+			}
+		);
+
+		it('tracks each session independently and cancels timers when ended manually', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 2,
+				sessionInactivityTimeoutMs: 1_000
+			});
+			const { session: first } = registry.create(createChallenge());
+			vi.advanceTimersByTime(500);
+			const { session: second } = registry.create(createChallenge());
+			vi.advanceTimersByTime(500);
+			expect(registry.findByViewerCode(first.viewerCode)).toBeUndefined();
+			expect(registry.findByViewerCode(second.viewerCode)).toEqual(second);
+			registry.end(second.id);
+			expect(vi.getTimerCount()).toBe(0);
+		});
+
+		it('defaults to six hours without DM activity', () => {
+			const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+			const { session } = registry.create(createChallenge());
+			vi.advanceTimersByTime(6 * 60 * 60 * 1_000 - 1);
+			expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+			vi.advanceTimersByTime(1);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		});
+
+		it('expires immediately when the configured timeout is zero', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 1,
+				sessionInactivityTimeoutMs: 0
+			});
+			const { session, reconnectToken } = registry.create(createChallenge());
+			expect(() => registry.resume(session.id, reconnectToken)).toThrow(LiveSessionNotFoundError);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+			expect(registry.create(createChallenge()).session.id).not.toBe(session.id);
+		});
+
+		it('supports timeouts exceeding the maximum timer delay without expiring early', () => {
+			const registry = new InMemoryLiveSessionRegistry({
+				maxActiveSessions: 1,
+				sessionInactivityTimeoutMs: 2 ** 31 + 1_000
+			});
+			const { session } = registry.create(createChallenge());
+			vi.advanceTimersByTime(2 ** 31);
+			expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+			vi.advanceTimersByTime(1_000);
+			expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		});
+
+		it.each([-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+			'rejects invalid timeout %s',
+			(sessionInactivityTimeoutMs) => {
+				expect(
+					() =>
+						new InMemoryLiveSessionRegistry({ maxActiveSessions: 1, sessionInactivityTimeoutMs })
+				).toThrow(RangeError);
+			}
+		);
+	});
+
 	it('creates a session with a case-insensitive viewer code lookup', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 2 });
 		const challenge = createChallenge();
