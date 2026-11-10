@@ -133,7 +133,7 @@
 </script>
 
 {#snippet creatureList()}
-	<EntityList>
+	<EntityList layout={faction ? 'grid' : 'stack'}>
 		{#snippet actions()}
 			{#if faction}
 				<ActionButton
