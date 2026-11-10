@@ -49,11 +49,19 @@
 </fieldset>
 
 <style>
+	:global(.card:has(> fieldset)) {
+		position: relative;
+	}
+
+	:global(.card:has(> fieldset) > .card-header) {
+		max-width: calc(100% - 48px);
+		overflow-wrap: anywhere;
+	}
+
 	fieldset > :global(.entity-remove-button) {
-		grid-column: 1 / -1;
-		align-self: start;
-		justify-self: end;
-		margin-inline-start: auto;
+		position: absolute;
+		inset-block-start: 4px;
+		inset-inline-end: 4px;
 		min-width: 32px;
 		min-height: 32px;
 		padding: 6px;
