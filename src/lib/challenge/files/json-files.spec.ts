@@ -220,11 +220,12 @@ describe('challenge and library JSON files', () => {
 	});
 
 	it('compresses downloads and reads them back, still accepting plain JSON', async () => {
-		const createObjectUrl = vi.fn(() => 'blob:gzip');
+		const createObjectUrl = vi.fn<typeof URL.createObjectURL>(() => 'blob:gzip');
 		stubObjectUrl(createObjectUrl, vi.fn());
-		const anchors: HTMLAnchorElement[] = [];
-		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
-			anchors.push(this);
+		const downloadedFileNames: string[] = [];
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+			const anchor = document.querySelector<HTMLAnchorElement>('a[download]');
+			if (anchor) downloadedFileNames.push(anchor.download);
 		});
 
 		await downloadChallengeLibraryJson(library);
@@ -233,7 +234,7 @@ describe('challenge and library JSON files', () => {
 		assert(blob instanceof Blob);
 		const bytes = new Uint8Array(await blob.arrayBuffer());
 		expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
-		expect(anchors[0]?.download).toBe('soulstone-challenge-library.json.gz');
+		expect(downloadedFileNames[0]).toBe('soulstone-challenge-library.json.gz');
 		const gzipFile = new File([bytes], 'backup.json.gz');
 		await expect(readChallengeLibraryJsonFile(gzipFile)).resolves.toEqual(library);
 	});
