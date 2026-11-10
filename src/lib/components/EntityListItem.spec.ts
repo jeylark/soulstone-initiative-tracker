@@ -130,6 +130,9 @@ describe('EntityListItem', () => {
 		});
 
 		const button = screen.getByRole('button', { name: 'Remove A' });
+		const actionRow = button.parentElement;
+		expect(actionRow?.classList.contains('entity-remove-action')).toBe(true);
+		expect(actionRow?.nextElementSibling?.textContent).toContain('Entity content');
 		expect(
 			button.compareDocumentPosition(screen.getByText('Entity content')) &
 				Node.DOCUMENT_POSITION_FOLLOWING
