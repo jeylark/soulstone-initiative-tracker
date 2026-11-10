@@ -12,16 +12,15 @@ const entities = [
 	{ id: createUuid(), name: 'Alpha' },
 	{ id: createUuid(), name: 'Beta' }
 ];
-const entityEditor = createRawSnippet(
-	(getEntity: () => { name: string }, getIndex: () => number) => ({
-		render: () => `<p>${getEntity().name}:${getIndex()}</p>`
-	})
-);
+type TestEntity = { readonly id: (typeof entities)[number]['id']; readonly name: string };
+const entityEditor = createRawSnippet<[TestEntity, number]>((getEntity, getIndex) => ({
+	render: () => `<p>${getEntity().name}:${getIndex()}</p>`
+}));
 const afterEntities = createRawSnippet(() => ({ render: () => '<p>Recovery section</p>' }));
 
 describe('EntityList', () => {
 	it('renders each entity through the editor snippet', () => {
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities,
 			entityEditor,
 			adds: [],
@@ -39,7 +38,7 @@ describe('EntityList', () => {
 	});
 
 	it('applies per-entity item presentation and fieldset attributes', () => {
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
 			adds: [],
@@ -66,7 +65,7 @@ describe('EntityList', () => {
 
 	it('calls onRemove with the selected entity', async () => {
 		const onRemove = vi.fn();
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
 			adds: [],
@@ -80,7 +79,7 @@ describe('EntityList', () => {
 	});
 
 	it('omits the remove button when onRemove is not provided', () => {
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
 			adds: [],
@@ -93,7 +92,7 @@ describe('EntityList', () => {
 
 	it('renders add actions after the items and honors accessible names and disabled state', async () => {
 		const onAdd = vi.fn();
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
 			adds: [
@@ -125,7 +124,7 @@ describe('EntityList', () => {
 	});
 
 	it('applies the layout modifier class to the items container', () => {
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities,
 			entityEditor,
 			adds: [],
@@ -141,7 +140,7 @@ describe('EntityList', () => {
 	});
 
 	it('renders supplemental content after the entities and before the add actions', () => {
-		render(EntityList, {
+		render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
 			afterEntities,
