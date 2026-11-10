@@ -1,5 +1,5 @@
 import type { DeepReadonly } from '#lib';
-import type { Challenge, TurnOrderDisplayItem } from '#lib/challenge';
+import type { Challenge, ViewerTurnOrderDisplayItem } from '#lib/challenge';
 
 const DATABASE_NAME = 'soulstone-live-session-credentials';
 const DATABASE_VERSION = 1;
@@ -33,7 +33,7 @@ export interface LiveViewerSession {
 	/** Public details for the active session. */
 	session: LiveSessionDescriptor;
 	/** Visible turns and Spawn in generated order. */
-	turnOrder: readonly TurnOrderDisplayItem[];
+	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
 
 /** Error returned by the live-session API, including its HTTP status. */
@@ -246,7 +246,7 @@ function getSessionDescriptor(value: unknown): LiveSessionDescriptor {
 /**
  * Creates a server session from the current challenge snapshot.
  *
- * @param challenge Challenge snapshot to keep in server memory.
+ * @param challenge Challenge snapshot to project into the read-only viewer's display data.
  * @returns Public session details and the reconnect token, which must be persisted separately.
  * @throws {LiveSessionRequestError} If the server refuses or malforms the request.
  */
@@ -278,7 +278,7 @@ export async function createLiveSession(
  * Looks up an active live session using its viewer code.
  *
  * @param viewerCode Four- or eight-character code supplied by the viewer.
- * @returns Public session details and its viewer-safe turn order.
+ * @returns Public session details and its minimal viewer-safe turn order.
  * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
  */
 export async function joinLiveSession(viewerCode: string): Promise<LiveViewerSession> {
@@ -299,7 +299,7 @@ export async function joinLiveSession(viewerCode: string): Promise<LiveViewerSes
 	}
 	return {
 		session: getSessionDescriptor(body.session),
-		turnOrder: body.turnOrder as TurnOrderDisplayItem[]
+		turnOrder: body.turnOrder as ViewerTurnOrderDisplayItem[]
 	};
 }
 

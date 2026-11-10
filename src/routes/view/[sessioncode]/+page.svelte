@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import type { TurnOrderDisplayItem } from '#lib/challenge';
+	import type { ViewerTurnOrderDisplayItem } from '#lib/challenge';
 	import { TurnOrderList, ViewPage } from '#lib/components';
 	import { joinLiveSession, LiveSessionRequestError } from '../../../lib/live-session-client';
 
-	let turnOrder = $state<readonly TurnOrderDisplayItem[]>([]);
+	let turnOrder = $state<readonly ViewerTurnOrderDisplayItem[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 	let hasConnectionError = $state(false);
@@ -27,7 +27,7 @@
 						'turnOrder' in payload &&
 						Array.isArray(payload.turnOrder)
 					) {
-						turnOrder = payload.turnOrder as TurnOrderDisplayItem[];
+						turnOrder = payload.turnOrder as ViewerTurnOrderDisplayItem[];
 					}
 				} catch {
 					errorMessage = 'The live session sent an invalid turn-order update.';

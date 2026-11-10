@@ -4,7 +4,6 @@ import {
 	LiveSessionViewerLimitError,
 	liveSessionRegistry
 } from '../../../../../lib/server/live-sessions';
-import { createViewerTurnOrder } from '../../../../../lib/server/viewer-turn-order';
 
 const encoder = new TextEncoder();
 
@@ -37,9 +36,7 @@ export const GET: RequestHandler = ({ params, request }) => {
 				}
 				return;
 			}
-			send(
-				`event: turn-order\ndata: ${JSON.stringify({ turnOrder: createViewerTurnOrder(session.challenge) })}\n\n`
-			);
+			send(`event: turn-order\ndata: ${JSON.stringify({ turnOrder: session.turnOrder })}\n\n`);
 		});
 	} catch (error) {
 		if (error instanceof LiveSessionNotFoundError) {

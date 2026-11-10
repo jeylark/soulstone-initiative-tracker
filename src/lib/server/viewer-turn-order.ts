@@ -1,5 +1,5 @@
 import type { DeepReadonly } from '../DeepReadonly';
-import type { Challenge, TurnOrderDisplayItem } from '../challenge';
+import type { Challenge, ViewerTurnOrderDisplayItem } from '../challenge';
 import { createTurnDisplayLookup, createTurnOrderDisplay } from '../challenge/initiative';
 
 /**
@@ -10,7 +10,7 @@ import { createTurnDisplayLookup, createTurnOrderDisplay } from '../challenge/in
  */
 export function createViewerTurnOrder(
 	challenge: DeepReadonly<Challenge>
-): readonly TurnOrderDisplayItem[] {
+): readonly ViewerTurnOrderDisplayItem[] {
 	const runState = challenge.runState;
 	if (!runState?.generatedTurnOrder) return [];
 
@@ -18,5 +18,22 @@ export function createViewerTurnOrder(
 		runState.generatedTurnOrder,
 		createTurnDisplayLookup(challenge),
 		runState.initiativeResults
-	).items.filter((item) => item.kind === 'spawn' || !item.display.isHidden);
+	).items.flatMap((item): ViewerTurnOrderDisplayItem[] => {
+		if (item.kind === 'spawn') return [{ kind: 'spawn' }];
+		if (item.display.isHidden) return [];
+		return [
+			{
+				kind: 'turn',
+				turnId: item.turnId,
+				display: {
+					faction: item.display.faction
+						? { name: item.display.faction.name, color: item.display.faction.color }
+						: undefined,
+					label: item.display.label,
+					isHidden: false
+				},
+				initiative: item.initiative
+			}
+		];
+	});
 }

@@ -7,6 +7,7 @@ import {
 	LiveSessionNotFoundError,
 	LiveSessionViewerLimitError
 } from './live-sessions';
+import { createRunChallenge } from '../../routes/challenges/[challengeId]/run/run-test-support';
 
 function createChallenge(): Challenge {
 	const now = new Date('2026-11-03T12:00:00.000Z');
@@ -36,14 +37,24 @@ describe('in-memory live session registry', () => {
 		expect(registry.findByViewerCode(lowercaseViewerCode.toUpperCase())).toEqual(session);
 	});
 
-	it('isolates the stored challenge from input and returned mutations', () => {
+	it('stores only viewer-display data instead of the full challenge', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
-		const challenge = createChallenge();
+		const challenge = createRunChallenge();
 		const { session } = registry.create(challenge);
 		challenge.name = 'Changed outside the session';
-		session.challenge.name = 'Changed through a lookup';
+		expect(session).not.toHaveProperty('challenge');
+		expect(session).toHaveProperty('turnOrder');
+		expect(session.turnOrder[0]).toMatchObject({
+			kind: 'turn',
+			display: { faction: { name: 'Players' }, label: 'Aria' },
+			initiative: 6
+		});
+		expect(JSON.stringify(session)).not.toContain('Ashen Company');
+		expect(JSON.stringify(session)).not.toContain('"creature"');
+		expect(JSON.stringify(session)).not.toContain('"position"');
+		expect(JSON.stringify(session)).not.toContain('initiativeResults');
 
-		expect(registry.findByViewerCode(session.viewerCode)?.challenge.name).toBe('The Sunken Hall');
+		expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
 	});
 
 	it('refuses creation at capacity without evicting the existing session', () => {
@@ -85,9 +96,9 @@ describe('in-memory live session registry', () => {
 		const updatedChallenge = { ...createChallenge(), name: 'Updated challenge' };
 
 		expect(registry.resume(session.id, reconnectToken)).toEqual(session);
-		expect(registry.resume(session.id, reconnectToken, updatedChallenge).challenge.name).toBe(
-			'Updated challenge'
-		);
+		const resumedSession = registry.resume(session.id, reconnectToken, updatedChallenge);
+		expect(resumedSession).not.toHaveProperty('challenge');
+		expect(resumedSession.turnOrder).toEqual([]);
 		expect(() => registry.resume(session.id, 'incorrect-token')).toThrow(
 			LiveSessionAuthorizationError
 		);
@@ -95,17 +106,15 @@ describe('in-memory live session registry', () => {
 
 	it('publishes the current and updated snapshots to active subscribers', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
-		const { session, reconnectToken } = registry.create(createChallenge());
+		const challenge = createChallenge();
+		const { session, reconnectToken } = registry.create(challenge);
 		const updates: (typeof session | undefined)[] = [];
 		const unsubscribe = registry.subscribeToUpdates(session.id, (update) => updates.push(update));
-		const updatedChallenge = { ...createChallenge(), name: 'Updated challenge' };
+		const updatedChallenge = { ...challenge, name: 'Updated challenge' };
 
 		registry.resume(session.id, reconnectToken, updatedChallenge);
 
-		expect(updates.map((update) => update?.challenge.name)).toEqual([
-			'The Sunken Hall',
-			'Updated challenge'
-		]);
+		expect(updates).toEqual([session, session]);
 		unsubscribe();
 		registry.resume(session.id, reconnectToken, { ...createChallenge(), name: 'Not published' });
 		expect(updates).toHaveLength(2);

@@ -1,6 +1,5 @@
 import type { RequestHandler } from './$types';
 import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
-import { createViewerTurnOrder } from '../../../../lib/server/viewer-turn-order';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -35,6 +34,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	return Response.json({
 		session: { id: session.id, viewerCode: session.viewerCode },
-		turnOrder: createViewerTurnOrder(session.challenge)
+		turnOrder: session.turnOrder
 	});
 };

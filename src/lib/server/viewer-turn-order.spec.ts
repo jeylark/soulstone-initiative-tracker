@@ -14,6 +14,19 @@ describe('createViewerTurnOrder', () => {
 			'Spawn'
 		]);
 		expect(JSON.stringify(turnOrder)).not.toContain('Rook');
+		expect(turnOrder[0]).toEqual({
+			kind: 'turn',
+			turnId: expect.any(String),
+			display: {
+				faction: { name: 'Players', color: 'blue' },
+				label: 'Aria',
+				isHidden: false
+			},
+			initiative: expect.any(Number)
+		});
+		expect(Object.keys(turnOrder[0]!)).toEqual(['kind', 'turnId', 'display', 'initiative']);
+		expect(JSON.stringify(turnOrder)).not.toContain('creature');
+		expect(JSON.stringify(turnOrder)).not.toContain('position');
 	});
 
 	it('returns an empty order when the challenge has not started running', () => {

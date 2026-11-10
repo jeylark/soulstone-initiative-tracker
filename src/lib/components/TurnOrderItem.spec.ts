@@ -1,6 +1,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createUuid, type ChallengeCreature, type TurnOrderTurnDisplayItem } from '#lib/challenge';
+import {
+	createUuid,
+	type ChallengeCreature,
+	type TurnOrderTurnDisplayItem,
+	type ViewerTurnOrderDisplayItem
+} from '#lib/challenge';
 import TurnOrderItem from './TurnOrderItem.svelte';
 
 afterEach(cleanup);
@@ -114,5 +119,24 @@ describe('TurnOrderItem', () => {
 		expect(screen.queryByText(/^Initiative:/)).toBeNull();
 		expect(screen.queryByRole('checkbox')).toBeNull();
 		expect(screen.queryByText('1')).toBeNull();
+	});
+
+	it('renders minimal viewer data without exposing a visibility control', () => {
+		const item: ViewerTurnOrderDisplayItem = {
+			kind: 'turn',
+			turnId: createUuid(),
+			display: {
+				faction: { name: 'Players', color: 'blue' },
+				label: 'Aria',
+				isHidden: false
+			},
+			initiative: 6
+		};
+		render(TurnOrderItem, { props: { item, onVisibilityChange: vi.fn() } });
+
+		expect(screen.getByRole('heading', { name: 'Players' })).toBeTruthy();
+		expect(screen.getByText('Aria', { selector: '.turn-order-creature-name' })).toBeTruthy();
+		expect(screen.getByText('Initiative: 6')).toBeTruthy();
+		expect(screen.queryByRole('checkbox')).toBeNull();
 	});
 });

@@ -51,7 +51,8 @@ function createChallenge(): Challenge {
 
 describe('GET /api/sessions/[sessionId]/events', () => {
 	it('streams the initial and updated visible turn order and a session-ended event', async () => {
-		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
+		const challenge = createChallenge();
+		const { session, reconnectToken } = liveSessionRegistry.create(challenge);
 		const response = await GET({
 			params: { sessionId: session.id },
 			request: new Request(`http://localhost/api/sessions/${session.id}/events`)
@@ -65,8 +66,10 @@ describe('GET /api/sessions/[sessionId]/events', () => {
 		expect(initialEvent).toContain('Visible character');
 		expect(initialEvent).not.toContain('Hidden character');
 		expect(initialEvent).toContain('"kind":"spawn"');
+		expect(initialEvent).not.toContain('"creature"');
+		expect(initialEvent).not.toContain(challenge.id);
 
-		const updatedChallenge = liveSessionRegistry.findByViewerCode(session.viewerCode)!.challenge;
+		const updatedChallenge = structuredClone(challenge);
 		const visibleCreature = updatedChallenge.creatures[0];
 		if (!visibleCreature || visibleCreature.kind !== 'character') {
 			throw new Error('Expected the first creature to be a character.');

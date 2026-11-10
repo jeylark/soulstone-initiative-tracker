@@ -1,12 +1,13 @@
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DeepReadonly } from '../DeepReadonly';
 import {
-	sanitizeChallenge,
 	validateChallengeLibrary,
 	type Challenge,
-	type ValidationIssue
+	type ValidationIssue,
+	type ViewerTurnOrderDisplayItem
 } from '../challenge';
 import { loadServerConfig } from './server-config';
+import { createViewerTurnOrder } from './viewer-turn-order';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 4;
@@ -15,14 +16,14 @@ const DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION = 100;
 
 type LiveSessionUpdateListener = (session: LiveSession | undefined) => void;
 
-/** A sanitized challenge exposed through a live session. */
+/** Minimal snapshot needed to render the read-only viewer. */
 export interface LiveSession {
 	/** Unique identifier used to end the session. */
 	id: string;
-	/** Four-character code viewers can use to find this session. */
+	/** Code viewers can use to find this session. */
 	viewerCode: string;
-	/** Snapshot of the challenge associated with this session. */
-	challenge: Challenge;
+	/** Visible turn cards and Spawn entry; challenge data is not retained. */
+	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
 
 /** A newly created session and its one-time DM reconnect credential. */
@@ -148,7 +149,7 @@ export class InMemoryLiveSessionRegistry {
 	}
 
 	/**
-	 * Creates a session from a sanitized snapshot of a challenge.
+	 * Creates a session from a challenge, retaining only its viewer display projection.
 	 *
 	 * The returned session is a clone; later mutations to the input or returned value do not
 	 * change the session stored in this registry.
@@ -168,7 +169,7 @@ export class InMemoryLiveSessionRegistry {
 		const session: LiveSession = {
 			id: randomUUID(),
 			viewerCode,
-			challenge: sanitizeChallenge(challenge)
+			turnOrder: createViewerTurnOrder(challenge)
 		};
 		const reconnectToken = randomBytes(32).toString('base64url');
 		this.sessions.set(session.id, session);
@@ -193,7 +194,7 @@ export class InMemoryLiveSessionRegistry {
 	 *
 	 * @param sessionId Identifier returned when the session was created.
 	 * @param reconnectToken Secret returned once when the session was created.
-	 * @param challenge Latest challenge snapshot to store when resuming, if supplied.
+	 * @param challenge Latest challenge snapshot to project into viewer data, if supplied.
 	 * @returns A cloned active session.
 	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
 	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
@@ -213,7 +214,7 @@ export class InMemoryLiveSessionRegistry {
 		}
 
 		if (challenge) {
-			session.challenge = sanitizeChallenge(challenge);
+			session.turnOrder = createViewerTurnOrder(challenge);
 			this.notifyUpdate(sessionId, session);
 		}
 		return structuredClone(session);

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { StableId, TurnOrderDisplayItem } from '#lib/challenge';
+	import type { StableId, TurnOrderDisplayItem, ViewerTurnOrderDisplayItem } from '#lib/challenge';
 	import { FACTION_COLORS } from '#lib/challenge';
 	import { Card, CheckboxInput } from '#lib/components';
 
 	interface Props {
 		/** Turn or Spawn data to render as a card. */
-		item: TurnOrderDisplayItem;
+		item: TurnOrderDisplayItem | ViewerTurnOrderDisplayItem;
 		/** Called with the creature ID and new hidden state when its checkbox changes. Omit to render read-only. */
 		onVisibilityChange?: (creatureId: StableId, isHidden: boolean) => void;
 	}
@@ -47,14 +47,14 @@
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
 			</div>
-			{#if onVisibilityChange}
+			{#if onVisibilityChange && 'creature' in item.display}
 				<div class="turn-order-visibility">
 					<CheckboxInput
 						label="Hidden"
 						aria-label={`Hidden from viewers: ${item.display.creatureName}`}
 						checked={item.display.isHidden}
 						onchange={(event) =>
-							onVisibilityChange(item.display.creature.id, event.currentTarget.checked)}
+							onVisibilityChange?.(item.display.creature.id, event.currentTarget.checked)}
 					/>
 				</div>
 			{/if}

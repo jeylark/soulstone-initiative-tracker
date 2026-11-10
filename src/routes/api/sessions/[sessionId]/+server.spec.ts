@@ -18,7 +18,7 @@ function createChallenge(): Challenge {
 }
 
 describe('PUT /api/sessions/[sessionId]', () => {
-	it('resumes an active session and updates its challenge snapshot', async () => {
+	it('updates an active session without retaining or returning the challenge snapshot', async () => {
 		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
 		const challenge = createChallenge();
 		const request = new Request(`http://localhost/api/sessions/${session.id}`, {
@@ -33,9 +33,12 @@ describe('PUT /api/sessions/[sessionId]', () => {
 		const response = await PUT({ params: { sessionId: session.id }, request } as never);
 
 		expect(response.status).toBe(200);
-		expect(await response.json()).toMatchObject({
-			session: { id: session.id, viewerCode: session.viewerCode, challenge: { id: challenge.id } }
+		const body = await response.json();
+		expect(body).toMatchObject({
+			session: { id: session.id, viewerCode: session.viewerCode, turnOrder: [] }
 		});
+		expect(JSON.stringify(body)).not.toContain(challenge.id);
+		expect(JSON.stringify(body)).not.toContain(challenge.name);
 		liveSessionRegistry.end(session.id);
 	});
 

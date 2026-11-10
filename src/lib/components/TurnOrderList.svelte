@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { StableId, TurnOrderDisplayItem } from '#lib/challenge';
+	import type { StableId, TurnOrderDisplayItem, ViewerTurnOrderDisplayItem } from '#lib/challenge';
 	import TurnOrderItem from './TurnOrderItem.svelte';
 
 	interface Props {
 		/** Ordered turn and Spawn entries to display. Filtering remains the caller's responsibility. */
-		items: readonly TurnOrderDisplayItem[];
+		items: readonly (TurnOrderDisplayItem | ViewerTurnOrderDisplayItem)[];
 		/** Optional handler for changing a creature's visibility; omitted for read-only lists. */
 		onVisibilityChange?: (creatureId: StableId, isHidden: boolean) => void;
 	}
