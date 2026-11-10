@@ -88,6 +88,7 @@ export const GET: RequestHandler = ({ params, request }) => {
 					unsubscribe();
 					if (heartbeat) clearInterval(heartbeat);
 				},
+				// eslint-disable-next-line @typescript-eslint/naming-convention -- native AddEventListenerOptions name
 				{ once: true }
 			);
 		},

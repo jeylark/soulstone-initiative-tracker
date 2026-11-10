@@ -1,0 +1,25 @@
+[1mdiff --git a/src/routes/api/sessions/[sessionId]/events/+server.ts b/src/routes/api/sessions/[sessionId]/events/+server.ts[m
+[1mindex 98699be..a9b3a5d 100644[m
+[1m--- a/src/routes/api/sessions/[sessionId]/events/+server.ts[m
+[1m+++ b/src/routes/api/sessions/[sessionId]/events/+server.ts[m
+[36m@@ -88,6 +88,7 @@[m [mexport const GET: RequestHandler = ({ params, request }) => {[m
+ 					unsubscribe();[m
+ 					if (heartbeat) clearInterval(heartbeat);[m
+ 				},[m
+[32m+[m				[32m// eslint-disable-next-line @typescript-eslint/naming-convention -- native AddEventListenerOptions name[m
+ 				{ once: true }[m
+ 			);[m
+ 		},[m
+[1mdiff --git a/src/routes/view/+page.spec.ts b/src/routes/view/+page.spec.ts[m
+[1mindex b11c9b9..6a382b5 100644[m
+[1m--- a/src/routes/view/+page.spec.ts[m
+[1m+++ b/src/routes/view/+page.spec.ts[m
+[36m@@ -5,7 +5,7 @@[m [mimport joinSessionPage from './+page.svelte';[m
+ const { mockedGoto, mockedResolve } = vi.hoisted(() => ({[m
+ 	mockedGoto: vi.fn(),[m
+ 	mockedResolve: vi.fn([m
+[31m-		(_route: string, params: { sessioncode: string }) => `/view/${params.sessioncode}`[m
+[32m+[m		[32m(route: string, params: { readonly sessioncode: string }) => `/view/${params.sessioncode}`[m
+ 	)[m
+ }));[m
+ [m

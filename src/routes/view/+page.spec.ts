@@ -5,7 +5,7 @@ import joinSessionPage from './+page.svelte';
 const { mockedGoto, mockedResolve } = vi.hoisted(() => ({
 	mockedGoto: vi.fn(),
 	mockedResolve: vi.fn(
-		(_route: string, params: { sessioncode: string }) => `/view/${params.sessioncode}`
+		(route: string, params: { readonly sessioncode: string }) => `/view/${params.sessioncode}`
 	)
 }));
 
