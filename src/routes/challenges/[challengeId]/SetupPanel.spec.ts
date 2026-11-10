@@ -39,6 +39,12 @@ beforeEach(async () => {
 });
 
 describe('challenge setup view', () => {
+	it('renders the setup editor in a full-width container', async () => {
+		await renderSetup();
+		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
+		expect(editor.closest('[data-layout="full-width"]')).toBeTruthy();
+	});
+
 	it('shows complete saved-data diagnostics and only resets progress after confirmation', async () => {
 		const challenge = {
 			...createSetupChallenge(),

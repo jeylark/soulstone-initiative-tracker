@@ -409,7 +409,9 @@ describe('turn-order run route', () => {
 				)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
@@ -494,14 +496,16 @@ describe('turn-order run route', () => {
 		expect(screen.getByText('Spawns: 1')).toBeTruthy();
 	});
 
-	it('hides the next-turn button until an order exists', async () => {
+	it('disables the next-turn button until an order exists', async () => {
 		const challenge = createRunChallenge();
 		delete challenge.runState?.generatedTurnOrder;
 		await saveChallengeToLibrary(challenge);
 
 		render(turnOrderPage);
 		await screen.findByRole('button', { name: 'Generate turn order' });
-		expect(screen.queryByRole('button', { name: 'Next turn' })).toBeNull();
+		expect((screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement).disabled).toBe(
+			true
+		);
 	});
 
 	it('skips hidden turns while keeping them visible and stopping at Spawn', async () => {
@@ -559,13 +563,17 @@ describe('turn-order run route', () => {
 			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 
 		cleanup();
 		render(turnOrderPage);
 		expect(await screen.findByRole('list', { name: 'Generated turn order' })).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 	});
 
 	it('shows a non-blocking warning when placement values are clamped', async () => {
@@ -585,7 +593,9 @@ describe('turn-order run route', () => {
 		expect(
 			await screen.findByText('Some placement values exceed the available order and were clamped.')
 		).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 		expect(screen.getByRole('list', { name: 'Turns with clamped placement' })).toBeTruthy();
 	});
 
@@ -623,7 +633,9 @@ describe('turn-order run route', () => {
 				'Some saved turns are no longer in this challenge and are omitted from the turn order.'
 			)
 		).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 	});
 
 	it('blocks generation while same-faction turns are tied', async () => {
@@ -926,7 +938,9 @@ describe('turn-order run route', () => {
 				)
 		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('link', { name: 'Return to roll' })).toBeNull();
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(mockedGoto).not.toHaveBeenCalled();
 	});
@@ -954,7 +968,9 @@ describe('turn-order run route', () => {
 			]);
 			expect(saved?.runState?.initiativeResults).toEqual(challenge.runState?.initiativeResults);
 		});
-		expect(screen.queryByRole('button', { name: 'Generate turn order' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Generate turn order' }) as HTMLButtonElement).disabled
+		).toBe(true);
 		expect(screen.queryByRole('button', { name: 'Recalculate' })).toBeNull();
 	});
 

@@ -323,9 +323,9 @@
 				{turnDisplayLookup}
 				onDecide={decideTie}
 			/>
-			{#if hasRollableAppTurns()}
-				<ActionButton onclick={rollAll}>Roll all remaining</ActionButton>
-			{/if}
+			<ActionButton disabled={!hasRollableAppTurns()} onclick={rollAll}>
+				Roll all remaining
+			</ActionButton>
 		</fieldset>
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />

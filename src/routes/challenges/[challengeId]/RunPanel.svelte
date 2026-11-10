@@ -438,58 +438,64 @@
 					</ul>
 				{/if}
 
-				{#if generatedOrderDisplay}
-					<ActionButton disabled={isSaving || isEditing} onclick={advanceToNextTurn}>
-						Next turn
-					</ActionButton>
-					<ActionButton disabled={isSaving || isEditing || !isSpawnCurrent} onclick={startEditing}>
-						Edit Challenge
-					</ActionButton>
-					<section aria-label="Live session">
-						<h2>Live session</h2>
-						{#if liveSession}
-							<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
-							{#if savedLiveSessionCredential}
-								<ActionButton
-									disabled={isRegeneratingViewerCode}
-									onclick={regenerateLiveSessionViewerCode}
-								>
-									{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
-								</ActionButton>
-							{/if}
-							<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-								{isEndingLiveSession ? 'Ending…' : 'End live session'}
-							</ActionButton>
-						{:else if savedLiveSessionCredential}
-							<p>A saved live session could not be resumed.</p>
-							<ActionButton disabled={isLoadingLiveSession} onclick={resumeSavedLiveSession}>
-								Retry session resume
-							</ActionButton>
-							<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-								{isEndingLiveSession ? 'Ending…' : 'End live session'}
-							</ActionButton>
-						{:else}
-							<p>Start a live session to let viewers join this challenge.</p>
-							<ActionButton
-								disabled={isLoadingLiveSession || isStartingLiveSession}
-								onclick={startLiveSession}
-							>
-								{isStartingLiveSession ? 'Starting…' : 'Start live session'}
-							</ActionButton>
-						{/if}
-						{#if liveSessionErrorDetails}
-							<ErrorDisplay
-								message="The live session could not be started, resumed, or ended."
-								details={liveSessionErrorDetails}
-							/>
-						{/if}
-					</section>
-				{/if}
-				{#if !challenge.runState?.generatedTurnOrder || isEditing}
-					<ActionButton disabled={isSaving} onclick={generateTurnOrder}>
-						{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
-					</ActionButton>
-				{/if}
+				<ActionButton
+					disabled={!generatedOrderDisplay || isSaving || isEditing}
+					onclick={advanceToNextTurn}
+				>
+					Next turn
+				</ActionButton>
+				<ActionButton
+					disabled={!generatedOrderDisplay || isSaving || isEditing || !isSpawnCurrent}
+					onclick={startEditing}
+				>
+					Edit Challenge
+				</ActionButton>
+				<section aria-label="Live session">
+					<h2>Live session</h2>
+					{#if liveSession}
+						<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
+						<ActionButton
+							disabled={!savedLiveSessionCredential || isRegeneratingViewerCode}
+							onclick={regenerateLiveSessionViewerCode}
+						>
+							{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
+						</ActionButton>
+						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+							{isEndingLiveSession ? 'Ending…' : 'End live session'}
+						</ActionButton>
+					{:else if savedLiveSessionCredential}
+						<p>A saved live session could not be resumed.</p>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isLoadingLiveSession}
+							onclick={resumeSavedLiveSession}
+						>
+							Retry session resume
+						</ActionButton>
+						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+							{isEndingLiveSession ? 'Ending…' : 'End live session'}
+						</ActionButton>
+					{:else}
+						<p>Start a live session to let viewers join this challenge.</p>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isLoadingLiveSession || isStartingLiveSession}
+							onclick={startLiveSession}
+						>
+							{isStartingLiveSession ? 'Starting…' : 'Start live session'}
+						</ActionButton>
+					{/if}
+					{#if liveSessionErrorDetails}
+						<ErrorDisplay
+							message="The live session could not be started, resumed, or ended."
+							details={liveSessionErrorDetails}
+						/>
+					{/if}
+				</section>
+				<ActionButton
+					disabled={isSaving || (!!challenge.runState?.generatedTurnOrder && !isEditing)}
+					onclick={generateTurnOrder}
+				>
+					{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
+				</ActionButton>
 				{#if hasSaveError}
 					<ErrorDisplay message="Changes could not be saved." />
 				{/if}

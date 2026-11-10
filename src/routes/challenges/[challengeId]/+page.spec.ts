@@ -42,10 +42,13 @@ describe('challenge workflow tabs', () => {
 		render(challengePage);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Download' }));
 
-		expect(createObjectUrl).toHaveBeenCalledOnce();
+		await vi.waitFor(() => expect(createObjectUrl).toHaveBeenCalledOnce());
 		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0];
 		assert(downloadedBlob instanceof Blob);
-		const downloadedLibrary = JSON.parse(await downloadedBlob.text());
+		const decompressed = new Response(await downloadedBlob.arrayBuffer()).body?.pipeThrough(
+			new DecompressionStream('gzip')
+		);
+		const downloadedLibrary = JSON.parse(await new Response(decompressed).text());
 		expect(downloadedLibrary).toMatchObject({
 			formatVersion: 1,
 			challenges: [
