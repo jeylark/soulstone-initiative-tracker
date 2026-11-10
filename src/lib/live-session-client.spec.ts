@@ -85,12 +85,14 @@ describe('live session client', () => {
 	it('looks up an active session using its viewer code', async () => {
 		const fetchMock = vi
 			.fn<typeof fetch>()
-			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+			.mockResolvedValue(
+				Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
+			);
 		vi.stubGlobal('fetch', fetchMock);
 
 		await expect(joinLiveSession('A234')).resolves.toEqual({
-			id: 'session-id',
-			viewerCode: 'A234'
+			session: { id: 'session-id', viewerCode: 'A234' },
+			turnOrder: []
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/join',

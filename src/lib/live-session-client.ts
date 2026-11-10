@@ -1,5 +1,5 @@
 import type { DeepReadonly } from '#lib';
-import type { Challenge } from '#lib/challenge';
+import type { Challenge, TurnOrderDisplayItem } from '#lib/challenge';
 
 const DATABASE_NAME = 'soulstone-live-session-credentials';
 const DATABASE_VERSION = 1;
@@ -26,6 +26,14 @@ export interface LiveSessionDescriptor {
 	id: string;
 	/** Viewer code that read-only guests can use to join. */
 	viewerCode: string;
+}
+
+/** Session details and visible turn order returned to a read-only viewer. */
+export interface LiveViewerSession {
+	/** Public details for the active session. */
+	session: LiveSessionDescriptor;
+	/** Visible turns and Spawn in generated order. */
+	turnOrder: readonly TurnOrderDisplayItem[];
 }
 
 /** Error returned by the live-session API, including its HTTP status. */
@@ -270,20 +278,29 @@ export async function createLiveSession(
  * Looks up an active live session using its viewer code.
  *
  * @param viewerCode Four-character code supplied by the viewer.
- * @returns Public details for the active session.
+ * @returns Public session details and its viewer-safe turn order.
  * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
  */
-export async function joinLiveSession(viewerCode: string): Promise<LiveSessionDescriptor> {
+export async function joinLiveSession(viewerCode: string): Promise<LiveViewerSession> {
 	const response = await fetch('/api/sessions/join', {
 		method: 'POST',
 		headers: new Headers([['content-type', 'application/json']]),
 		body: JSON.stringify({ viewerCode })
 	});
 	const body = await readApiResponse(response);
-	if (typeof body !== 'object' || body === null || !('session' in body)) {
+	if (
+		typeof body !== 'object' ||
+		body === null ||
+		!('session' in body) ||
+		!('turnOrder' in body) ||
+		!Array.isArray(body.turnOrder)
+	) {
 		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
 	}
-	return getSessionDescriptor(body.session);
+	return {
+		session: getSessionDescriptor(body.session),
+		turnOrder: body.turnOrder as TurnOrderDisplayItem[]
+	};
 }
 
 /**

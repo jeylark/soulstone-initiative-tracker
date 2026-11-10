@@ -1,20 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
 import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
+import { createSetupChallenge } from '../../../view-test-support';
 import { POST } from './+server';
 
 function createChallenge(): Challenge {
-	const now = new Date('2026-11-03T12:00:00.000Z');
-	return {
-		id: createUuid(),
-		name: 'The Sunken Hall',
-		createdAt: now,
-		updatedAt: now,
-		factions: [],
-		npcTypes: [],
-		fairnessWeight: 0,
-		creatures: []
+	const challenge = createSetupChallenge();
+	const visibleTurnId = createUuid();
+	const hiddenTurnId = createUuid();
+	challenge.creatures = [
+		{
+			id: createUuid(),
+			kind: 'character',
+			name: 'Visible character',
+			factionId: challenge.factions[0]!.id,
+			isHidden: false,
+			turns: [{ id: visibleTurnId, initiative: { kind: 'static', value: 8 } }]
+		},
+		{
+			id: createUuid(),
+			kind: 'character',
+			name: 'Hidden character',
+			factionId: challenge.factions[1]!.id,
+			isHidden: true,
+			turns: [{ id: hiddenTurnId, initiative: { kind: 'static', value: 4 } }]
+		}
+	];
+	challenge.runState = {
+		initiativeResults: {},
+		generatedTurnOrder: [
+			{ kind: 'turn', turnId: visibleTurnId },
+			{ kind: 'turn', turnId: hiddenTurnId },
+			{ kind: 'spawn' }
+		]
 	};
+	return challenge;
 }
 
 function createRequest(body: unknown): Request {
@@ -26,8 +46,8 @@ function createRequest(body: unknown): Request {
 }
 
 describe('POST /api/sessions/join', () => {
-	it('resolves an active viewer code without exposing private session data', async () => {
-		const { session } = liveSessionRegistry.create(createChallenge());
+	it('returns the visible turn order without exposing hidden creatures or DM credentials', async () => {
+		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
 
 		const response = await POST({
 			request: createRequest({ viewerCode: session.viewerCode.toLowerCase() })
@@ -35,7 +55,14 @@ describe('POST /api/sessions/join', () => {
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(body).toEqual({ session: { id: session.id, viewerCode: session.viewerCode } });
+		expect(body.session).toEqual({ id: session.id, viewerCode: session.viewerCode });
+		expect(
+			body.turnOrder.map((item: { kind: string; display?: { label: string } }) =>
+				item.kind === 'turn' ? item.display?.label : 'Spawn'
+			)
+		).toEqual(['Visible character', 'Spawn']);
+		expect(JSON.stringify(body)).not.toContain('Hidden character');
+		expect(JSON.stringify(body)).not.toContain(reconnectToken);
 		liveSessionRegistry.end(session.id);
 	});
 

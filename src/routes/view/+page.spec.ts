@@ -67,7 +67,9 @@ describe('viewer entry page', () => {
 		async (code) => {
 			const fetchMock = vi
 				.fn<typeof fetch>()
-				.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+				.mockResolvedValue(
+					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
+				);
 			vi.stubGlobal('fetch', fetchMock);
 			render(joinSessionPage);
 			const input = screen.getByRole('textbox', { name: 'Session code' });
@@ -149,7 +151,9 @@ describe('viewer entry page', () => {
 		expect(joinButton.hasAttribute('disabled')).toBe(true);
 		expect(sessionCodeInput.hasAttribute('disabled')).toBe(true);
 		expect(screen.getByRole('status').textContent).toBe('Joining live session...');
-		resolveFetch(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		resolveFetch(
+			Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
+		);
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/A234'));
 	});
 

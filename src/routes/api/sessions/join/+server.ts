@@ -1,11 +1,15 @@
 import type { RequestHandler } from './$types';
+import {
+	createTurnDisplayLookup,
+	createTurnOrderDisplay
+} from '../../../../lib/challenge/initiative';
 import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Resolves an active session from a viewer code without exposing its challenge or DM credential. */
+/** Resolves an active session and returns only its visible turn order to a viewer. */
 export const POST: RequestHandler = async ({ request }) => {
 	let body: unknown;
 	try {
@@ -30,5 +34,18 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 	}
 
-	return Response.json({ session: { id: session.id, viewerCode: session.viewerCode } });
+	const runState = session.challenge.runState;
+	const displayOrder = runState?.generatedTurnOrder
+		? createTurnOrderDisplay(
+				runState.generatedTurnOrder,
+				createTurnDisplayLookup(session.challenge),
+				runState.initiativeResults
+			).items
+		: [];
+	const turnOrder = displayOrder.filter((item) => item.kind === 'spawn' || !item.display.isHidden);
+
+	return Response.json({
+		session: { id: session.id, viewerCode: session.viewerCode },
+		turnOrder
+	});
 };
