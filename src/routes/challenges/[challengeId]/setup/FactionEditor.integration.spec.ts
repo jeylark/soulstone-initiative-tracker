@@ -44,6 +44,11 @@ describe('new challenge setup', () => {
 		await renderSetup();
 
 		const players = screen.getByRole('group', { name: 'Players' });
+		const heading = screen.getByRole('heading', { level: 3, name: 'Players' });
+		expect(heading.parentElement).toBe(players.parentElement);
+		expect(heading.classList.contains('card-header--medium')).toBe(true);
+		expect(players.parentElement?.classList.contains('card--inset')).toBe(true);
+		expect(players.parentElement?.classList.contains('card--compact')).toBe(true);
 		expect(
 			(screen.getByRole('textbox', { name: 'Faction name: Players' }) as HTMLInputElement).matches(
 				':disabled'
@@ -148,7 +153,7 @@ describe('new challenge setup', () => {
 			name: 'Remove faction Players'
 		});
 		expect(removeFactionButton.classList.contains('ui-button--danger')).toBe(true);
-		expect(removeFactionButton.textContent?.trim()).toBe('Remove faction');
+		expect(removeFactionButton.getAttribute('title')).toBe('Remove faction');
 		await fireEvent.click(removeFactionButton);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
