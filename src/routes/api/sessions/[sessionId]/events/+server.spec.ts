@@ -5,6 +5,7 @@ import { GET } from './+server';
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.useRealTimers();
 });
 
 function createChallenge(): Challenge {
@@ -54,6 +55,38 @@ function createChallenge(): Challenge {
 }
 
 describe('GET /api/sessions/[sessionId]/events', () => {
+	it('ends the stream on inactivity despite connected viewers and SSE heartbeats', async () => {
+		vi.useFakeTimers();
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 1,
+			sessionInactivityTimeoutMs: 30_000
+		});
+		vi.spyOn(liveSessionRegistry, 'subscribeToUpdates').mockImplementation(
+			registry.subscribeToUpdates.bind(registry)
+		);
+		const { session } = registry.create(createChallenge());
+		const response = await GET({
+			params: { sessionId: session.id },
+			request: new Request(`http://localhost/api/sessions/${session.id}/events`)
+		} as never);
+		const reader = response.body!.getReader();
+
+		try {
+			expect(new TextDecoder().decode((await reader.read()).value)).toContain('event: turn-order');
+			vi.advanceTimersByTime(15_000);
+			expect(new TextDecoder().decode((await reader.read()).value)).toBe(': keep-alive\n\n');
+			vi.advanceTimersByTime(15_000);
+			expect(new TextDecoder().decode((await reader.read()).value)).toBe(
+				'event: session-ended\ndata: {}\n\n'
+			);
+			expect((await reader.read()).done).toBe(true);
+			expect(vi.getTimerCount()).toBe(0);
+		} finally {
+			await reader.cancel();
+			registry.end(session.id);
+		}
+	});
+
 	it('streams the initial and updated visible turn order and a session-ended event', async () => {
 		const challenge = createChallenge();
 		const { session, reconnectToken } = liveSessionRegistry.create(challenge);

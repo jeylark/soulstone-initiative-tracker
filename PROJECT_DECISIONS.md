@@ -63,7 +63,7 @@ On wide screens the Setup tab's editor uses the full viewport width (with side p
 - To reconnect without cookies, the DM's browser stores a separate, random bearer token in IndexedDB and sends it in an authorization header. The token grants DM access only to its active session and is invalidated when that session ends.
 - There is no cross-device recovery for a lost DM reconnect token. If the token is lost, the DM must start a new session from the locally stored challenge.
 - Anyone can create a session without an account or login. The server enforces a configurable maximum of 100 active sessions by default to limit resource usage. When the limit is reached, new sessions are refused with a clear message; existing sessions are not evicted.
-- Sessions automatically end after a host-configured period without DM activity. The default inactivity timeout is six hours. Viewer connections or activity do not reset the timeout.
+- Sessions automatically end after a host-configured period without DM activity. The default inactivity timeout is six hours. Successful authenticated DM resumes, challenge updates, and viewer-code regeneration reset the timeout; failed authorization does not. Viewer lookups, connections, disconnects, and SSE heartbeats do not reset it. Expiry invalidates the viewer code and DM reconnect credential, frees session capacity, and sends connected viewers a terminal `session-ended` event. A zero timeout expires sessions immediately.
 
 ## Storage and hosting
 
