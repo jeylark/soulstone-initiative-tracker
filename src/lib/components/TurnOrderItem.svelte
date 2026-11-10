@@ -16,6 +16,22 @@
 			? FACTION_COLORS.find((color) => color.value === item.display.faction?.color)
 			: undefined
 	);
+	let visibilityControl = $derived.by(() => {
+		if (!onVisibilityChange || item.kind !== 'turn' || !('creature' in item.display)) {
+			return undefined;
+		}
+
+		const creatureId = item.display.creature.id;
+		const creatureName = item.display.creatureName;
+		const isHidden = item.display.isHidden;
+		const handleVisibilityChange = onVisibilityChange;
+
+		return {
+			creatureName,
+			isHidden,
+			handleChange: (isHidden: boolean) => handleVisibilityChange(creatureId, isHidden)
+		};
+	});
 </script>
 
 {#if item.kind === 'spawn'}
@@ -47,14 +63,13 @@
 					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
 				{/if}
 			</div>
-			{#if onVisibilityChange && 'creature' in item.display}
+			{#if visibilityControl}
 				<div class="turn-order-visibility">
 					<CheckboxInput
 						label="Hidden"
-						aria-label={`Hidden from viewers: ${item.display.creatureName}`}
-						checked={item.display.isHidden}
-						onchange={(event) =>
-							onVisibilityChange?.(item.display.creature.id, event.currentTarget.checked)}
+						aria-label={`Hidden from viewers: ${visibilityControl.creatureName}`}
+						checked={visibilityControl.isHidden}
+						onchange={(event) => visibilityControl?.handleChange(event.currentTarget.checked)}
 					/>
 				</div>
 			{/if}
