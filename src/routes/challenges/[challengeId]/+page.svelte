@@ -103,7 +103,7 @@
 		}
 	}
 
-	function downloadChallenge(): void {
+	async function downloadChallenge(): Promise<void> {
 		if (!challenge) return;
 		downloadErrorDetails = '';
 		try {
@@ -111,7 +111,7 @@
 				formatVersion: CHALLENGE_FORMAT_VERSION,
 				challenges: [$state.snapshot(challenge)]
 			};
-			saveChallengeToJsonFile(library, challenge.id);
+			await saveChallengeToJsonFile(library, challenge.id);
 		} catch (error) {
 			downloadErrorDetails =
 				error instanceof Error
@@ -169,7 +169,9 @@
 {:else}
 	<div class="challenge-workflow">
 		<div class="workflow-actions">
-			<ActionButton variant="neutral" onclick={downloadChallenge}>Download</ActionButton>
+			<ActionButton variant="neutral" onclick={() => void downloadChallenge()}
+				>Download</ActionButton
+			>
 		</div>
 		{#if downloadErrorDetails}
 			<ErrorDisplay

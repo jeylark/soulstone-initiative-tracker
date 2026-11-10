@@ -291,7 +291,7 @@
 	<input
 		bind:this={fileInput}
 		type="file"
-		accept=".json,application/json"
+		accept=".json,.gz,application/json,application/gzip"
 		aria-label="Library JSON file"
 		hidden
 		onchange={() => void uploadLibrary()}
