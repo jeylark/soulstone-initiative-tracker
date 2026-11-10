@@ -327,17 +327,17 @@ function mergeImportedChallenge(
 }
 
 /**
- * Saves a challenge snapshot, including its current run state, as a JSON file.
+ * Saves a challenge snapshot, including its current run state, as a gzip-compressed JSON file.
  * @param library Library containing the challenge to export.
  * @param challengeId Stable ID of the challenge to save.
- * @returns No value; starts the browser download.
+ * @returns A promise that resolves once the browser download has started.
  * @throws If the challenge is missing, the library is invalid, or the browser download fails.
  */
-export function saveChallengeToJsonFile(
+export async function saveChallengeToJsonFile(
 	library: DeepReadonly<ChallengeLibrary>,
 	challengeId: StableId
-): void {
-	downloadChallengeJson(library, challengeId);
+): Promise<void> {
+	await downloadChallengeJson(library, challengeId);
 }
 
 /**

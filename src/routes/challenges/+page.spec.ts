@@ -1,5 +1,5 @@
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './+page.svelte';
 import {
@@ -63,7 +63,7 @@ describe('challenge hub', () => {
 	it('imports a single downloaded challenge through the library upload workflow', async () => {
 		const challenge = createSetupChallenge();
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		await uploadLibrary(
 			createChallengeJson({ formatVersion: 1, challenges: [challenge] }, challenge.id)
 		);
@@ -103,7 +103,7 @@ describe('challenge hub', () => {
 
 	it('cancels without saving and permits selecting the same file again', async () => {
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		const json = createChallengeLibraryJson({
 			formatVersion: 1,
 			challenges: [createSetupChallenge()]
@@ -136,7 +136,7 @@ describe('challenge hub', () => {
 	it('preserves unreadable local records while importing', async () => {
 		await seedStoredChallengeLibrary({ formatVersion: 1, challenges: [{ name: 'Broken' }] });
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		await uploadLibrary(
 			createChallengeLibraryJson({ formatVersion: 1, challenges: [createSetupChallenge()] })
 		);
@@ -149,7 +149,7 @@ describe('challenge hub', () => {
 
 	it('opens the file picker from the upload button', async () => {
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		const click = vi.spyOn(screen.getByLabelText('Library JSON file'), 'click');
 		await fireEvent.click(screen.getByRole('button', { name: 'Upload Library' }));
 		expect(click).toHaveBeenCalledOnce();
@@ -198,7 +198,7 @@ describe('challenge hub', () => {
 	it('preserves dates and saved progress when importing a running challenge', async () => {
 		const challenge = createSpawnEditChallenge();
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: [challenge] }));
 		await fireEvent.click(await screen.findByRole('button', { name: 'Import challenges' }));
 		await screen.findByRole('status');
@@ -212,7 +212,7 @@ describe('challenge hub', () => {
 			challenges: [{ id: challenge.id, name: 'Broken' }]
 		});
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: [challenge] }));
 		const choice = await screen.findByRole('combobox', { name: 'Uploaded' });
 		expect(screen.queryByRole('option', { name: 'Replace existing challenge' })).toBeNull();
@@ -226,7 +226,7 @@ describe('challenge hub', () => {
 
 	it('reports file-read errors without offering an import', async () => {
 		render(savedChallengesPage);
-		await screen.findByText('No saved challenges yet.');
+		await screen.findByRole('list', { name: 'Saved challenges' });
 		const file = new File([], 'unreadable.json');
 		vi.spyOn(file, 'text').mockRejectedValue(new Error('Read failed'));
 		await fireEvent.change(screen.getByLabelText('Library JSON file'), {
@@ -270,6 +270,9 @@ describe('challenge hub', () => {
 		render(savedChallengesPage);
 		expect(await screen.findByRole('heading', { level: 3, name: 'Healthy' })).toBeTruthy();
 		expect(screen.getByText('Some saved challenges could not be loaded.')).toBeTruthy();
+		const items = screen.getAllByRole('listitem');
+		expect(within(items[0]!).getByRole('button', { name: 'Create new challenge' })).toBeTruthy();
+		expect(within(items[1]!).getByRole('heading', { name: 'Healthy' })).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Display error details' }));
 		expect(screen.getByText(/Broken/).textContent).toContain('$.challenges[0].creatures');
 		await fireEvent.click(screen.getByRole('button', { name: 'Create new challenge' }));
@@ -283,11 +286,12 @@ describe('challenge hub', () => {
 		render(savedChallengesPage);
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Challenges' })).toBeTruthy();
-		expect(await screen.findByText('No saved challenges yet.')).toBeTruthy();
-		expect(screen.getByRole('button', { name: 'Create new challenge' })).toBeTruthy();
+		const items = await screen.findAllByRole('listitem');
+		expect(items).toHaveLength(1);
+		expect(within(items[0]!).getByRole('button', { name: 'Create new challenge' })).toBeTruthy();
+		expect(screen.queryByText('No saved challenges yet.')).toBeNull();
 		expect(document.title).toBe('Challenges | Soulstone Initiative Tracker');
 
-		await screen.findByText('No saved challenges yet.');
 		await screen.getByRole('button', { name: 'Create new challenge' }).click();
 		await vi.waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
 

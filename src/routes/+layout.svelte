@@ -52,6 +52,7 @@
 		min-height: 100vh;
 		min-height: 100svh;
 		flex-direction: column;
+		overflow-x: clip;
 		background: var(--color-background);
 		color: var(--color-foreground);
 		transition:

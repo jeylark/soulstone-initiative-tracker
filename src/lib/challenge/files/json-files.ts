@@ -3,8 +3,9 @@ import { sanitizeChallenge } from './challenge-copy';
 import { type DeepReadonly } from '../../DeepReadonly';
 import { validateChallengeLibrary, type ValidationIssue } from '../core/validation';
 
-const JSON_FILE_MIME_TYPE = 'application/json';
-const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json';
+const GZIP_FILE_MIME_TYPE = 'application/gzip';
+const GZIP_MAGIC_BYTES = [0x1f, 0x8b];
+const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json.gz';
 
 /** Failure while reading, validating, or writing challenge and library JSON files. */
 export class ChallengeJsonFileError extends Error {
@@ -163,15 +164,42 @@ function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 	};
 }
 
-function downloadJsonFile(fileName: string, json: string): void {
-	if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
+function transformBody(
+	source: string | Readonly<Uint8Array<ArrayBuffer>>,
+	transform: Readonly<ReadableWritablePair<Uint8Array, Uint8Array<ArrayBuffer>>>
+): ReadableStream<Uint8Array> {
+	const body = new Response(source).body;
+	if (!body) throw new Error('Unable to stream the file contents.');
+	return body.pipeThrough(transform);
+}
+
+async function compressJson(json: string): Promise<Blob> {
+	try {
+		const stream = transformBody(json, new CompressionStream('gzip'));
+		return new Blob([await new Response(stream).arrayBuffer()], { type: GZIP_FILE_MIME_TYPE });
+	} catch (cause) {
+		throw new ChallengeJsonFileError(
+			'download-failed',
+			'Unable to compress the challenge JSON file.',
+			[],
+			cause
+		);
+	}
+}
+
+async function downloadJsonFile(fileName: string, json: string): Promise<void> {
+	if (
+		typeof document === 'undefined' ||
+		typeof URL.createObjectURL !== 'function' ||
+		typeof CompressionStream === 'undefined'
+	) {
 		throw new ChallengeJsonFileError(
 			'browser-unavailable',
-			'Downloading JSON files is only available in a browser.'
+			'Downloading compressed JSON files is only available in a modern browser.'
 		);
 	}
 
-	const blobUrl = URL.createObjectURL(new Blob([json], { type: JSON_FILE_MIME_TYPE }));
+	const blobUrl = URL.createObjectURL(await compressJson(json));
 	const link = document.createElement('a');
 	link.href = blobUrl;
 	link.download = fileName;
@@ -219,16 +247,23 @@ function createFileName(challengeName: string): string {
 		.trim()
 		.replace(/[\s_-]+/g, '-')
 		.toLowerCase();
-	return `${slug || 'challenge'}.json`;
+	return `${slug || 'challenge'}.json.gz`;
 }
 
 async function readFile(file: Readonly<File>): Promise<string> {
 	try {
-		return await file.text();
+		const bytes = new Uint8Array(await file.arrayBuffer());
+		const isGzip = GZIP_MAGIC_BYTES.every((byte, index) => bytes[index] === byte);
+		if (!isGzip) return new TextDecoder().decode(bytes);
+		if (typeof DecompressionStream === 'undefined') {
+			throw new Error('Decompression is not supported by this browser.');
+		}
+		const stream = transformBody(bytes, new DecompressionStream('gzip'));
+		return await new Response(stream).text();
 	} catch (cause) {
 		throw new ChallengeJsonFileError(
 			'file-read-failed',
-			'Unable to read the selected JSON file.',
+			'Unable to read the selected challenge file.',
 			[],
 			cause
 		);
@@ -256,13 +291,13 @@ export function parseChallengeLibraryJson(json: string): ChallengeLibrary {
 }
 
 /**
- * Downloads a readable JSON backup of the complete challenge library.
+ * Downloads a gzip-compressed JSON backup of the complete challenge library.
  * @param value Candidate library data to validate and download.
- * @returns No value; starts the browser download.
+ * @returns A promise that resolves once the browser download has started.
  * @throws {ChallengeJsonFileError} If the value is invalid or the browser cannot download the file.
  */
-export function downloadChallengeLibraryJson(value: unknown): void {
-	downloadJsonFile(LIBRARY_FILE_NAME, createChallengeLibraryJson(value));
+export async function downloadChallengeLibraryJson(value: unknown): Promise<void> {
+	await downloadJsonFile(LIBRARY_FILE_NAME, createChallengeLibraryJson(value));
 }
 
 /**
@@ -296,13 +331,13 @@ export function parseChallengeJson(json: string): ChallengeLibrary {
 }
 
 /**
- * Downloads one challenge as JSON.
+ * Downloads one challenge as gzip-compressed JSON.
  * @param value Candidate library containing the challenge.
  * @param challengeId Stable ID of the challenge to download.
- * @returns No value; starts the browser download.
+ * @returns A promise that resolves once the browser download has started.
  * @throws {ChallengeJsonFileError} If the library is invalid, the challenge is missing, or download fails.
  */
-export function downloadChallengeJson(value: unknown, challengeId: StableId): void {
+export async function downloadChallengeJson(value: unknown, challengeId: StableId): Promise<void> {
 	const library = createChallengeFileLibrary(value, challengeId);
 	const challenge = library.challenges[0];
 	if (!challenge) {
@@ -311,12 +346,12 @@ export function downloadChallengeJson(value: unknown, challengeId: StableId): vo
 			'The selected challenge does not exist in this library.'
 		);
 	}
-	downloadJsonFile(createFileName(challenge.name), serializeLibrary(library));
+	await downloadJsonFile(createFileName(challenge.name), serializeLibrary(library));
 }
 
 /**
  * Reads and validates a complete library backup from a browser-selected file.
- * @param file User-selected JSON backup file.
+ * @param file User-selected backup file, either gzip-compressed or plain JSON.
  * @returns The validated challenge library.
  * @throws {ChallengeJsonFileError} If the file cannot be read, is invalid, or uses an unsupported version.
  */
@@ -329,7 +364,7 @@ export async function readChallengeLibraryJsonFile(
 /**
  * Reads a single-challenge file and reports any content that could not be recovered.
  * Malformed JSON and unsupported versions are rejected; challenge data is retained only when its complete structure and references validate.
- * @param file User-selected single-challenge JSON file.
+ * @param file User-selected single-challenge file, either gzip-compressed or plain JSON.
  * @returns Recovered content, unreadable-field details, and whether the read was partial.
  * @throws {ChallengeJsonFileError} If the file cannot be read, is malformed JSON, or uses an unsupported version.
  */

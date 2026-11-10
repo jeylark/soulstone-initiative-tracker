@@ -114,7 +114,9 @@ describe('initiative turn card', () => {
 		expect(await screen.findAllByText('Initiative result: 7')).toHaveLength(2);
 		expect(screen.getByText('Initiative result: 6')).toBeTruthy();
 		expect(screen.getByText('Initiative result: 11')).toBeTruthy();
-		expect(screen.queryByRole('button', { name: 'Roll all remaining' })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: 'Roll all remaining' }) as HTMLButtonElement).disabled
+		).toBe(true);
 	});
 
 	it('blocks an app roll when its character has no valid initiative stat', async () => {

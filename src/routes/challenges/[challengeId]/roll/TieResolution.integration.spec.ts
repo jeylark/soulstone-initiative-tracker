@@ -49,7 +49,9 @@ describe('TieResolution', () => {
 		});
 
 		expect(screen.getByText('Ordered')).toBeTruthy();
-		expect(screen.queryByRole('button', { name: /Confirm order/ })).toBeNull();
+		expect(
+			(screen.getByRole('button', { name: /Confirm default order/ }) as HTMLButtonElement).disabled
+		).toBe(true);
 		await fireEvent.click(screen.getByRole('button', { name: 'Move Rook earlier' }));
 
 		expect(onDecide).toHaveBeenCalledWith([second, first]);

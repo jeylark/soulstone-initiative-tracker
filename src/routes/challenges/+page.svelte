@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import ChallengeCard from './ChallengeCard.svelte';
+	import NewChallengeCard from './NewChallengeCard.svelte';
 	import {
 		ChallengeLibraryStorageError,
 		ChallengeLibraryValidationError,
@@ -229,6 +230,16 @@
 	});
 </script>
 
+{#snippet newChallengeCard()}
+	<div role="listitem">
+		<NewChallengeCard
+			isDisabled={isCreating || isUploading || !!pendingLibrary}
+			{isCreating}
+			onCreate={() => void createChallenge()}
+		/>
+	</div>
+{/snippet}
+
 <ViewPage title="Challenges">
 	{#if loadStatus === 'ready' && unreadableDetails}
 		<ErrorDisplay
@@ -250,11 +261,13 @@
 			/>
 			<ActionButton variant="neutral" onclick={() => void loadChallenges()}>Try again</ActionButton>
 		{/if}
-	{:else if challenges.length === 0}
-		<p>No saved challenges yet.</p>
+		<div class="challenge-cards" role="list" aria-label="Saved challenges">
+			{@render newChallengeCard()}
+		</div>
 	{:else}
 		<h2>Saved challenges</h2>
 		<div class="challenge-cards" role="list" aria-label="Saved challenges">
+			{@render newChallengeCard()}
 			{#each challenges as challenge (challenge.id)}
 				<div role="listitem">
 					<ChallengeCard {challenge} />
@@ -266,12 +279,6 @@
 		<ErrorDisplay message="The new challenge could not be saved." details={createErrorDetails} />
 		<ActionButton variant="neutral" onclick={() => void createChallenge()}>Try again</ActionButton>
 	{/if}
-	<ActionButton
-		disabled={isCreating || isUploading || !!pendingLibrary}
-		onclick={() => void createChallenge()}
-	>
-		{isCreating ? 'Creating…' : 'Create new challenge'}
-	</ActionButton>
 	{#if downloadErrorDetails}
 		<ErrorDisplay
 			message="The challenge library could not be downloaded."
@@ -284,7 +291,7 @@
 	<input
 		bind:this={fileInput}
 		type="file"
-		accept=".json,application/json"
+		accept=".json,.gz,application/json,application/gzip"
 		aria-label="Library JSON file"
 		hidden
 		onchange={() => void uploadLibrary()}
