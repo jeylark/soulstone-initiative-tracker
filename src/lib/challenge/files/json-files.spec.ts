@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, assert, describe, expect, it, vi } from 'vitest';
 import type { Challenge, ChallengeLibrary, StableId } from '../core/model';
 import {
 	ChallengeJsonFileError,
@@ -60,7 +60,7 @@ afterEach(() => {
 });
 
 function stubObjectUrl(
-	createObjectUrl: () => string,
+	createObjectUrl: (blob: Blob) => string,
 	revokeObjectUrl: (url: string) => void
 ): void {
 	const urlConstructor = class extends URL {};
@@ -193,30 +193,59 @@ describe('challenge and library JSON files', () => {
 		});
 	});
 
-	it('downloads the challenge as a readable JSON file', () => {
+	it('downloads the challenge as a gzip-compressed JSON file', async () => {
 		const createObjectUrl = vi.fn(() => 'blob:challenge');
 		const revokeObjectUrl = vi.fn();
 		stubObjectUrl(createObjectUrl, revokeObjectUrl);
 		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-		downloadChallengeJson(library, firstChallengeId);
+		await downloadChallengeJson(library, firstChallengeId);
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
 		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:challenge');
 	});
 
-	it('downloads a complete library backup', () => {
+	it('downloads a complete library backup as a gzip file', async () => {
 		const createObjectUrl = vi.fn(() => 'blob:library');
 		const revokeObjectUrl = vi.fn();
 		stubObjectUrl(createObjectUrl, revokeObjectUrl);
 		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-		downloadChallengeLibraryJson(library);
+		await downloadChallengeLibraryJson(library);
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
 		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:library');
+	});
+
+	it('compresses downloads and reads them back, still accepting plain JSON', async () => {
+		const createObjectUrl = vi.fn((_blob: Blob) => 'blob:gzip');
+		stubObjectUrl(createObjectUrl, vi.fn());
+		const anchors: HTMLAnchorElement[] = [];
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+			this: HTMLAnchorElement
+		) {
+			anchors.push(this);
+		});
+
+		await downloadChallengeLibraryJson(library);
+
+		const blob = createObjectUrl.mock.calls[0]?.[0];
+		assert(blob instanceof Blob);
+		const bytes = new Uint8Array(await blob.arrayBuffer());
+		expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
+		expect(anchors[0]?.download).toBe('soulstone-challenge-library.json.gz');
+		const gzipFile = new File([bytes], 'backup.json.gz');
+		await expect(readChallengeLibraryJsonFile(gzipFile)).resolves.toEqual(library);
+	});
+
+	it('rejects a corrupt gzip file', async () => {
+		const file = new File([new Uint8Array([0x1f, 0x8b, 0x00, 0x01])], 'broken.json.gz');
+
+		await expect(readChallengeLibraryJsonFile(file)).rejects.toMatchObject({
+			code: 'file-read-failed'
+		});
 	});
 
 	it('rejects exporting a challenge that does not exist', () => {

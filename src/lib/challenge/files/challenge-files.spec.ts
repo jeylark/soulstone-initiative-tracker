@@ -126,7 +126,7 @@ describe('challenge file workflows', () => {
 		stubObjectUrl(createObjectUrl, revokeObjectUrl);
 		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-		saveChallengeToJsonFile(library, challengeId);
+		await saveChallengeToJsonFile(library, challengeId);
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
