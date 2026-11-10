@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
+import { liveSessionRegistry } from '#lib/server';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);

@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
-import {
-	InMemoryLiveSessionRegistry,
-	liveSessionRegistry
-} from '../../../../../lib/server/live-sessions';
+import { InMemoryLiveSessionRegistry, liveSessionRegistry } from '#lib/server';
 import { GET } from './+server';
 
 afterEach(() => {

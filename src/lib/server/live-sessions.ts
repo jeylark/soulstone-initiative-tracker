@@ -14,7 +14,7 @@ const VIEWER_CODE_LENGTH = 4;
 const REGENERATED_VIEWER_CODE_LENGTH = 8;
 const DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION = 100;
 
-type LiveSessionUpdateListener = (session: LiveSession | undefined) => void;
+type LiveSessionUpdateListener = (session: Readonly<LiveSession> | undefined) => void;
 
 /** Minimal snapshot needed to render the read-only viewer. */
 export interface LiveSession {
@@ -337,7 +337,7 @@ export class InMemoryLiveSessionRegistry {
 		return createHash('sha256').update(reconnectToken).digest();
 	}
 
-	private notifyUpdate(sessionId: string, session: LiveSession | undefined): void {
+	private notifyUpdate(sessionId: string, session: Readonly<LiveSession> | undefined): void {
 		const listeners = this.updateListeners.get(sessionId);
 		if (!listeners) return;
 		for (const listener of listeners) {

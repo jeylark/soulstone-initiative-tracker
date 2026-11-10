@@ -29,7 +29,7 @@
 		updateLiveSession,
 		type LiveSessionCredential,
 		type LiveSessionDescriptor
-	} from '../../../lib/live-session-client';
+	} from '#lib';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 

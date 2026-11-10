@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import type { ViewerTurnOrderDisplayItem } from '#lib/challenge';
 	import { TurnOrderList, ViewPage } from '#lib/components';
-	import { joinLiveSession, LiveSessionRequestError } from '../../../lib/live-session-client';
+	import { joinLiveSession, LiveSessionRequestError } from '#lib';
 
 	let challengeName = $state('Live session');
 	let turnOrder = $state<readonly ViewerTurnOrderDisplayItem[]>([]);

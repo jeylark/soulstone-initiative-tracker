@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
-import { writeDiagnosticLog } from './lib/server/diagnostic-logger';
+import { writeDiagnosticLog } from '#lib/server';
 
 /**
  * Adds a request correlation ID and logs safe request completion metadata.

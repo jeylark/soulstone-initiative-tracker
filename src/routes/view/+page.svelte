@@ -2,7 +2,7 @@
 	import { ActionButton, TextInput, ViewPage } from '#lib/components';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { joinLiveSession, LiveSessionRequestError } from '../../lib/live-session-client';
+	import { joinLiveSession, LiveSessionRequestError } from '#lib';
 
 	let sessionCode = $state('');
 	let invalidMessage = $state('');

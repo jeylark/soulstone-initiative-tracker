@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
-import { liveSessionRegistry } from '../../../lib/server/live-sessions';
+import { liveSessionRegistry } from '#lib/server';
 import { POST } from './+server';
 
 function createChallenge(): Challenge {

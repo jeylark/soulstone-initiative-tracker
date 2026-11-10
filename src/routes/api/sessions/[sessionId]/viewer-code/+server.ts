@@ -3,7 +3,7 @@ import {
 	LiveSessionAuthorizationError,
 	LiveSessionNotFoundError,
 	liveSessionRegistry
-} from '../../../../../lib/server/live-sessions';
+} from '#lib/server';
 
 /** Replaces an active session's viewer code using its DM reconnect credential. */
 export const POST: RequestHandler = async ({ params, request }) => {

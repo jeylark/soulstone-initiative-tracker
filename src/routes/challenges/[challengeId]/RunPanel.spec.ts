@@ -12,7 +12,7 @@ import {
 	loadLiveSessionCredential,
 	saveLiveSessionCredential,
 	type LiveSessionCredential
-} from '../../../lib/live-session-client';
+} from '#lib';
 import { createSetupChallenge, expectPageError } from '../../view-test-support';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 

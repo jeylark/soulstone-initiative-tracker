@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createUuid, type Challenge } from '#lib/challenge';
-import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
+import { liveSessionRegistry } from '#lib/server';
 import { createSetupChallenge } from '../../../view-test-support';
 import { POST } from './+server';
+import type { DeepReadonly } from '#lib';
 
 function createChallenge(): Challenge {
 	const challenge = createSetupChallenge();
@@ -60,7 +61,7 @@ describe('POST /api/sessions/join', () => {
 		expect(body.session).toEqual({ id: session.id, viewerCode: session.viewerCode });
 		expect(body.challengeName).toBe(challenge.name);
 		expect(
-			body.turnOrder.map((item: { kind: string; display?: { label: string } }) =>
+			body.turnOrder.map((item: DeepReadonly<{ kind: string; display?: { label: string } }>) =>
 				item.kind === 'turn' ? item.display?.label : 'Spawn'
 			)
 		).toEqual(['Visible character', 'Spawn']);

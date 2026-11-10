@@ -3,7 +3,7 @@ import {
 	LiveSessionNotFoundError,
 	LiveSessionViewerLimitError,
 	liveSessionRegistry
-} from '../../../../../lib/server/live-sessions';
+} from '#lib/server';
 
 const encoder = new TextEncoder();
 const STREAM_HEADERS = new Headers([

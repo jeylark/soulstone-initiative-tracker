@@ -44,6 +44,7 @@
 		"#lib": "./src/lib/index.ts",
 		"#lib/challenge": "./src/lib/challenge/index.ts",
 		"#lib/components": "./src/lib/components/index.ts",
+		"#lib/server": "./src/lib/server/index.ts",
 		"#lib/*": null
 	}
 }
