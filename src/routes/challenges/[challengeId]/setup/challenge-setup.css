@@ -1,7 +1,6 @@
 .challenge-setup {
 	display: grid;
 	gap: 16px;
-	max-width: 1080px;
 }
 
 .challenge-setup h2 {
