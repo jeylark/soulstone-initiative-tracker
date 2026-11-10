@@ -2,7 +2,7 @@
 	import type { Turn, TurnInitiative, ValidationIssue } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import { issueMessage } from './issue-messages';
-	import { Card, EntityListItem, NumberInput, SelectInput } from '#lib/components';
+	import { EntityListItem, NumberInput, SelectInput } from '#lib/components';
 
 	interface Props {
 		turn: Readonly<Turn>;
@@ -49,106 +49,101 @@
 	}
 </script>
 
-<Card
-	title={`Turn ${turnNumber}`}
+<EntityListItem
 	headingLevel="h5"
 	headerSize="compact"
 	variant="inset"
 	spacing="compact"
-	class="turn-card-wrapper"
+	class="turn-card"
+	data-entity-id={turn.id}
+	aria-label={`Turn ${turnNumber}`}
+	legend={`Turn ${turnNumber}`}
+	removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
+	removeText="Remove turn"
+	isRemoveDisabled={isRemovalDisabled}
+	{onRemove}
 >
-	<EntityListItem
-		class="turn-card"
-		data-entity-id={turn.id}
-		aria-label={`Turn ${turnNumber}`}
-		legend={`Turn ${turnNumber}`}
-		removeLabel={`Remove Turn ${turnNumber} for ${creatureName}`}
-		removeText="Remove turn"
-		isRemoveDisabled={isRemovalDisabled}
-		{onRemove}
-	>
-		<div class="turn-settings">
-			<SelectInput
-				label="Turn initiative"
-				value={initiativeChoice(turn.initiative)}
+	<div class="turn-settings">
+		<SelectInput
+			label="Turn initiative"
+			value={initiativeChoice(turn.initiative)}
+			disabled={!isConfigurable}
+			onchange={(event) =>
+				onChange({ kind: 'choice', choice: event.currentTarget.value as InitiativeChoice })}
+		>
+			<option value="roll-app">Calculate roll</option>
+			<option value="roll-manual">Enter a result</option>
+			<option value="static">Static value</option>
+			<option value="fixed-top">Fixed position from top</option>
+			<option value="fixed-bottom">Fixed position from bottom</option>
+			<option value="relative-before" disabled={!targetTurns.length}>Before another turn</option>
+			<option value="relative-after" disabled={!targetTurns.length}>After another turn</option>
+		</SelectInput>
+		{#if turn.initiative.kind === 'static'}
+			<NumberInput
+				label="Static initiative"
 				disabled={!isConfigurable}
-				onchange={(event) =>
-					onChange({ kind: 'choice', choice: event.currentTarget.value as InitiativeChoice })}
-			>
-				<option value="roll-app">Calculate roll</option>
-				<option value="roll-manual">Enter a result</option>
-				<option value="static">Static value</option>
-				<option value="fixed-top">Fixed position from top</option>
-				<option value="fixed-bottom">Fixed position from bottom</option>
-				<option value="relative-before" disabled={!targetTurns.length}>Before another turn</option>
-				<option value="relative-after" disabled={!targetTurns.length}>After another turn</option>
-			</SelectInput>
-			{#if turn.initiative.kind === 'static'}
+				isInvalid={staticError !== undefined}
+				invalidMessage={staticError}
+				value={turn.initiative.value}
+				step="1"
+				oninput={(event) => {
+					const value = event.currentTarget.valueAsNumber;
+					if (Number.isFinite(value)) onChange({ kind: 'static-value', value });
+				}}
+			/>
+		{:else if turn.initiative.kind === 'fixed-position'}
+			<NumberInput
+				label="Position"
+				disabled={!isConfigurable}
+				isInvalid={positionError !== undefined}
+				invalidMessage={positionError}
+				value={turn.initiative.position}
+				min="1"
+				step="1"
+				oninput={(event) => {
+					const position = event.currentTarget.valueAsNumber;
+					if (Number.isFinite(position)) onChange({ kind: 'fixed-position', position });
+				}}
+			/>
+		{:else if turn.initiative.kind === 'relative-position'}
+			{#if siblingCount > 1 || indexError !== undefined}
 				<NumberInput
-					label="Static initiative"
+					label="Index"
 					disabled={!isConfigurable}
-					isInvalid={staticError !== undefined}
-					invalidMessage={staticError}
-					value={turn.initiative.value}
-					step="1"
-					oninput={(event) => {
-						const value = event.currentTarget.valueAsNumber;
-						if (Number.isFinite(value)) onChange({ kind: 'static-value', value });
-					}}
-				/>
-			{:else if turn.initiative.kind === 'fixed-position'}
-				<NumberInput
-					label="Position"
-					disabled={!isConfigurable}
-					isInvalid={positionError !== undefined}
-					invalidMessage={positionError}
-					value={turn.initiative.position}
+					isInvalid={indexError !== undefined}
+					invalidMessage={indexError}
+					value={turn.initiative.index ?? ''}
 					min="1"
 					step="1"
 					oninput={(event) => {
-						const position = event.currentTarget.valueAsNumber;
-						if (Number.isFinite(position)) onChange({ kind: 'fixed-position', position });
+						const index = event.currentTarget.valueAsNumber;
+						onChange({
+							kind: 'relative-index',
+							index: Number.isFinite(index) ? index : undefined
+						});
 					}}
 				/>
-			{:else if turn.initiative.kind === 'relative-position'}
-				{#if siblingCount > 1 || indexError !== undefined}
-					<NumberInput
-						label="Index"
-						disabled={!isConfigurable}
-						isInvalid={indexError !== undefined}
-						invalidMessage={indexError}
-						value={turn.initiative.index ?? ''}
-						min="1"
-						step="1"
-						oninput={(event) => {
-							const index = event.currentTarget.valueAsNumber;
-							onChange({
-								kind: 'relative-index',
-								index: Number.isFinite(index) ? index : undefined
-							});
-						}}
-					/>
-				{/if}
-				<SelectInput
-					label="Target turn"
-					disabled={!isConfigurable}
-					isInvalid={targetError !== undefined}
-					invalidMessage={targetError}
-					value={turn.initiative.targetTurnId}
-					onchange={(event) =>
-						onChange({
-							kind: 'relative-target',
-							targetTurnId: event.currentTarget.value as TurnTarget['id']
-						})}
-				>
-					{#if !targetTurns.some((target) => turn.initiative.kind === 'relative-position' && target.id === turn.initiative.targetTurnId)}
-						<option value={turn.initiative.targetTurnId} disabled>Missing target turn</option>
-					{/if}
-					{#each targetTurns as target (target.id)}
-						<option value={target.id}>{target.name}</option>
-					{/each}
-				</SelectInput>
 			{/if}
-		</div>
-	</EntityListItem>
-</Card>
+			<SelectInput
+				label="Target turn"
+				disabled={!isConfigurable}
+				isInvalid={targetError !== undefined}
+				invalidMessage={targetError}
+				value={turn.initiative.targetTurnId}
+				onchange={(event) =>
+					onChange({
+						kind: 'relative-target',
+						targetTurnId: event.currentTarget.value as TurnTarget['id']
+					})}
+			>
+				{#if !targetTurns.some((target) => turn.initiative.kind === 'relative-position' && target.id === turn.initiative.targetTurnId)}
+					<option value={turn.initiative.targetTurnId} disabled>Missing target turn</option>
+				{/if}
+				{#each targetTurns as target (target.id)}
+					<option value={target.id}>{target.name}</option>
+				{/each}
+			</SelectInput>
+		{/if}
+	</div>
+</EntityListItem>

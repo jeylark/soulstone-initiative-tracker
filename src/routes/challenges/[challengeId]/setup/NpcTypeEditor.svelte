@@ -41,47 +41,43 @@
 			{#each npcTypes as npcType, index (npcType.id)}
 				{@const nameError = issueMessage(setupIssues, `$.npcTypes[${index}].name`)}
 				{@const statError = issueMessage(setupIssues, `$.npcTypes[${index}].initiativeStat`)}
-				<Card
-					title={npcType.name}
+				<EntityListItem
 					headingLevel="h3"
 					headerSize="small"
 					variant="subtle"
 					spacing="compact"
+					class="npc-type-card"
+					data-entity-id={npcType.id}
+					legend={npcType.name}
+					removeLabel={`Remove NPC type ${npcType.name}`}
+					removeText="Remove NPC type"
+					isRemoveDisabled={!canManageNpcTypes}
+					onRemove={() => onRemove(npcType.id)}
 				>
-					<EntityListItem
-						class="npc-type-card"
-						data-entity-id={npcType.id}
-						legend={npcType.name}
-						removeLabel={`Remove NPC type ${npcType.name}`}
-						removeText="Remove NPC type"
-						isRemoveDisabled={!canManageNpcTypes}
-						onRemove={() => onRemove(npcType.id)}
-					>
-						<TextInput
-							label="NPC type name"
-							aria-label={`NPC type name: ${npcType.name}`}
-							value={npcType.name}
-							disabled={!isNpcTypeConfigurable(npcType.id)}
-							isInvalid={nameError !== undefined}
-							invalidMessage={nameError}
-							oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
-						/>
-						<NumberInput
-							label="Initiative stat (d6)"
-							aria-label={`Initiative stat for ${npcType.name}`}
-							value={npcType.initiativeStat}
-							disabled={!isNpcTypeConfigurable(npcType.id)}
-							min="0"
-							step="1"
-							isInvalid={statError !== undefined}
-							invalidMessage={statError}
-							oninput={(event) => {
-								const value = event.currentTarget.valueAsNumber;
-								if (Number.isFinite(value)) onInitiativeStatChange(npcType.id, value);
-							}}
-						/>
-					</EntityListItem>
-				</Card>
+					<TextInput
+						label="NPC type name"
+						aria-label={`NPC type name: ${npcType.name}`}
+						value={npcType.name}
+						disabled={!isNpcTypeConfigurable(npcType.id)}
+						isInvalid={nameError !== undefined}
+						invalidMessage={nameError}
+						oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
+					/>
+					<NumberInput
+						label="Initiative stat (d6)"
+						aria-label={`Initiative stat for ${npcType.name}`}
+						value={npcType.initiativeStat}
+						disabled={!isNpcTypeConfigurable(npcType.id)}
+						min="0"
+						step="1"
+						isInvalid={statError !== undefined}
+						invalidMessage={statError}
+						oninput={(event) => {
+							const value = event.currentTarget.valueAsNumber;
+							if (Number.isFinite(value)) onInitiativeStatChange(npcType.id, value);
+						}}
+					/>
+				</EntityListItem>
 			{/each}
 		</EntityList>
 	</fieldset>

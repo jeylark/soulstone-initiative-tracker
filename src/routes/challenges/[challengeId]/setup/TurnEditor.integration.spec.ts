@@ -72,6 +72,11 @@ describe('new challenge setup', () => {
 		expect((addTurn as HTMLButtonElement).disabled).toBe(false);
 		await fireEvent.click(addTurn);
 		const newTurn = within(bryn).getByRole('group', { name: 'Turn 2' });
+		const heading = within(bryn).getByRole('heading', { level: 5, name: 'Turn 2' });
+		expect(heading.parentElement).toBe(newTurn.parentElement);
+		expect(heading.classList.contains('card-header--compact')).toBe(true);
+		expect(newTurn.parentElement?.classList.contains('card--inset')).toBe(true);
+		expect(newTurn.parentElement?.classList.contains('card--compact')).toBe(true);
 		const mode = within(newTurn).getByRole('combobox', { name: 'Turn initiative' });
 		expect((mode as HTMLSelectElement).disabled).toBe(false);
 		await fireEvent.change(mode, { target: { value: 'relative-after' } });

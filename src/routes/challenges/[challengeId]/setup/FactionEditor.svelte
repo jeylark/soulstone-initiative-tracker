@@ -13,7 +13,6 @@
 	import { issueMessage } from './issue-messages';
 	import {
 		ActionButton,
-		Card,
 		ColorPickerInput,
 		EntityList,
 		EntityListItem,
@@ -183,44 +182,40 @@
 {/snippet}
 
 {#if faction}
-	<Card
-		title={faction.name}
+	<EntityListItem
 		headingLevel="h3"
 		headerSize="medium"
 		variant="inset"
 		spacing="compact"
+		class="faction-panel"
+		data-entity-id={faction.id}
+		legend={faction.name}
+		removeLabel={`Remove faction ${faction.name}`}
+		removeText="Remove faction"
+		isRemoveDisabled={!canManageFactions}
+		onRemove={() => onRemove(faction.id)}
 	>
-		<EntityListItem
-			class="faction-panel"
-			data-entity-id={faction.id}
-			legend={faction.name}
-			removeLabel={`Remove faction ${faction.name}`}
-			removeText="Remove faction"
-			isRemoveDisabled={!canManageFactions}
-			onRemove={() => onRemove(faction.id)}
-		>
-			<fieldset disabled={!canManageFactions}>
-				<TextInput
-					label="Faction name"
-					aria-label={`Faction name: ${faction.name}`}
-					value={faction.name}
-					isInvalid={factionNameError !== undefined}
-					invalidMessage={factionNameError}
-					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-				/>
-				<ColorPickerInput
-					label={`Faction color for ${faction.name}`}
-					name={`faction-color-${faction.id}`}
-					options={FACTION_COLORS}
-					value={faction.color}
-					isDisabled={!canManageFactions}
-					onchange={(color) => onColorChange(faction.id, color)}
-				/>
-			</fieldset>
+		<fieldset disabled={!canManageFactions}>
+			<TextInput
+				label="Faction name"
+				aria-label={`Faction name: ${faction.name}`}
+				value={faction.name}
+				isInvalid={factionNameError !== undefined}
+				invalidMessage={factionNameError}
+				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+			/>
+			<ColorPickerInput
+				label={`Faction color for ${faction.name}`}
+				name={`faction-color-${faction.id}`}
+				options={FACTION_COLORS}
+				value={faction.color}
+				isDisabled={!canManageFactions}
+				onchange={(color) => onColorChange(faction.id, color)}
+			/>
+		</fieldset>
 
-			{@render creatureList()}
-		</EntityListItem>
-	</Card>
+		{@render creatureList()}
+	</EntityListItem>
 {:else}
 	<section aria-label="Unassigned creatures">
 		<h3>Unassigned creatures</h3>
