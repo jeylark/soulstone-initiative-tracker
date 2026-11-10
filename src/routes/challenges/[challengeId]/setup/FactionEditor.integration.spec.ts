@@ -38,7 +38,9 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(faction).getByRole('button', { name: 'Add Player' }));
 
 		const player = within(faction).getByRole('group', { name: 'Player 1' });
-		expect(player.parentElement?.classList.contains('entity-list-items--grid')).toBe(true);
+		expect(
+			player.closest('.entity-list-items')?.classList.contains('entity-list-items--grid')
+		).toBe(true);
 	});
 
 	it('locks faction configuration and removal while allowing creature additions', async () => {
@@ -84,7 +86,9 @@ describe('new challenge setup', () => {
 		const group = within(screen.getByRole('region', { name: 'Unassigned creatures' }));
 		const orphan = group.getByRole('group', { name: 'Orphan' });
 		expect(orphan).toBeTruthy();
-		expect(orphan.parentElement?.classList.contains('entity-list-items--stack')).toBe(true);
+		expect(
+			orphan.closest('.entity-list-items')?.classList.contains('entity-list-items--stack')
+		).toBe(true);
 		expect(group.queryByRole('button', { name: 'Add Player' })).toBeNull();
 		expect(group.queryByRole('button', { name: /Remove faction/ })).toBeNull();
 		expect(group.queryByRole('textbox', { name: /Faction name/ })).toBeNull();
