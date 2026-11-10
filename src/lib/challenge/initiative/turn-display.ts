@@ -50,6 +50,46 @@ export interface TurnOrderSpawnDisplayItem {
 /** Renderable entry in the generated order: a creature turn or the Spawn step. */
 export type TurnOrderDisplayItem = TurnOrderTurnDisplayItem | TurnOrderSpawnDisplayItem;
 
+/** Minimal faction details needed to display one viewer-visible turn. */
+export interface ViewerTurnFactionDisplay {
+	/** Faction name shown as the turn-card title. */
+	readonly name: string;
+	/** Faction color used to tint the turn card. */
+	readonly color: Faction['color'];
+}
+
+/** Display metadata retained for a viewer-visible turn. */
+export interface ViewerTurnDisplay {
+	/** Faction title and color, or undefined when the faction is missing. */
+	readonly faction: ViewerTurnFactionDisplay | undefined;
+	/** Creature label shown on the turn card. */
+	readonly label: string;
+	/** Whether the card should be styled as hidden; viewer entries are never hidden. */
+	readonly isHidden: false;
+}
+
+/** Minimal display data for one viewer-visible turn. */
+export interface ViewerTurnOrderTurnDisplayItem {
+	/** Marks the item as a configured creature turn. */
+	readonly kind: 'turn';
+	/** Stable ID used to keep the displayed list item stable. */
+	readonly turnId: StableId;
+	/** Display-only creature and faction metadata. */
+	readonly display: ViewerTurnDisplay;
+	/** Resolved numeric initiative, or undefined when a rolling result is missing. */
+	readonly initiative: number | undefined;
+}
+
+/** Display data for the Spawn step in a viewer turn order. */
+export interface ViewerTurnOrderSpawnDisplayItem {
+	/** Marks the item as the Spawn step. */
+	readonly kind: 'spawn';
+}
+
+/** Minimal viewer-visible turn or Spawn entry. */
+export type ViewerTurnOrderDisplayItem =
+	ViewerTurnOrderTurnDisplayItem | ViewerTurnOrderSpawnDisplayItem;
+
 /** Renderable entries from a generated order and whether it contains unknown turn IDs. */
 export interface TurnOrderDisplay {
 	/** Known turns and Spawn in generated order, retaining positions occupied by unknown IDs. */

@@ -31,6 +31,14 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('lays out creatures in a responsive grid within each faction', async () => {
+		await renderSetup();
+
+		const faction = screen.getByRole('group', { name: 'Players' });
+		const creatureList = faction.querySelector('.faction-panel .entity-list-items');
+		expect(creatureList?.classList.contains('entity-list-items--grid')).toBe(true);
+	});
+
 	it('locks faction configuration and removal while allowing creature additions', async () => {
 		await saveChallengeToLibrary(createSpawnEditChallenge());
 		await renderSetup();
@@ -76,8 +84,12 @@ describe('new challenge setup', () => {
 		];
 		await saveChallengeToLibrary(challenge);
 		await renderSetup();
-		const group = within(screen.getByRole('region', { name: 'Unassigned creatures' }));
+		const unassignedCreatures = screen.getByRole('region', { name: 'Unassigned creatures' });
+		const group = within(unassignedCreatures);
 		expect(group.getByRole('group', { name: 'Orphan' })).toBeTruthy();
+		expect(unassignedCreatures.querySelector('.entity-list-items')?.className).toContain(
+			'entity-list-items--stack'
+		);
 		expect(group.queryByRole('button', { name: 'Add Player' })).toBeNull();
 		expect(group.queryByRole('button', { name: /Remove faction/ })).toBeNull();
 		expect(group.queryByRole('textbox', { name: /Faction name/ })).toBeNull();

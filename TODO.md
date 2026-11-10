@@ -40,15 +40,7 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
-- 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
-- 4.8: Stream live turn-order updates to read-only viewers with SSE.
-- 4.4: Add a configurable per-session viewer limit and refuse new connections
-  with a clear message without disconnecting existing viewers.
-- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
-- 4.13: Omit hidden turns from the read-only view.
-- 4.12: End inactive sessions after the configured timeout; viewer activity must
-  not reset it.
 
 ### 5. Hosting and operations
 
@@ -190,6 +182,14 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
+- 4.12: End inactive sessions after the configured timeout; viewer activity must
+  not reset it.
+- 4.10: Add viewer-code entry to the read-only view.
+- 4.4: Add a configurable per-session viewer limit and refuse new connections
+  with a clear message without disconnecting existing viewers.
+- 4.8: Stream live turn-order updates to read-only viewers with SSE.
+- 4.9: Enforce that hidden turns are omitted from read-only viewer updates.
+- 4.13: Omit hidden turns from the read-only view.
 - 4.1: Implement in-memory session creation and resume flows.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.

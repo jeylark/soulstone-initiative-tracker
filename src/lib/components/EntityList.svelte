@@ -137,10 +137,4 @@
 		align-items: start;
 		gap: 20px;
 	}
-
-	@media (max-width: 640px) {
-		.entity-list-items--grid {
-			grid-template-columns: minmax(0, 1fr);
-		}
-	}
 </style>

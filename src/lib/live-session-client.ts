@@ -1,5 +1,5 @@
 import type { DeepReadonly } from '#lib';
-import type { Challenge } from '#lib/challenge';
+import type { Challenge, ViewerTurnOrderDisplayItem } from '#lib/challenge';
 
 const DATABASE_NAME = 'soulstone-live-session-credentials';
 const DATABASE_VERSION = 1;
@@ -26,6 +26,16 @@ export interface LiveSessionDescriptor {
 	id: string;
 	/** Viewer code that read-only guests can use to join. */
 	viewerCode: string;
+}
+
+/** Session details and visible turn order returned to a read-only viewer. */
+export interface LiveViewerSession {
+	/** Public details for the active session. */
+	session: LiveSessionDescriptor;
+	/** Challenge title shown above the viewer's turn order. */
+	challengeName: string;
+	/** Visible turns and Spawn in generated order. */
+	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
 
 /** Error returned by the live-session API, including its HTTP status. */
@@ -238,7 +248,7 @@ function getSessionDescriptor(value: unknown): LiveSessionDescriptor {
 /**
  * Creates a server session from the current challenge snapshot.
  *
- * @param challenge Challenge snapshot to keep in server memory.
+ * @param challenge Challenge snapshot to project into the read-only viewer's display data.
  * @returns Public session details and the reconnect token, which must be persisted separately.
  * @throws {LiveSessionRequestError} If the server refuses or malforms the request.
  */
@@ -267,6 +277,38 @@ export async function createLiveSession(
 }
 
 /**
+ * Looks up an active live session using its viewer code.
+ *
+ * @param viewerCode Four- or eight-character code supplied by the viewer.
+ * @returns Public session details and its minimal viewer-safe turn order.
+ * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
+ */
+export async function joinLiveSession(viewerCode: string): Promise<LiveViewerSession> {
+	const response = await fetch('/api/sessions/join', {
+		method: 'POST',
+		headers: new Headers([['content-type', 'application/json']]),
+		body: JSON.stringify({ viewerCode })
+	});
+	const body = await readApiResponse(response);
+	if (
+		typeof body !== 'object' ||
+		body === null ||
+		!('session' in body) ||
+		!('challengeName' in body) ||
+		!('turnOrder' in body) ||
+		typeof body.challengeName !== 'string' ||
+		!Array.isArray(body.turnOrder)
+	) {
+		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
+	}
+	return {
+		session: getSessionDescriptor(body.session),
+		challengeName: body.challengeName,
+		turnOrder: body.turnOrder as ViewerTurnOrderDisplayItem[]
+	};
+}
+
+/**
  * Reconnects to an active session using its saved DM credential.
  *
  * @param credential Session identifier and reconnect token.
@@ -274,6 +316,21 @@ export async function createLiveSession(
  * @throws {LiveSessionRequestError} If the session is missing, credentials are rejected, or the response is invalid.
  */
 export async function resumeLiveSession(
+	credential: DeepReadonly<LiveSessionCredential>,
+	challenge: DeepReadonly<Challenge>
+): Promise<LiveSessionDescriptor> {
+	return updateLiveSession(credential, challenge);
+}
+
+/**
+ * Sends the latest challenge snapshot to an active live session.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @param challenge Latest challenge snapshot to publish.
+ * @returns Public details for the active session.
+ * @throws {LiveSessionRequestError} If the session is missing, credentials are rejected, or the response is invalid.
+ */
+export async function updateLiveSession(
 	credential: DeepReadonly<LiveSessionCredential>,
 	challenge: DeepReadonly<Challenge>
 ): Promise<LiveSessionDescriptor> {

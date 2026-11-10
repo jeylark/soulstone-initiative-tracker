@@ -75,7 +75,7 @@
 	}: Props = $props();
 </script>
 
-<Card title="Factions" headerSize="large">
+<Card title="Factions" headerSize="large" class="faction-board-card">
 	<fieldset class="setup-section faction-board-section">
 		<legend>Factions</legend>
 		<EntityList

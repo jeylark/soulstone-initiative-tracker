@@ -1,0 +1,94 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import type { ViewerTurnOrderDisplayItem } from '#lib/challenge';
+	import { TurnOrderList, ViewPage } from '#lib/components';
+	import { joinLiveSession, LiveSessionRequestError } from '#lib';
+
+	let challengeName = $state('Live session');
+	let turnOrder = $state<readonly ViewerTurnOrderDisplayItem[]>([]);
+	let isLoading = $state(true);
+	let errorMessage = $state('');
+	let hasConnectionError = $state(false);
+	let hasEnded = $state(false);
+
+	async function loadLiveSession(): Promise<(() => void) | undefined> {
+		try {
+			const session = await joinLiveSession(page.params.sessioncode ?? '');
+			challengeName = session.challengeName || 'Live session';
+			turnOrder = session.turnOrder;
+			const eventSource = new EventSource(
+				`/api/sessions/${encodeURIComponent(session.session.id)}/events`
+			);
+			eventSource.addEventListener('turn-order', (event) => {
+				try {
+					const payload: unknown = JSON.parse((event as MessageEvent<string>).data);
+					if (typeof payload === 'object' && payload !== null) {
+						if ('challengeName' in payload && typeof payload.challengeName === 'string') {
+							challengeName = payload.challengeName || 'Live session';
+						}
+						if ('turnOrder' in payload && Array.isArray(payload.turnOrder)) {
+							turnOrder = payload.turnOrder as ViewerTurnOrderDisplayItem[];
+						}
+					}
+				} catch {
+					errorMessage = 'The live session sent an invalid turn-order update.';
+				}
+			});
+			eventSource.addEventListener('session-ended', () => {
+				eventSource.close();
+				hasConnectionError = false;
+				hasEnded = true;
+			});
+			eventSource.addEventListener('viewer-limit', () => {
+				eventSource.close();
+				hasConnectionError = false;
+				errorMessage =
+					'This live session has reached its viewer connection limit. Try again later.';
+			});
+			eventSource.onopen = () => (hasConnectionError = false);
+			eventSource.onerror = () => {
+				hasConnectionError = true;
+			};
+			return () => eventSource.close();
+		} catch (error) {
+			errorMessage =
+				error instanceof LiveSessionRequestError
+					? error.message
+					: 'Unable to load the live session. Check the code and try again.';
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	onMount(() => {
+		let closeEventSource: (() => void) | undefined;
+		let isCancelled = false;
+		void loadLiveSession().then((close) => {
+			closeEventSource = close;
+			if (isCancelled) closeEventSource?.();
+		});
+		return () => {
+			isCancelled = true;
+			closeEventSource?.();
+		};
+	});
+</script>
+
+<ViewPage title={challengeName}>
+	<p>Session code: <code>{page.params.sessioncode}</code></p>
+	{#if isLoading}
+		<p role="status">Loading live session...</p>
+	{:else if errorMessage}
+		<p role="alert">{errorMessage}</p>
+	{:else if hasEnded}
+		<p role="status">This live session has ended.</p>
+	{:else if turnOrder.length === 0}
+		<p role="status">The active session has no generated turn order.</p>
+	{:else}
+		<TurnOrderList items={turnOrder} />
+		{#if hasConnectionError}
+			<p role="status">Connection lost. Reconnecting...</p>
+		{/if}
+	{/if}
+</ViewPage>

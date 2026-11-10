@@ -57,7 +57,21 @@ All properties are optional and default to the values shown: 100 active sessions
 100 concurrent viewers per session, a six-hour inactivity timeout in milliseconds,
 and 1,000,000,000 bytes of retained logs. Each value must be a non-negative safe
 integer; invalid configuration prevents the server from starting. Configuration
-changes take effect after restarting the app container. The container runs as the
+changes take effect after restarting the app container. When a session reaches
+`maxViewerConnectionsPerSession`, additional viewers see a limit message and
+stop reconnecting automatically; they can reload to try again later. Existing
+viewers keep receiving updates, and disconnected viewers free their slots.
+Setting this limit to zero refuses all viewer connections.
+
+Sessions automatically end after `sessionInactivityTimeoutMs` without successful
+authenticated DM activity: resuming or updating the session, or regenerating its
+viewer code. Viewer lookups, connections, disconnects, and SSE heartbeats never
+reset this timeout; failed DM authorization does not reset it either. Expiry
+invalidates the viewer code and reconnect credential, frees session capacity,
+and sends connected viewers a terminal `session-ended` event. Setting the timeout
+to zero expires sessions immediately.
+
+The container runs as the
 unprivileged `node` user; on Linux, ensure the host log directory is writable by
 UID 1000. Server requests and unhandled server errors
 are written as newline-delimited JSON to

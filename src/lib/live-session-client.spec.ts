@@ -5,11 +5,13 @@ import {
 	createLiveSession,
 	deleteLiveSessionCredential,
 	endLiveSession,
+	joinLiveSession,
 	loadLiveSessionCredential,
 	LiveSessionRequestError,
 	regenerateViewerCode,
 	resumeLiveSession,
-	saveLiveSessionCredential
+	saveLiveSessionCredential,
+	updateLiveSession
 } from './live-session-client';
 
 let indexedDbFactory: IDBFactory;
@@ -62,7 +64,7 @@ describe('live session client', () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					session: { id: 'session-id', viewerCode: '23456789', challenge },
+					session: { id: 'session-id', viewerCode: 'A234', challenge },
 					reconnectToken: 'secret-token'
 				}),
 				{ status: 201 }
@@ -71,7 +73,7 @@ describe('live session client', () => {
 		vi.stubGlobal('fetch', fetchMock);
 
 		await expect(createLiveSession(challenge)).resolves.toEqual({
-			session: { id: 'session-id', viewerCode: '23456789' },
+			session: { id: 'session-id', viewerCode: 'A234' },
 			reconnectToken: 'secret-token'
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
@@ -83,11 +85,52 @@ describe('live session client', () => {
 		);
 	});
 
+	it('looks up an active session using its viewer code', async () => {
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+			Response.json({
+				session: { id: 'session-id', viewerCode: 'A234' },
+				challengeName: 'Ashen Company',
+				turnOrder: []
+			})
+		);
+		vi.stubGlobal('fetch', fetchMock);
+
+		await expect(joinLiveSession('A234')).resolves.toEqual({
+			session: { id: 'session-id', viewerCode: 'A234' },
+			challengeName: 'Ashen Company',
+			turnOrder: []
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/join',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({ viewerCode: 'A234' })
+			})
+		);
+	});
+
+	it('preserves inactive viewer-code errors', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'No active session was found for this code.' }, { status: 404 })
+				)
+		);
+
+		await expect(joinLiveSession('A234')).rejects.toMatchObject({
+			constructor: LiveSessionRequestError,
+			status: 404,
+			message: 'No active session was found for this code.'
+		});
+	});
+
 	it('sends a bearer credential when resuming a session', async () => {
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge: createChallenge() }
+					session: { id: 'session-id', viewerCode: 'A234', challenge: createChallenge() }
 				}),
 				{ status: 200 }
 			)
@@ -102,7 +145,7 @@ describe('live session client', () => {
 		const challenge = createChallenge();
 		await expect(resumeLiveSession(credential, challenge)).resolves.toEqual({
 			id: 'session-id',
-			viewerCode: 'ABCDEFGH'
+			viewerCode: 'A234'
 		});
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/session-id',
@@ -112,6 +155,26 @@ describe('live session client', () => {
 		const headers = new Headers(requestOptions?.headers);
 		expect(headers.get('authorization')).toBe('Bearer secret-token');
 		expect(headers.get('content-type')).toBe('application/json');
+	});
+
+	it('publishes the latest challenge snapshot to the live session', async () => {
+		const challenge = createChallenge();
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		const credential = {
+			challengeId: createUuid(),
+			sessionId: 'session-id',
+			reconnectToken: 'secret-token'
+		};
+
+		await updateLiveSession(credential, challenge);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id',
+			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ challenge }) })
+		);
 	});
 
 	it('regenerates a viewer code with the saved DM credential', async () => {

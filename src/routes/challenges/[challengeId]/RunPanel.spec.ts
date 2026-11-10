@@ -12,7 +12,7 @@ import {
 	loadLiveSessionCredential,
 	saveLiveSessionCredential,
 	type LiveSessionCredential
-} from '../../../lib/live-session-client';
+} from '#lib';
 import { createSetupChallenge, expectPageError } from '../../view-test-support';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 
@@ -45,7 +45,7 @@ describe('turn-order run route', () => {
 				JSON.stringify({
 					session: {
 						id: 'session-id',
-						viewerCode: '23456789',
+						viewerCode: 'A234',
 						challenge
 					},
 					reconnectToken: 'secret-reconnect-token'
@@ -58,7 +58,7 @@ describe('turn-order run route', () => {
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
 
-		expect(await screen.findByText('23456789')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions',
 			expect.objectContaining({ method: 'POST' })
@@ -67,6 +67,39 @@ describe('turn-order run route', () => {
 			challengeId: challenge.id,
 			sessionId: 'session-id',
 			reconnectToken: 'secret-reconnect-token'
+		});
+	});
+
+	it('publishes the updated turn order after saving a turn change', async () => {
+		const challenge = createRunChallenge();
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						session: { id: 'session-id', viewerCode: 'A234', challenge },
+						reconnectToken: 'secret-reconnect-token'
+					},
+					{ status: 201 }
+				)
+			)
+			.mockResolvedValueOnce(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+		await screen.findByText('A234');
+		await fireEvent.click(screen.getByRole('button', { name: 'Next turn' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/sessions/session-id');
+		expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('PUT');
+		const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as {
+			challenge: Challenge;
+		};
+		expect(body.challenge.runState?.generatedTurnOrder?.[0]).toEqual({
+			kind: 'turn',
+			turnId: rookTurnId
 		});
 	});
 
@@ -257,7 +290,7 @@ describe('turn-order run route', () => {
 			.fn<typeof fetch>()
 			.mockResolvedValue(
 				new Response(
-					JSON.stringify({ session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge } }),
+					JSON.stringify({ session: { id: 'session-id', viewerCode: 'A234', challenge } }),
 					{ status: 200 }
 				)
 			);
@@ -265,7 +298,7 @@ describe('turn-order run route', () => {
 
 		render(turnOrderPage, { sharedChallenge: challenge });
 
-		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 		expect(fetchMock).toHaveBeenCalledWith(
 			'/api/sessions/session-id',
 			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ challenge }) })
@@ -319,7 +352,7 @@ describe('turn-order run route', () => {
 			.mockResolvedValueOnce(Response.json({ message: 'Unavailable.' }, { status: 503 }))
 			.mockResolvedValueOnce(
 				Response.json({
-					session: { id: 'session-id', viewerCode: 'ABCDEFGH', challenge }
+					session: { id: 'session-id', viewerCode: 'A234', challenge }
 				})
 			);
 		vi.stubGlobal('fetch', fetchMock);
@@ -328,7 +361,7 @@ describe('turn-order run route', () => {
 		await fireEvent.click(await screen.findByRole('button', { name: 'Retry session resume' }));
 
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
+		expect(await screen.findByText('A234')).toBeTruthy();
 	});
 
 	it('removes reconnect credentials when the server reports an ended session', async () => {
