@@ -1626,7 +1626,7 @@ describe('new challenge setup', () => {
 			name: 'Remove faction Players'
 		});
 		expect(removeFactionButton.classList.contains('ui-button--danger')).toBe(true);
-		expect(removeFactionButton.textContent?.trim()).toBe('Remove faction');
+		expect(removeFactionButton.getAttribute('title')).toBe('Remove faction');
 		await fireEvent.click(removeFactionButton);
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Remove faction "Players"'));
 		expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('1 creature'));
@@ -1661,7 +1661,7 @@ describe('new challenge setup', () => {
 			name: 'Remove NPC type NPC Type 1'
 		});
 		expect(removeNpcTypeButton.classList.contains('ui-button--danger')).toBe(true);
-		expect(removeNpcTypeButton.textContent?.trim()).toBe('Remove NPC type');
+		expect(removeNpcTypeButton.getAttribute('title')).toBe('Remove NPC type');
 		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')

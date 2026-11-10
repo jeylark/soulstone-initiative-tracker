@@ -238,7 +238,7 @@ describe('new challenge setup', () => {
 			name: 'Remove NPC type NPC Type 1'
 		});
 		expect(removeNpcTypeButton.classList.contains('ui-button--danger')).toBe(true);
-		expect(removeNpcTypeButton.textContent?.trim()).toBe('Remove NPC type');
+		expect(removeNpcTypeButton.getAttribute('title')).toBe('Remove NPC type');
 		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')
