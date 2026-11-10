@@ -44,12 +44,12 @@ describe('in-memory live session registry', () => {
 		challenge.name = 'Changed outside the session';
 		expect(session).not.toHaveProperty('challenge');
 		expect(session).toHaveProperty('turnOrder');
+		expect(session.challengeName).toBe('Ashen Company');
 		expect(session.turnOrder[0]).toMatchObject({
 			kind: 'turn',
 			display: { faction: { name: 'Players' }, label: 'Aria' },
 			initiative: 6
 		});
-		expect(JSON.stringify(session)).not.toContain('Ashen Company');
 		expect(JSON.stringify(session)).not.toContain('"creature"');
 		expect(JSON.stringify(session)).not.toContain('"position"');
 		expect(JSON.stringify(session)).not.toContain('initiativeResults');
@@ -98,6 +98,7 @@ describe('in-memory live session registry', () => {
 		expect(registry.resume(session.id, reconnectToken)).toEqual(session);
 		const resumedSession = registry.resume(session.id, reconnectToken, updatedChallenge);
 		expect(resumedSession).not.toHaveProperty('challenge');
+		expect(resumedSession.challengeName).toBe('Updated challenge');
 		expect(resumedSession.turnOrder).toEqual([]);
 		expect(() => registry.resume(session.id, 'incorrect-token')).toThrow(
 			LiveSessionAuthorizationError
@@ -114,7 +115,7 @@ describe('in-memory live session registry', () => {
 
 		registry.resume(session.id, reconnectToken, updatedChallenge);
 
-		expect(updates).toEqual([session, session]);
+		expect(updates).toEqual([session, { ...session, challengeName: 'Updated challenge' }]);
 		unsubscribe();
 		registry.resume(session.id, reconnectToken, { ...createChallenge(), name: 'Not published' });
 		expect(updates).toHaveLength(2);

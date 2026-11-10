@@ -22,6 +22,8 @@ export interface LiveSession {
 	id: string;
 	/** Code viewers can use to find this session. */
 	viewerCode: string;
+	/** Challenge title shown above the viewer's turn order. */
+	challengeName: string;
 	/** Visible turn cards and Spawn entry; challenge data is not retained. */
 	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
@@ -169,6 +171,7 @@ export class InMemoryLiveSessionRegistry {
 		const session: LiveSession = {
 			id: randomUUID(),
 			viewerCode,
+			challengeName: challenge.name,
 			turnOrder: createViewerTurnOrder(challenge)
 		};
 		const reconnectToken = randomBytes(32).toString('base64url');
@@ -214,6 +217,7 @@ export class InMemoryLiveSessionRegistry {
 		}
 
 		if (challenge) {
+			session.challengeName = challenge.name;
 			session.turnOrder = createViewerTurnOrder(challenge);
 			this.notifyUpdate(sessionId, session);
 		}

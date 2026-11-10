@@ -31,9 +31,9 @@ describe('POST /api/sessions', () => {
 
 		expect(response.status).toBe(201);
 		expect(body.session).toHaveProperty('turnOrder');
+		expect(body.session.challengeName).toBe(challenge.name);
 		expect(body.session).not.toHaveProperty('challenge');
 		expect(JSON.stringify(body)).not.toContain(challenge.id);
-		expect(JSON.stringify(body)).not.toContain(challenge.name);
 		expect(body.reconnectToken).toBeTruthy();
 		expect(liveSessionRegistry.resume(body.session.id, body.reconnectToken).turnOrder).toEqual([]);
 		liveSessionRegistry.end(body.session.id);

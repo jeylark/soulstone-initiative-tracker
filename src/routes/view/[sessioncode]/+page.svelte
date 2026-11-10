@@ -5,6 +5,7 @@
 	import { TurnOrderList, ViewPage } from '#lib/components';
 	import { joinLiveSession, LiveSessionRequestError } from '../../../lib/live-session-client';
 
+	let challengeName = $state('Live session');
 	let turnOrder = $state<readonly ViewerTurnOrderDisplayItem[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state('');
@@ -14,6 +15,7 @@
 	async function loadLiveSession(): Promise<(() => void) | undefined> {
 		try {
 			const session = await joinLiveSession(page.params.sessioncode ?? '');
+			challengeName = session.challengeName || 'Live session';
 			turnOrder = session.turnOrder;
 			const eventSource = new EventSource(
 				`/api/sessions/${encodeURIComponent(session.session.id)}/events`
@@ -21,13 +23,13 @@
 			eventSource.addEventListener('turn-order', (event) => {
 				try {
 					const payload: unknown = JSON.parse((event as MessageEvent<string>).data);
-					if (
-						typeof payload === 'object' &&
-						payload !== null &&
-						'turnOrder' in payload &&
-						Array.isArray(payload.turnOrder)
-					) {
-						turnOrder = payload.turnOrder as ViewerTurnOrderDisplayItem[];
+					if (typeof payload === 'object' && payload !== null) {
+						if ('challengeName' in payload && typeof payload.challengeName === 'string') {
+							challengeName = payload.challengeName || 'Live session';
+						}
+						if ('turnOrder' in payload && Array.isArray(payload.turnOrder)) {
+							turnOrder = payload.turnOrder as ViewerTurnOrderDisplayItem[];
+						}
 					}
 				} catch {
 					errorMessage = 'The live session sent an invalid turn-order update.';
@@ -67,7 +69,7 @@
 	});
 </script>
 
-<ViewPage title="Live session">
+<ViewPage title={challengeName}>
 	<p>Session code: <code>{page.params.sessioncode}</code></p>
 	{#if isLoading}
 		<p role="status">Loading live session...</p>

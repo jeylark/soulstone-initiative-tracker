@@ -35,10 +35,14 @@ describe('PUT /api/sessions/[sessionId]', () => {
 		expect(response.status).toBe(200);
 		const body = await response.json();
 		expect(body).toMatchObject({
-			session: { id: session.id, viewerCode: session.viewerCode, turnOrder: [] }
+			session: {
+				id: session.id,
+				viewerCode: session.viewerCode,
+				challengeName: challenge.name,
+				turnOrder: []
+			}
 		});
 		expect(JSON.stringify(body)).not.toContain(challenge.id);
-		expect(JSON.stringify(body)).not.toContain(challenge.name);
 		liveSessionRegistry.end(session.id);
 	});
 

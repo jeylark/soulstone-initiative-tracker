@@ -32,6 +32,8 @@ export interface LiveSessionDescriptor {
 export interface LiveViewerSession {
 	/** Public details for the active session. */
 	session: LiveSessionDescriptor;
+	/** Challenge title shown above the viewer's turn order. */
+	challengeName: string;
 	/** Visible turns and Spawn in generated order. */
 	turnOrder: readonly ViewerTurnOrderDisplayItem[];
 }
@@ -292,13 +294,16 @@ export async function joinLiveSession(viewerCode: string): Promise<LiveViewerSes
 		typeof body !== 'object' ||
 		body === null ||
 		!('session' in body) ||
+		!('challengeName' in body) ||
 		!('turnOrder' in body) ||
+		typeof body.challengeName !== 'string' ||
 		!Array.isArray(body.turnOrder)
 	) {
 		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
 	}
 	return {
 		session: getSessionDescriptor(body.session),
+		challengeName: body.challengeName,
 		turnOrder: body.turnOrder as ViewerTurnOrderDisplayItem[]
 	};
 }

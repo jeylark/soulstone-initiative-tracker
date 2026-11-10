@@ -66,6 +66,7 @@ describe('GET /api/sessions/[sessionId]/events', () => {
 		expect(initialEvent).toContain('Visible character');
 		expect(initialEvent).not.toContain('Hidden character');
 		expect(initialEvent).toContain('"kind":"spawn"');
+		expect(initialEvent).toContain('"challengeName":"SSE test"');
 		expect(initialEvent).not.toContain('"creature"');
 		expect(initialEvent).not.toContain(challenge.id);
 
@@ -75,9 +76,11 @@ describe('GET /api/sessions/[sessionId]/events', () => {
 			throw new Error('Expected the first creature to be a character.');
 		}
 		visibleCreature.name = 'Updated visible character';
+		updatedChallenge.name = 'Updated SSE test';
 		liveSessionRegistry.resume(session.id, reconnectToken, updatedChallenge);
 		const updateEvent = new TextDecoder().decode((await reader.read()).value);
 		expect(updateEvent).toContain('event: turn-order');
+		expect(updateEvent).toContain('"challengeName":"Updated SSE test"');
 		expect(updateEvent).toContain('Updated visible character');
 		expect(updateEvent).not.toContain('Hidden character');
 

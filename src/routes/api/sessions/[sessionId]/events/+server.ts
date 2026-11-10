@@ -36,7 +36,12 @@ export const GET: RequestHandler = ({ params, request }) => {
 				}
 				return;
 			}
-			send(`event: turn-order\ndata: ${JSON.stringify({ turnOrder: session.turnOrder })}\n\n`);
+			send(
+				`event: turn-order\ndata: ${JSON.stringify({
+					challengeName: session.challengeName,
+					turnOrder: session.turnOrder
+				})}\n\n`
+			);
 		});
 	} catch (error) {
 		if (error instanceof LiveSessionNotFoundError) {

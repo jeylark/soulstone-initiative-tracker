@@ -34,6 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	return Response.json({
 		session: { id: session.id, viewerCode: session.viewerCode },
+		challengeName: session.challengeName,
 		turnOrder: session.turnOrder
 	});
 };

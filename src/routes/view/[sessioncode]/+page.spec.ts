@@ -64,6 +64,7 @@ describe('viewer session page', () => {
 			vi.fn<typeof fetch>().mockResolvedValue(
 				Response.json({
 					session: { id: 'session-id', viewerCode: 'A234' },
+					challengeName: 'Ashen Company',
 					turnOrder
 				})
 			)
@@ -72,6 +73,8 @@ describe('viewer session page', () => {
 		render(viewerSessionPage);
 
 		const order = await screen.findByRole('list', { name: 'Generated turn order' });
+		expect(screen.getByRole('heading', { level: 1, name: 'Ashen Company' })).toBeTruthy();
+		expect(document.title).toBe('Ashen Company | Soulstone Initiative Tracker');
 		const entries = within(order).getAllByRole('listitem');
 		expect(entries.map((entry) => entry.querySelector('h2')?.textContent)).toEqual([
 			'Players',
@@ -92,19 +95,27 @@ describe('viewer session page', () => {
 				: item
 		);
 		eventSources[0]?.dispatchEvent(
-			new MessageEvent('turn-order', { data: JSON.stringify({ turnOrder: updatedTurnOrder }) })
+			new MessageEvent('turn-order', {
+				data: JSON.stringify({
+					challengeName: 'Updated Ashen Company',
+					turnOrder: updatedTurnOrder
+				})
+			})
 		);
 		expect(await screen.findByText('Updated Aria')).toBeTruthy();
+		expect(screen.getByRole('heading', { level: 1, name: 'Updated Ashen Company' })).toBeTruthy();
 	});
 
 	it('shows when a live session ends and closes the event stream on unmount', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi
-				.fn<typeof fetch>()
-				.mockResolvedValue(
-					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
-				)
+			vi.fn<typeof fetch>().mockResolvedValue(
+				Response.json({
+					session: { id: 'session-id', viewerCode: 'A234' },
+					challengeName: 'Ashen Company',
+					turnOrder: []
+				})
+			)
 		);
 		vi.stubGlobal('EventSource', MockEventSource);
 		const { unmount } = render(viewerSessionPage);
@@ -120,11 +131,13 @@ describe('viewer session page', () => {
 	it('explains when a session has no generated turn order', async () => {
 		vi.stubGlobal(
 			'fetch',
-			vi
-				.fn<typeof fetch>()
-				.mockResolvedValue(
-					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
-				)
+			vi.fn<typeof fetch>().mockResolvedValue(
+				Response.json({
+					session: { id: 'session-id', viewerCode: 'A234' },
+					challengeName: 'Ashen Company',
+					turnOrder: []
+				})
+			)
 		);
 		vi.stubGlobal('EventSource', MockEventSource);
 		render(viewerSessionPage);

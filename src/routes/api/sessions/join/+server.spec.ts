@@ -6,6 +6,7 @@ import { POST } from './+server';
 
 function createChallenge(): Challenge {
 	const challenge = createSetupChallenge();
+	challenge.name = 'Ashen Company';
 	const visibleTurnId = createUuid();
 	const hiddenTurnId = createUuid();
 	challenge.creatures = [
@@ -47,7 +48,8 @@ function createRequest(body: unknown): Request {
 
 describe('POST /api/sessions/join', () => {
 	it('returns the visible turn order without exposing hidden creatures or DM credentials', async () => {
-		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
+		const challenge = createChallenge();
+		const { session, reconnectToken } = liveSessionRegistry.create(challenge);
 
 		const response = await POST({
 			request: createRequest({ viewerCode: session.viewerCode.toLowerCase() })
@@ -56,6 +58,7 @@ describe('POST /api/sessions/join', () => {
 
 		expect(response.status).toBe(200);
 		expect(body.session).toEqual({ id: session.id, viewerCode: session.viewerCode });
+		expect(body.challengeName).toBe(challenge.name);
 		expect(
 			body.turnOrder.map((item: { kind: string; display?: { label: string } }) =>
 				item.kind === 'turn' ? item.display?.label : 'Spawn'
