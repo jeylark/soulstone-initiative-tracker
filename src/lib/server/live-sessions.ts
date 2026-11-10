@@ -11,6 +11,9 @@ import { loadServerConfig } from './server-config';
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 4;
 const REGENERATED_VIEWER_CODE_LENGTH = 8;
+const DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION = 100;
+
+type LiveSessionUpdateListener = (session: LiveSession | undefined) => void;
 
 /** A sanitized challenge exposed through a live session. */
 export interface LiveSession {
@@ -59,6 +62,14 @@ export class LiveSessionNotFoundError extends Error {
 	}
 }
 
+/** Thrown when a session already has its configured number of viewer connections. */
+export class LiveSessionViewerLimitError extends Error {
+	constructor() {
+		super('This live session has reached its viewer connection limit.');
+		this.name = 'LiveSessionViewerLimitError';
+	}
+}
+
 /**
  * Parses and validates a challenge snapshot received as JSON.
  *
@@ -103,20 +114,37 @@ export class InMemoryLiveSessionRegistry {
 	private readonly sessions = new Map<string, LiveSession>();
 	private readonly sessionIdsByViewerCode = new Map<string, string>();
 	private readonly reconnectTokenDigests = new Map<string, Buffer>();
+	private readonly updateListeners = new Map<string, Set<LiveSessionUpdateListener>>();
 	private readonly maxActiveSessions: number;
+	private readonly maxViewerConnectionsPerSession: number;
 
 	/**
 	 * Creates an empty registry with a fixed session capacity.
 	 *
 	 * @param options.maxActiveSessions Maximum number of active sessions; must be a non-negative safe integer.
+	 * @param options.maxViewerConnectionsPerSession Maximum viewers per session; defaults to 100.
 	 * @throws {RangeError} If the capacity is not a non-negative safe integer.
 	 */
-	constructor(options: Readonly<{ maxActiveSessions: number }>) {
+	constructor(
+		options: Readonly<{
+			maxActiveSessions: number;
+			maxViewerConnectionsPerSession?: number;
+		}>
+	) {
 		if (!Number.isSafeInteger(options.maxActiveSessions) || options.maxActiveSessions < 0) {
 			throw new RangeError('The maximum active session count must be a non-negative integer.');
 		}
+		const maxViewerConnectionsPerSession =
+			options.maxViewerConnectionsPerSession ?? DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION;
+		if (
+			!Number.isSafeInteger(maxViewerConnectionsPerSession) ||
+			maxViewerConnectionsPerSession < 0
+		) {
+			throw new RangeError('The maximum viewer connection count must be a non-negative integer.');
+		}
 
 		this.maxActiveSessions = options.maxActiveSessions;
+		this.maxViewerConnectionsPerSession = maxViewerConnectionsPerSession;
 	}
 
 	/**
@@ -184,8 +212,48 @@ export class InMemoryLiveSessionRegistry {
 			throw new LiveSessionAuthorizationError();
 		}
 
-		if (challenge) session.challenge = sanitizeChallenge(challenge);
+		if (challenge) {
+			session.challenge = sanitizeChallenge(challenge);
+			this.notifyUpdate(sessionId, session);
+		}
 		return structuredClone(session);
+	}
+
+	/**
+	 * Subscribes to sanitized session snapshots and immediately provides the current snapshot.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param listener Called with each updated session, or `undefined` when it ends.
+	 * @returns Function that removes this viewer subscription.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionViewerLimitError} If the session has reached its viewer limit.
+	 */
+	subscribeToUpdates(sessionId: string, listener: LiveSessionUpdateListener): () => void {
+		const session = this.sessions.get(sessionId);
+		if (!session) throw new LiveSessionNotFoundError();
+
+		let listeners = this.updateListeners.get(sessionId);
+		if (!listeners) {
+			listeners = new Set();
+			this.updateListeners.set(sessionId, listeners);
+		}
+		if (listeners.size >= this.maxViewerConnectionsPerSession) {
+			if (listeners.size === 0) this.updateListeners.delete(sessionId);
+			throw new LiveSessionViewerLimitError();
+		}
+		listeners.add(listener);
+
+		const unsubscribe = () => {
+			listeners?.delete(listener);
+			if (listeners?.size === 0) this.updateListeners.delete(sessionId);
+		};
+		try {
+			listener(structuredClone(session));
+		} catch (error) {
+			unsubscribe();
+			throw error;
+		}
+		return unsubscribe;
 	}
 
 	/**
@@ -231,6 +299,7 @@ export class InMemoryLiveSessionRegistry {
 		this.sessions.delete(sessionId);
 		this.sessionIdsByViewerCode.delete(session.viewerCode);
 		this.reconnectTokenDigests.delete(sessionId);
+		this.notifyUpdate(sessionId, undefined);
 		return true;
 	}
 
@@ -260,6 +329,19 @@ export class InMemoryLiveSessionRegistry {
 		return createHash('sha256').update(reconnectToken).digest();
 	}
 
+	private notifyUpdate(sessionId: string, session: LiveSession | undefined): void {
+		const listeners = this.updateListeners.get(sessionId);
+		if (!listeners) return;
+		for (const listener of listeners) {
+			try {
+				listener(session ? structuredClone(session) : undefined);
+			} catch {
+				listeners.delete(listener);
+			}
+		}
+		if (listeners.size === 0) this.updateListeners.delete(sessionId);
+	}
+
 	private createViewerCode(length = VIEWER_CODE_LENGTH): string {
 		return Array.from({ length }, () =>
 			VIEWER_CODE_ALPHABET.charAt(randomInt(VIEWER_CODE_ALPHABET.length))
@@ -268,4 +350,5 @@ export class InMemoryLiveSessionRegistry {
 }
 
 /** Process-wide in-memory session registry used by the API routes. */
-export const liveSessionRegistry = new InMemoryLiveSessionRegistry(loadServerConfig());
+const serverConfig = loadServerConfig();
+export const liveSessionRegistry = new InMemoryLiveSessionRegistry(serverConfig);

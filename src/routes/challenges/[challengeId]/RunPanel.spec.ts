@@ -70,6 +70,39 @@ describe('turn-order run route', () => {
 		});
 	});
 
+	it('publishes the updated turn order after saving a turn change', async () => {
+		const challenge = createRunChallenge();
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						session: { id: 'session-id', viewerCode: 'A234', challenge },
+						reconnectToken: 'secret-reconnect-token'
+					},
+					{ status: 201 }
+				)
+			)
+			.mockResolvedValueOnce(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		render(turnOrderPage, { sharedChallenge: challenge });
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Start live session' }));
+		await screen.findByText('A234');
+		await fireEvent.click(screen.getByRole('button', { name: 'Next turn' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/sessions/session-id');
+		expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('PUT');
+		const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)) as {
+			challenge: Challenge;
+		};
+		expect(body.challenge.runState?.generatedTurnOrder?.[0]).toEqual({
+			kind: 'turn',
+			turnId: rookTurnId
+		});
+	});
+
 	it('confirms session ending, then removes the server session and saved credential', async () => {
 		const challenge = createRunChallenge();
 		const fetchMock = vi

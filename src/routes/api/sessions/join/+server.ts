@@ -1,9 +1,6 @@
 import type { RequestHandler } from './$types';
-import {
-	createTurnDisplayLookup,
-	createTurnOrderDisplay
-} from '../../../../lib/challenge/initiative';
 import { liveSessionRegistry } from '../../../../lib/server/live-sessions';
+import { createViewerTurnOrder } from '../../../../lib/server/viewer-turn-order';
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -36,18 +33,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		);
 	}
 
-	const runState = session.challenge.runState;
-	const displayOrder = runState?.generatedTurnOrder
-		? createTurnOrderDisplay(
-				runState.generatedTurnOrder,
-				createTurnDisplayLookup(session.challenge),
-				runState.initiativeResults
-			).items
-		: [];
-	const turnOrder = displayOrder.filter((item) => item.kind === 'spawn' || !item.display.isHidden);
-
 	return Response.json({
 		session: { id: session.id, viewerCode: session.viewerCode },
-		turnOrder
+		turnOrder: createViewerTurnOrder(session.challenge)
 	});
 };

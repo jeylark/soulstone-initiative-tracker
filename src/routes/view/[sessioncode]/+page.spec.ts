@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTurnDisplayLookup, createTurnOrderDisplay } from '#lib/challenge';
 import { createRunChallenge } from '../../challenges/[challengeId]/run/run-test-support';
@@ -8,12 +8,33 @@ const { mockedPage } = vi.hoisted(() => ({
 	mockedPage: { params: {} as Record<string, string> }
 }));
 
+const eventSources: MockEventSource[] = [];
+
+class MockEventSource extends EventTarget {
+	static readonly CONNECTING = 0;
+	static readonly OPEN = 1;
+	static readonly CLOSED = 2;
+	readonly url: string;
+	isClosed = false;
+
+	constructor(url: string) {
+		super();
+		this.url = url;
+		eventSources.push(this);
+	}
+
+	close(): void {
+		this.isClosed = true;
+	}
+}
+
 vi.mock('$app/state', () => ({ page: mockedPage }));
 
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	eventSources.length = 0;
 });
 
 beforeEach(() => {
@@ -47,6 +68,7 @@ describe('viewer session page', () => {
 				})
 			)
 		);
+		vi.stubGlobal('EventSource', MockEventSource);
 		render(viewerSessionPage);
 
 		const order = await screen.findByRole('list', { name: 'Generated turn order' });
@@ -61,6 +83,38 @@ describe('viewer session page', () => {
 		).toEqual(['Aria', 'Rook', null]);
 		expect(screen.queryByRole('checkbox')).toBeNull();
 		expect(screen.queryByRole('status')).toBeNull();
+
+		await waitFor(() => expect(eventSources).toHaveLength(1));
+		expect(eventSources[0]?.url).toBe('/api/sessions/session-id/events');
+		const updatedTurnOrder = turnOrder.map((item, index) =>
+			index === 0 && item.kind === 'turn'
+				? { ...item, display: { ...item.display, label: 'Updated Aria' } }
+				: item
+		);
+		eventSources[0]?.dispatchEvent(
+			new MessageEvent('turn-order', { data: JSON.stringify({ turnOrder: updatedTurnOrder }) })
+		);
+		expect(await screen.findByText('Updated Aria')).toBeTruthy();
+	});
+
+	it('shows when a live session ends and closes the event stream on unmount', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
+				)
+		);
+		vi.stubGlobal('EventSource', MockEventSource);
+		const { unmount } = render(viewerSessionPage);
+
+		await waitFor(() => expect(eventSources).toHaveLength(1));
+		eventSources[0]?.dispatchEvent(new MessageEvent('session-ended'));
+
+		expect(await screen.findByText('This live session has ended.')).toBeTruthy();
+		expect(eventSources[0]?.isClosed).toBe(true);
+		unmount();
 	});
 
 	it('explains when a session has no generated turn order', async () => {
@@ -72,6 +126,7 @@ describe('viewer session page', () => {
 					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
 				)
 		);
+		vi.stubGlobal('EventSource', MockEventSource);
 		render(viewerSessionPage);
 
 		expect(await screen.findByText('The active session has no generated turn order.')).toBeTruthy();

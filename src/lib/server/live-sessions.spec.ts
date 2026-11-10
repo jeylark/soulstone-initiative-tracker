@@ -4,7 +4,8 @@ import {
 	InMemoryLiveSessionRegistry,
 	LiveSessionAuthorizationError,
 	LiveSessionLimitError,
-	LiveSessionNotFoundError
+	LiveSessionNotFoundError,
+	LiveSessionViewerLimitError
 } from './live-sessions';
 
 function createChallenge(): Challenge {
@@ -90,6 +91,43 @@ describe('in-memory live session registry', () => {
 		expect(() => registry.resume(session.id, 'incorrect-token')).toThrow(
 			LiveSessionAuthorizationError
 		);
+	});
+
+	it('publishes the current and updated snapshots to active subscribers', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session, reconnectToken } = registry.create(createChallenge());
+		const updates: (typeof session | undefined)[] = [];
+		const unsubscribe = registry.subscribeToUpdates(session.id, (update) => updates.push(update));
+		const updatedChallenge = { ...createChallenge(), name: 'Updated challenge' };
+
+		registry.resume(session.id, reconnectToken, updatedChallenge);
+
+		expect(updates.map((update) => update?.challenge.name)).toEqual([
+			'The Sunken Hall',
+			'Updated challenge'
+		]);
+		unsubscribe();
+		registry.resume(session.id, reconnectToken, { ...createChallenge(), name: 'Not published' });
+		expect(updates).toHaveLength(2);
+		registry.end(session.id);
+	});
+
+	it('notifies subscribers when a session ends and releases their viewer capacity', () => {
+		const registry = new InMemoryLiveSessionRegistry({
+			maxActiveSessions: 1,
+			maxViewerConnectionsPerSession: 1
+		});
+		const { session } = registry.create(createChallenge());
+		const updates: (typeof session | undefined)[] = [];
+		registry.subscribeToUpdates(session.id, (update) => updates.push(update));
+
+		expect(() => registry.subscribeToUpdates(session.id, () => undefined)).toThrow(
+			LiveSessionViewerLimitError
+		);
+		registry.end(session.id);
+
+		expect(updates).toHaveLength(2);
+		expect(updates[1]).toBeUndefined();
 	});
 
 	it('regenerates a viewer code and invalidates the previous code', () => {

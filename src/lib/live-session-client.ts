@@ -314,6 +314,21 @@ export async function resumeLiveSession(
 	credential: DeepReadonly<LiveSessionCredential>,
 	challenge: DeepReadonly<Challenge>
 ): Promise<LiveSessionDescriptor> {
+	return updateLiveSession(credential, challenge);
+}
+
+/**
+ * Sends the latest challenge snapshot to an active live session.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @param challenge Latest challenge snapshot to publish.
+ * @returns Public details for the active session.
+ * @throws {LiveSessionRequestError} If the session is missing, credentials are rejected, or the response is invalid.
+ */
+export async function updateLiveSession(
+	credential: DeepReadonly<LiveSessionCredential>,
+	challenge: DeepReadonly<Challenge>
+): Promise<LiveSessionDescriptor> {
 	const response = await fetch(`/api/sessions/${encodeURIComponent(credential.sessionId)}`, {
 		method: 'PUT',
 		headers: new Headers([

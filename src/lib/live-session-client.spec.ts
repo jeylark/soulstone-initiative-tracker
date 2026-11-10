@@ -10,7 +10,8 @@ import {
 	LiveSessionRequestError,
 	regenerateViewerCode,
 	resumeLiveSession,
-	saveLiveSessionCredential
+	saveLiveSessionCredential,
+	updateLiveSession
 } from './live-session-client';
 
 let indexedDbFactory: IDBFactory;
@@ -151,6 +152,26 @@ describe('live session client', () => {
 		const headers = new Headers(requestOptions?.headers);
 		expect(headers.get('authorization')).toBe('Bearer secret-token');
 		expect(headers.get('content-type')).toBe('application/json');
+	});
+
+	it('publishes the latest challenge snapshot to the live session', async () => {
+		const challenge = createChallenge();
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'A234' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		const credential = {
+			challengeId: createUuid(),
+			sessionId: 'session-id',
+			reconnectToken: 'secret-token'
+		};
+
+		await updateLiveSession(credential, challenge);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id',
+			expect.objectContaining({ method: 'PUT', body: JSON.stringify({ challenge }) })
+		);
 	});
 
 	it('regenerates a viewer code with the saved DM credential', async () => {
