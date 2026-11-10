@@ -220,12 +220,10 @@ describe('challenge and library JSON files', () => {
 	});
 
 	it('compresses downloads and reads them back, still accepting plain JSON', async () => {
-		const createObjectUrl = vi.fn((_blob: Blob) => 'blob:gzip');
+		const createObjectUrl = vi.fn(() => 'blob:gzip');
 		stubObjectUrl(createObjectUrl, vi.fn());
 		const anchors: HTMLAnchorElement[] = [];
-		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-			this: HTMLAnchorElement
-		) {
+		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
 			anchors.push(this);
 		});
 

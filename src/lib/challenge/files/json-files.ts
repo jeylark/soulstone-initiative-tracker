@@ -165,8 +165,8 @@ function getChallengeFileReadResult(value: unknown): ChallengeFileReadResult {
 }
 
 function transformBody(
-	source: string | Uint8Array<ArrayBuffer>,
-	transform: ReadableWritablePair<Uint8Array, Uint8Array<ArrayBuffer>>
+	source: string | Readonly<Uint8Array<ArrayBuffer>>,
+	transform: Readonly<ReadableWritablePair<Uint8Array, Uint8Array<ArrayBuffer>>>
 ): ReadableStream<Uint8Array> {
 	const body = new Response(source).body;
 	if (!body) throw new Error('Unable to stream the file contents.');
