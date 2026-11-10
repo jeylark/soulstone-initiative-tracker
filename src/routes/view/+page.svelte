@@ -15,8 +15,12 @@
 			invalidMessage = 'Enter a session code.';
 			return;
 		}
-		if (!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/.test(sessionCode)) {
-			invalidMessage = 'Enter a 4-character code.';
+		if (
+			!/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}(?:[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4})?$/.test(
+				sessionCode
+			)
+		) {
+			invalidMessage = 'Enter a 4- or 8-character code.';
 			return;
 		}
 		invalidMessage = '';
@@ -47,7 +51,7 @@
 			label="Session code"
 			name="sessionCode"
 			value={sessionCode}
-			maxlength={4}
+			maxlength={8}
 			autocomplete="off"
 			spellcheck={false}
 			disabled={isJoining}

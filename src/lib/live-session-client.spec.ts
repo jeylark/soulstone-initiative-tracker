@@ -4,9 +4,11 @@ import { createUuid, type Challenge } from '#lib/challenge';
 import {
 	createLiveSession,
 	deleteLiveSessionCredential,
+	endLiveSession,
 	joinLiveSession,
 	loadLiveSessionCredential,
 	LiveSessionRequestError,
+	regenerateViewerCode,
 	resumeLiveSession,
 	saveLiveSessionCredential
 } from './live-session-client';
@@ -149,6 +151,67 @@ describe('live session client', () => {
 		const headers = new Headers(requestOptions?.headers);
 		expect(headers.get('authorization')).toBe('Bearer secret-token');
 		expect(headers.get('content-type')).toBe('application/json');
+	});
+
+	it('regenerates a viewer code with the saved DM credential', async () => {
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(Response.json({ session: { id: 'session-id', viewerCode: 'ABCDEFGH' } }));
+		vi.stubGlobal('fetch', fetchMock);
+		const credential = {
+			challengeId: createUuid(),
+			sessionId: 'session-id',
+			reconnectToken: 'secret-token'
+		};
+
+		await expect(regenerateViewerCode(credential)).resolves.toEqual({
+			id: 'session-id',
+			viewerCode: 'ABCDEFGH'
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id/viewer-code',
+			expect.objectContaining({ method: 'POST' })
+		);
+		const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+		expect(headers.get('authorization')).toBe('Bearer secret-token');
+	});
+
+	it('ends a session with its bearer reconnect credential', async () => {
+		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+		vi.stubGlobal('fetch', fetchMock);
+		const credential = {
+			challengeId: createUuid(),
+			sessionId: 'session-id',
+			reconnectToken: 'secret-token'
+		};
+
+		await expect(endLiveSession(credential)).resolves.toBeUndefined();
+		expect(fetchMock).toHaveBeenCalledWith(
+			'/api/sessions/session-id',
+			expect.objectContaining({ method: 'DELETE' })
+		);
+		const requestOptions = fetchMock.mock.calls[0]?.[1];
+		const headers = new Headers(requestOptions?.headers);
+		expect(headers.get('authorization')).toBe('Bearer secret-token');
+	});
+
+	it('treats a missing session as already ended', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(
+					Response.json({ message: 'The live session is no longer active.' }, { status: 404 })
+				)
+		);
+
+		await expect(
+			endLiveSession({
+				challengeId: createUuid(),
+				sessionId: 'missing-session',
+				reconnectToken: 'secret-token'
+			})
+		).resolves.toBeUndefined();
 	});
 
 	it('preserves API errors for the caller', async () => {

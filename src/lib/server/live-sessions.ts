@@ -10,6 +10,7 @@ import { loadServerConfig } from './server-config';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 4;
+const REGENERATED_VIEWER_CODE_LENGTH = 8;
 
 /** A sanitized challenge exposed through a live session. */
 export interface LiveSession {
@@ -188,6 +189,35 @@ export class InMemoryLiveSessionRegistry {
 	}
 
 	/**
+	 * Replaces the viewer code for an active session.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param reconnectToken Secret returned once when the session was created.
+	 * @returns A cloned session with its new viewer code.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
+	 */
+	regenerateViewerCode(sessionId: string, reconnectToken: string): LiveSession {
+		const session = this.sessions.get(sessionId);
+		const storedDigest = this.reconnectTokenDigests.get(sessionId);
+		if (!session || !storedDigest) throw new LiveSessionNotFoundError();
+
+		const suppliedDigest = this.hashReconnectToken(reconnectToken);
+		if (!timingSafeEqual(storedDigest, suppliedDigest)) {
+			throw new LiveSessionAuthorizationError();
+		}
+
+		let viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
+		while (this.sessionIdsByViewerCode.has(viewerCode)) {
+			viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
+		}
+		this.sessionIdsByViewerCode.delete(session.viewerCode);
+		session.viewerCode = viewerCode;
+		this.sessionIdsByViewerCode.set(viewerCode, session.id);
+		return structuredClone(session);
+	}
+
+	/**
 	 * Ends an active session and frees its viewer code and capacity.
 	 *
 	 * @returns `true` if the session existed, otherwise `false`.
@@ -204,12 +234,34 @@ export class InMemoryLiveSessionRegistry {
 		return true;
 	}
 
+	/**
+	 * Ends an active session when its reconnect token matches.
+	 *
+	 * @param sessionId Identifier returned when the session was created.
+	 * @param reconnectToken Secret returned once when the session was created.
+	 * @returns `true` when the session was ended.
+	 * @throws {LiveSessionNotFoundError} If the session is no longer active.
+	 * @throws {LiveSessionAuthorizationError} If the reconnect token is invalid.
+	 */
+	endAuthorized(sessionId: string, reconnectToken: string): true {
+		const storedDigest = this.reconnectTokenDigests.get(sessionId);
+		if (!this.sessions.has(sessionId) || !storedDigest) throw new LiveSessionNotFoundError();
+
+		const suppliedDigest = this.hashReconnectToken(reconnectToken);
+		if (!timingSafeEqual(storedDigest, suppliedDigest)) {
+			throw new LiveSessionAuthorizationError();
+		}
+
+		this.end(sessionId);
+		return true;
+	}
+
 	private hashReconnectToken(reconnectToken: string): Buffer {
 		return createHash('sha256').update(reconnectToken).digest();
 	}
 
-	private createViewerCode(): string {
-		return Array.from({ length: VIEWER_CODE_LENGTH }, () =>
+	private createViewerCode(length = VIEWER_CODE_LENGTH): string {
+		return Array.from({ length }, () =>
 			VIEWER_CODE_ALPHABET.charAt(randomInt(VIEWER_CODE_ALPHABET.length))
 		).join('');
 	}

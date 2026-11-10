@@ -64,6 +64,20 @@ describe('in-memory live session registry', () => {
 		expect(() => registry.resume(session.id, reconnectToken)).toThrow(LiveSessionNotFoundError);
 	});
 
+	it('ends a session only with its reconnect token', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session, reconnectToken } = registry.create(createChallenge());
+
+		expect(() => registry.endAuthorized(session.id, 'incorrect-token')).toThrow(
+			LiveSessionAuthorizationError
+		);
+		expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
+
+		expect(registry.endAuthorized(session.id, reconnectToken)).toBe(true);
+		expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		expect(() => registry.resume(session.id, reconnectToken)).toThrow(LiveSessionNotFoundError);
+	});
+
 	it('resumes a session only with its reconnect token', () => {
 		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
 		const { session, reconnectToken } = registry.create(createChallenge());
@@ -76,6 +90,29 @@ describe('in-memory live session registry', () => {
 		expect(() => registry.resume(session.id, 'incorrect-token')).toThrow(
 			LiveSessionAuthorizationError
 		);
+	});
+
+	it('regenerates a viewer code and invalidates the previous code', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session, reconnectToken } = registry.create(createChallenge());
+
+		const regeneratedSession = registry.regenerateViewerCode(session.id, reconnectToken);
+
+		expect(regeneratedSession.id).toBe(session.id);
+		expect(regeneratedSession.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
+		expect(regeneratedSession.viewerCode).not.toBe(session.viewerCode);
+		expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
+		expect(registry.findByViewerCode(regeneratedSession.viewerCode)).toEqual(regeneratedSession);
+	});
+
+	it('requires the reconnect token to regenerate a viewer code', () => {
+		const registry = new InMemoryLiveSessionRegistry({ maxActiveSessions: 1 });
+		const { session } = registry.create(createChallenge());
+
+		expect(() => registry.regenerateViewerCode(session.id, 'incorrect-token')).toThrow(
+			LiveSessionAuthorizationError
+		);
+		expect(registry.findByViewerCode(session.viewerCode)).toEqual(session);
 	});
 
 	it('does not expose the reconnect token through session lookups', () => {

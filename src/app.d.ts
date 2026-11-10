@@ -3,7 +3,10 @@
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			/** Identifier shared by diagnostic records for the current request. */
+			correlationId: string;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}

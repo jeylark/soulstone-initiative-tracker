@@ -27,7 +27,7 @@ describe('viewer entry page', () => {
 		const input = screen.getByRole('textbox', { name: 'Session code' });
 		expect(input.getAttribute('autocomplete')).toBe('off');
 		expect(input.getAttribute('spellcheck')).toBe('false');
-		expect(input.getAttribute('maxlength')).toBe('4');
+		expect(input.getAttribute('maxlength')).toBe('8');
 		expect(screen.getByRole('button', { name: 'Join session' }).getAttribute('type')).toBe(
 			'submit'
 		);
@@ -57,36 +57,38 @@ describe('viewer entry page', () => {
 			});
 			await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
-			expect(screen.getByRole('alert').textContent).toBe('Enter a 4-character code.');
+			expect(screen.getByRole('alert').textContent).toBe('Enter a 4- or 8-character code.');
 			expect(screen.queryByRole('status')).toBeNull();
 		}
 	);
 
-	it.each(['A234', 'a234', '  a234  '])(
+	it.each(['A234', 'a234', '  a234  ', 'ABCDEFGH'])(
 		'normalizes a valid code %j and navigates after the active session is found',
 		async (code) => {
-			const fetchMock = vi
-				.fn<typeof fetch>()
-				.mockResolvedValue(
-					Response.json({ session: { id: 'session-id', viewerCode: 'A234' }, turnOrder: [] })
-				);
+			const normalizedCode = code.trim().toUpperCase();
+			const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+				Response.json({
+					session: { id: 'session-id', viewerCode: normalizedCode },
+					turnOrder: []
+				})
+			);
 			vi.stubGlobal('fetch', fetchMock);
 			render(joinSessionPage);
 			const input = screen.getByRole('textbox', { name: 'Session code' });
 			await fireEvent.input(input, { target: { value: code } });
 			await fireEvent.click(screen.getByRole('button', { name: 'Join session' }));
 
-			await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith('/view/A234'));
-			expect((input as HTMLInputElement).value).toBe('A234');
+			await waitFor(() => expect(mockedGoto).toHaveBeenCalledWith(`/view/${normalizedCode}`));
+			expect((input as HTMLInputElement).value).toBe(normalizedCode);
 			expect(fetchMock).toHaveBeenCalledWith(
 				'/api/sessions/join',
 				expect.objectContaining({
 					method: 'POST',
-					body: JSON.stringify({ viewerCode: 'A234' })
+					body: JSON.stringify({ viewerCode: normalizedCode })
 				})
 			);
 			expect(mockedResolve).toHaveBeenCalledWith('/view/[sessioncode]', {
-				sessioncode: 'A234'
+				sessioncode: normalizedCode
 			});
 			expect(screen.queryByRole('alert')).toBeNull();
 		}

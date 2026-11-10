@@ -66,6 +66,20 @@ describe('POST /api/sessions/join', () => {
 		liveSessionRegistry.end(session.id);
 	});
 
+	it('accepts a regenerated eight-character viewer code', async () => {
+		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
+		const regeneratedSession = liveSessionRegistry.regenerateViewerCode(session.id, reconnectToken);
+		expect(regeneratedSession.viewerCode).toHaveLength(8);
+
+		const response = await POST({
+			request: createRequest({ viewerCode: regeneratedSession.viewerCode })
+		} as never);
+
+		expect(response.status).toBe(200);
+		expect((await response.json()).session.viewerCode).toBe(regeneratedSession.viewerCode);
+		liveSessionRegistry.end(session.id);
+	});
+
 	it('rejects a malformed viewer code', async () => {
 		const response = await POST({ request: createRequest({ viewerCode: 'ABC' }) } as never);
 

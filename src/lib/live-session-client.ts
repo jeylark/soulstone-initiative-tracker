@@ -277,7 +277,7 @@ export async function createLiveSession(
 /**
  * Looks up an active live session using its viewer code.
  *
- * @param viewerCode Four-character code supplied by the viewer.
+ * @param viewerCode Four- or eight-character code supplied by the viewer.
  * @returns Public session details and its viewer-safe turn order.
  * @throws {LiveSessionRequestError} If the code is inactive or the response is invalid.
  */
@@ -327,4 +327,49 @@ export async function resumeLiveSession(
 		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
 	}
 	return getSessionDescriptor(body.session);
+}
+
+/**
+ * Regenerates the viewer code for an active session.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @returns Public details for the session with its new viewer code.
+ * @throws {LiveSessionRequestError} If the session is missing, credentials are rejected, or the response is invalid.
+ */
+export async function regenerateViewerCode(
+	credential: DeepReadonly<LiveSessionCredential>
+): Promise<LiveSessionDescriptor> {
+	const response = await fetch(
+		`/api/sessions/${encodeURIComponent(credential.sessionId)}/viewer-code`,
+		{
+			method: 'POST',
+			headers: new Headers([['authorization', `Bearer ${credential.reconnectToken}`]])
+		}
+	);
+	const body = await readApiResponse(response);
+	if (typeof body !== 'object' || body === null || !('session' in body)) {
+		throw new LiveSessionRequestError(502, 'The server returned invalid session details.');
+	}
+	return getSessionDescriptor(body.session);
+}
+
+/**
+ * Ends a live session using its saved DM reconnect credential.
+ *
+ * An already-missing session is treated as ended so stale credentials can be cleared after a server
+ * restart.
+ *
+ * @param credential Session identifier and reconnect token.
+ * @returns A promise that resolves when the session is ended or already missing.
+ * @throws {LiveSessionRequestError} If the server refuses the request or returns an invalid response.
+ */
+export async function endLiveSession(
+	credential: DeepReadonly<LiveSessionCredential>
+): Promise<void> {
+	const response = await fetch(`/api/sessions/${encodeURIComponent(credential.sessionId)}`, {
+		method: 'DELETE',
+		headers: new Headers([['authorization', `Bearer ${credential.reconnectToken}`]])
+	});
+	if (response.status === 204 || response.status === 404) return;
+	await readApiResponse(response);
 }

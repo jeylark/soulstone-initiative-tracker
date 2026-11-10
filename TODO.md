@@ -21,7 +21,6 @@ under the same category, keeping its task number and wording.
 #### Rolling
 
 - 2.16: Add an animated "rolling" effect for initiative rolls.
-- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 
 ### 3. Challenge library and file workflows
 
@@ -29,8 +28,6 @@ under the same category, keeping its task number and wording.
   has validated; leave existing data unchanged on failure.
 - 3.7: Reject malformed JSON and unsupported versions without partially
   importing data.
-- 3.8: Ask before migrating older supported formats.
-- 3.9: Explain when an unsupported format needs a compatible app version.
 - 3.6: Present partial-import issues and require confirmation before importing
   valid sections; import the challenge only when its structure and references
   are complete and valid.
@@ -43,9 +40,6 @@ under the same category, keeping its task number and wording.
 
 ### 4. Live sessions and read-only viewers
 
-- 4.2: End sessions by removing their data; server restarts may lose active
-  sessions.
-- 4.7: Allow viewer-code regeneration to invalidate the previous code.
 - 4.10: Add viewer-code entry to the read-only view.
 - 4.11: Add QR-code joining to the read-only view.
 - 4.8: Stream live turn-order updates to read-only viewers with SSE.
@@ -58,14 +52,6 @@ under the same category, keeping its task number and wording.
 
 ### 5. Hosting and operations
 
-- 5.1: Read server configuration from the mounted JSON file, with configurable
-  session limits, viewer limits, inactivity timeout, and maximum retained log
-  size.
-- 5.2: Write structured diagnostic logs to the mounted directory and exclude
-  challenge contents, viewer codes, reconnect tokens, and authorization
-  headers.
-- 5.3: Add bounded log rotation and retention using the configured maximum
-  retained log size.
 - 5.4: Document configuration-change behavior and session loss on server
   restart.
 - 5.5: Document reverse-proxy requirements for long-lived SSE.
@@ -79,14 +65,6 @@ under the same category, keeping its task number and wording.
 - 6.5: Add focused tests alongside each workflow, including session limits,
   authorization, inactivity expiry, SSE updates, and persistence or import
   failure cases.
-- 6.9: Split the challenge hub's saved-challenge list (`/challenges`) into
-  smaller sub-components where feasible, improving readability and following
-  single responsibility.
-- 6.10: Split the challenge creation workflow on `/challenges` into smaller
-  sub-components where feasible, improving readability and following single
-  responsibility.
-- 6.14: Split the viewer entry page (`/view`) into smaller sub-components where
-  feasible as live-session joining is implemented.
 - 6.17: Extract reusable radio-button controls and use them throughout the
   app wherever radio-button controls are needed.
 - 6.19: Rework existing custom-input dimension stability to apply only to
@@ -95,25 +73,12 @@ under the same category, keeping its task number and wording.
   allowing field height to grow and shrink without changing control width.
   Update focused component tests. This supersedes the height-reservation
   behavior from task 2.20.
-- 6.20: Add consistent optional warning and error display to all custom input
-  components (text, number, select, range, and checkbox), using NumberInput's
-  existing validation props and depending on 6.19. Preserve native attributes,
-  accessible message associations, and stable control widths without reserving
-  empty message height; add focused component tests and public API
-  documentation.
-- 6.21: Wire existing validation warnings and errors to the relevant custom
-  input components across forms, depending on 6.20. Reuse existing validation
-  rules, show field-level feedback, preserve non-blocking warnings and existing
-  invalid-input behavior, and add focused integration tests. Keep new
-  setup-validation rules in task 1.18.
 - 6.1: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
   for challenge setup and DM workflows.
 - 6.2: Complete keyboard, screen-reader, visible-focus, and WCAG 2.2 AA checks
   for import/export and viewer workflows.
 - 6.3: Verify mobile layouts and efficient use of larger screens for challenge
   setup.
-- 6.6: Before pull requests, run `npm test`, `npm run lint`, `npm run check`,
-  and `npm run build`; ensure CI passes.
 
 ## Done
 
@@ -192,6 +157,7 @@ under the same category, keeping its task number and wording.
 - 2.26: Move the hide checkbox inside each running-challenge turn card.
 - 2.28: When an initiative stat changes, discard affected app-rolled results
   and invalidate the generated order; preserve manual/static values.
+- 2.29: Stabilize the width of cards for app-rolled turns in the rolling view.
 - 2.32: Combine the setup, rolling, and run views into a single page with
   separate tabs for each view.
 - 2.35: Validate setup values.
@@ -227,11 +193,25 @@ under the same category, keeping its task number and wording.
 - 4.1: Implement in-memory session creation and resume flows.
 - 4.6: Generate case-insensitive viewer codes that avoid easily confused
   characters.
+- 4.7: Allow viewer-code regeneration to invalidate the previous code.
+- 4.2: End sessions by removing their data; server restarts may lose active
+  sessions.
+- 4.3: Add a configurable active-session limit and refuse new sessions with a
+  clear message without evicting existing sessions.
 - 4.5: Add DM reconnect credentials stored separately in IndexedDB and sent in
   an authorization header; invalidate them when the session ends and never
   log them.
-- 4.3: Add a configurable active-session limit and refuse new sessions with a
-  clear message without evicting existing sessions.
+
+### 5. Hosting and operations
+
+- 5.1: Read server configuration from the mounted JSON file, with configurable
+  session limits, viewer limits, inactivity timeout, and maximum retained log
+  size.
+- 5.2: Write structured diagnostic logs to the mounted directory and exclude
+  challenge contents, viewer codes, reconnect tokens, and authorization
+  headers.
+- 5.3: Add bounded log rotation and retention using the configured maximum
+  retained log size.
 
 ### 6. Quality and release readiness
 
