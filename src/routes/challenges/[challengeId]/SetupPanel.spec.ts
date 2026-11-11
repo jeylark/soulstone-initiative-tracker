@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,6 +40,19 @@ beforeEach(async () => {
 });
 
 describe('challenge setup view', () => {
+	it('keeps challenge settings and NPC types in separate rows on wide screens', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s
+		);
+		expect(challengeSetupStyles).not.toMatch(
+			/@media\s*\(min-width:\s*960px\)\s*\{\s*\.challenge-setup\s*\{[^}]*grid-template-columns:\s*repeat\(2/s
+		);
+	});
+
 	it('renders the setup editor in a full-width container', async () => {
 		await renderSetup();
 		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
