@@ -72,6 +72,29 @@ describe('challenge setup view', () => {
 		expect(editor.closest('[data-layout="full-width"]')).toBeTruthy();
 	});
 
+	it('shows only unassociated validation errors below the setup fields', async () => {
+		const challenge = {
+			...createSetupChallenge(),
+			name: ' ',
+			runState: { initiativeResults: {}, spawnCount: -1 }
+		};
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const summary = screen.getByRole('region', { name: 'Setup validation errors' });
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' });
+		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
+		const rollButton = screen.getByRole('button', { name: 'Roll Initiatives' });
+
+		expect(nameInput.getAttribute('aria-invalid')).toBe('true');
+		expect(within(summary).queryByText(/^\$\.name:/)).toBeNull();
+		expect(summary.textContent).toContain('$.runState.spawnCount');
+		expect(editor.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(
+			summary.compareDocumentPosition(rollButton) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+	});
+
 	it('shows complete saved-data diagnostics and only resets progress after confirmation', async () => {
 		const challenge = {
 			...createSetupChallenge(),
@@ -489,7 +512,7 @@ describe('challenge setup persistence', () => {
 		const npcTypeName = screen.getByRole('textbox', { name: /^NPC type name/ });
 		expect(npcTypeName.getAttribute('aria-invalid')).toBe('true');
 		expect(screen.getByText('NPC type name must not be blank.')).toBeTruthy();
-		expect(document.querySelector('.setup-validation-issues')).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Setup validation errors' })).toBeNull();
 	});
 
 	it('marks every input in duplicate-name groups as invalid', async () => {

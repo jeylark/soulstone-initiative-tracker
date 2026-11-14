@@ -19,7 +19,8 @@
 		type InitiativeRollMode,
 		type NpcType,
 		type StableId,
-		type Turn
+		type Turn,
+		type ValidationIssue
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import ChallengeSettings from './setup/ChallengeSettings.svelte';
@@ -32,6 +33,17 @@
 	type WorkflowTab = 'setup' | 'roll' | 'run';
 	const LOCKED_BLANK_NPC_IDENTIFIER_ERROR =
 		'This NPC type has a locked NPC with a blank identifier. Choose another type or remove and recreate that NPC before adding another.';
+	const INLINE_SETUP_ISSUE_PATHS = [
+		/^\$\.(name|fairnessWeight)$/,
+		/^\$\.factions\[\d+\]\.name$/,
+		/^\$\.npcTypes\[\d+\]\.(name|initiativeStat)$/,
+		/^\$\.creatures\[\d+\]\.(name|identifier|initiativeStat|factionId|creatureTypeId)$/,
+		/^\$\.creatures\[\d+\]\.turns\[\d+\]\.initiative(?:\.(position|index|targetTurnId|value))?$/
+	];
+
+	function isInlineSetupIssue(issue: ValidationIssue): boolean {
+		return INLINE_SETUP_ISSUE_PATHS.some((path) => path.test(issue.path));
+	}
 
 	interface Props {
 		sharedChallenge?: Challenge;
@@ -50,6 +62,7 @@
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
 	let setupIssues = $derived(loadStatus === 'ready' ? getChallengeSetupIssues(challenge) : []);
+	let summaryIssues = $derived(setupIssues.filter((issue) => !isInlineSetupIssue(issue)));
 	let isChallengeRunning = $derived(challenge.runState?.generatedTurnOrder !== undefined);
 	let spawnEditState = $derived(challenge.runState?.spawnEdit);
 	let isSpawnEditing = $derived(spawnEditState !== undefined);
@@ -693,21 +706,6 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
-		{#if setupIssues.length > 0}
-			<section aria-label="Setup validation errors" class="setup-issue-summary">
-				<h2>Validation errors</h2>
-				<ul>
-					{#each setupIssues as issue (issue.path)}
-						<li>{issue.path}: {issue.message}</li>
-					{/each}
-				</ul>
-				<ActionButton
-					variant="danger"
-					disabled={!setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
-					onclick={resetSavedProgress}>Reset saved progress</ActionButton
-				>
-			</section>
-		{/if}
 		<div class="setup-wide" data-layout="full-width">
 			<fieldset aria-label="Challenge setup editing" class="setup-editing">
 				<div class="challenge-setup">
@@ -762,6 +760,21 @@
 				</div>
 			</fieldset>
 		</div>
+		{#if summaryIssues.length > 0}
+			<section aria-label="Setup validation errors" class="setup-issue-summary">
+				<h2>Validation errors</h2>
+				<ul>
+					{#each summaryIssues as issue (issue.path)}
+						<li>{issue.path}: {issue.message}</li>
+					{/each}
+				</ul>
+				<ActionButton
+					variant="danger"
+					disabled={!setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
+					onclick={resetSavedProgress}>Reset saved progress</ActionButton
+				>
+			</section>
+		{/if}
 		{#if setupIssues.length > 0}
 			<ActionButton disabled>Roll Initiatives</ActionButton>
 		{:else if sharedChallenge}

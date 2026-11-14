@@ -92,9 +92,13 @@ Follow these instructions for every task in this repository.
 
 ## Data and State Management Lessons
 
+- Keep the complete validation issue set as the source for workflow blocking. Derive filtered presentation lists for inline fields and summaries so display changes cannot accidentally make an invalid workflow available.
+
 ## Accessibility and Interaction Lessons
 
 ## Testing and Verification Lessons
+
+- In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 
 ## Runtime and Error Handling Lessons
 
