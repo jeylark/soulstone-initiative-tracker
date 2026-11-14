@@ -152,7 +152,7 @@
 {/if}
 <div class="creature-visibility">
 	<CheckboxInput
-		label={`Hidden from viewers: ${name}`}
+		label={`Start hidden ${name}`}
 		checked={creature.isHidden}
 		disabled={!isConfigurable}
 		onchange={(event) => onVisibilityChange(creature.id, event.currentTarget.checked)}

@@ -135,7 +135,7 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
 		const visibility = within(player).getByRole('checkbox', {
-			name: 'Hidden from viewers: Player 1'
+			name: 'Start hidden Player 1'
 		}) as HTMLInputElement;
 
 		expect(visibility.checked).toBe(false);

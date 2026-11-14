@@ -146,12 +146,7 @@ export function validateChallengeSetup(
 			'NPC identifier'
 		)
 	);
-	issues.push(
-		...addDuplicateNameIssues(
-			factionNames,
-			'Faction names must be unique.'
-		)
-	);
+	issues.push(...addDuplicateNameIssues(factionNames, 'Faction names must be unique.'));
 	issues.push(
 		...addDuplicateNameIssues(
 			[...characterNames, ...npcTypeNames],
