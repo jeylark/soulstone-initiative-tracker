@@ -99,9 +99,12 @@ Follow these instructions for every task in this repository.
 ## Testing and Verification Lessons
 
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
+- When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
 
 ## Runtime and Error Handling Lessons
 
 ## Tooling and Workflow Lessons
+
+- After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
 
 ## Documentation and Decision Lessons

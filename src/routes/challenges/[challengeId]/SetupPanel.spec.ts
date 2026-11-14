@@ -66,10 +66,38 @@ describe('challenge setup view', () => {
 		);
 	});
 
+	it('spaces faction properties from the creature list', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.faction-editor-content\s*\{[^}]*display:\s*grid;[^}]*gap:\s*12px/s
+		);
+	});
+
+	it('removes the border around faction properties', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.faction-editor-content\s*>\s*fieldset\s*\{[^}]*border:\s*0/s
+		);
+	});
+
 	it('renders the setup editor in a full-width container', async () => {
 		await renderSetup();
 		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
 		expect(editor.closest('[data-layout="full-width"]')).toBeTruthy();
+	});
+
+	it('spaces the setup editor from following controls', () => {
+		const setupPanel = readFileSync(
+			'src/routes/challenges/[challengeId]/SetupPanel.svelte',
+			'utf8'
+		);
+		expect(setupPanel).toMatch(/\.setup-wide\s*\{[^}]*margin-block-end:\s*16px/s);
 	});
 
 	it('shows only unassociated validation errors below the setup fields', async () => {
@@ -576,8 +604,7 @@ describe('challenge setup persistence', () => {
 			},
 			...npcIdentifierInputs.map((input) => ({
 				input,
-				message:
-					'NPC identifiers must be unique within each type.'
+				message: 'NPC identifiers must be unique within each type.'
 			}))
 		];
 
@@ -744,11 +771,7 @@ describe('challenge setup persistence', () => {
 		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
 		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
 		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
-		expect(
-			await screen.findAllByText(
-				'Initiative is required.'
-			)
-		).toHaveLength(1);
+		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 
@@ -1120,11 +1143,7 @@ describe('challenge setup persistence', () => {
 		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
 		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
 		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
-		expect(
-			await screen.findAllByText(
-				'Initiative is required.'
-			)
-		).toHaveLength(1);
+		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 

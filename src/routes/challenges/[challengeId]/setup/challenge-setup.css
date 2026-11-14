@@ -81,6 +81,15 @@
 	font-weight: 600;
 }
 
+.challenge-setup .faction-editor-content {
+	display: grid;
+	gap: 12px;
+}
+
+.challenge-setup .faction-editor-content > fieldset {
+	border: 0;
+}
+
 .challenge-setup .creature {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));

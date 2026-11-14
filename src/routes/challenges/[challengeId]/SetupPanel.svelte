@@ -797,6 +797,7 @@
 	.setup-wide {
 		width: 100vw;
 		margin-inline: calc(50% - 50vw);
+		margin-block-end: 16px;
 		padding-inline: 20px;
 		box-sizing: border-box;
 	}

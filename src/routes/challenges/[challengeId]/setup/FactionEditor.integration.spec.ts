@@ -31,6 +31,22 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups faction properties with its creature list', async () => {
+		await renderSetup();
+
+		const faction = screen.getByRole('group', { name: 'Players' });
+		const factionContent = faction.querySelector('.faction-editor-content');
+		expect(factionContent).not.toBeNull();
+		expect(
+			within(factionContent as HTMLElement).getByRole('textbox', {
+				name: 'Faction name: Players'
+			})
+		).toBeTruthy();
+		expect(
+			within(factionContent as HTMLElement).getByRole('button', { name: 'Add Player' })
+		).toBeTruthy();
+	});
+
 	it('lays out creatures in a responsive grid within each faction', async () => {
 		await renderSetup();
 

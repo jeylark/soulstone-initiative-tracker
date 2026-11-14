@@ -197,7 +197,7 @@
 {/snippet}
 
 {#if faction}
-	<div>
+	<div class="faction-editor-content">
 		<fieldset disabled={!canManageFactions}>
 			<TextInput
 				label="Faction name"
