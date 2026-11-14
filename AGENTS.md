@@ -60,6 +60,8 @@ Follow these instructions for every task in this repository.
 
 - Run `npx prettier --write` on every changed file.
 
+# Lessons
+
 ## UI Layout Lessons
 
 - Svelte scopes selectors in a component's `<style>` block, but a plain `.css`
@@ -85,3 +87,17 @@ Follow these instructions for every task in this repository.
 - CSS source assertions can guard layout rules, but they do not prove rendered
   geometry. Use focused tests and verify the affected view in a browser when
   available.
+
+## Architecture and Code Organization Lessons
+
+## Data and State Management Lessons
+
+## Accessibility and Interaction Lessons
+
+## Testing and Verification Lessons
+
+## Runtime and Error Handling Lessons
+
+## Tooling and Workflow Lessons
+
+## Documentation and Decision Lessons
