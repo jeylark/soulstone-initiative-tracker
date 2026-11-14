@@ -30,7 +30,7 @@
 
 <Card title="NPC types" headerSize="large">
 	<fieldset class="setup-section npc-type-strip-section">
-		<legend class="visually-hidden">NPC types</legend>
+		<legend class="visually-hidden" data-visually-hidden>NPC types</legend>
 		{#if creationError}<p role="alert">{creationError}</p>{/if}
 		<EntityList
 			entities={npcTypes}
@@ -45,6 +45,7 @@
 				spacing: 'compact',
 				removeText: 'Remove NPC type',
 				isRemoveDisabled: !canManageNpcTypes,
+				removeActionClass: 'npc-type-remove-action',
 				fieldsetAttributes: { class: 'npc-type-card', ['data-entity-id']: npcType.id }
 			})}
 			onRemove={(npcType) => onRemove(npcType.id)}
@@ -54,6 +55,7 @@
 				{@const statError = issueMessage(setupIssues, `$.npcTypes[${index}].initiativeStat`)}
 				<TextInput
 					label="NPC type name"
+					labelClass="npc-type-field-label"
 					aria-label={`NPC type name: ${npcType.name}`}
 					value={npcType.name}
 					disabled={!isNpcTypeConfigurable(npcType.id)}
@@ -63,6 +65,7 @@
 				/>
 				<NumberInput
 					label="Initiative stat (d6)"
+					labelClass="npc-type-field-label"
 					aria-label={`Initiative stat for ${npcType.name}`}
 					value={npcType.initiativeStat}
 					disabled={!isNpcTypeConfigurable(npcType.id)}

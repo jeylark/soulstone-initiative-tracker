@@ -157,7 +157,7 @@
 			removeText: 'Remove creature',
 			isRemoveDisabled: !canManageCreaturesAndTurns,
 			fieldsetAttributes: {
-				class: 'creature',
+				class: faction ? 'creature creature-in-faction' : 'creature',
 				['data-entity-id']: creature.id,
 				['aria-label']: creatureDisplayName(creature)
 			}

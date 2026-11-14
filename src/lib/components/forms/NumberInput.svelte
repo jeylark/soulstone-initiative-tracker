@@ -1,9 +1,11 @@
 <script lang="ts">
-	import type { HTMLInputAttributes } from 'svelte/elements';
 	import './form-controls.css';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	interface Props extends Omit<HTMLInputAttributes, 'type'> {
 		label: string;
+		/** Caller-owned class applied to the label text. */
+		labelClass?: string;
 		isLabelVisuallyHidden?: boolean;
 		hasWarning?: boolean;
 		warningMessage?: string;
@@ -17,6 +19,7 @@
 
 	let {
 		label,
+		labelClass = '',
 		isLabelVisuallyHidden = false,
 		hasWarning = false,
 		warningMessage,
@@ -39,7 +42,7 @@
 
 <div class="form-field-messages">
 	<label class="form-field">
-		<span class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
+		<span class:visually-hidden={isLabelVisuallyHidden} class={labelClass}>{label}</span>
 		<input
 			{...rest}
 			class={`form-control ${className}${hasWarning ? ' form-control--warning' : ''}${isInvalid ? ' form-control--invalid' : ''}`}

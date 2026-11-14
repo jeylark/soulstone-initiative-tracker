@@ -26,66 +26,23 @@
 	font-weight: 600;
 }
 
-.challenge-setup .settings {
-	min-inline-size: 0;
-	margin: 0;
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16px 24px;
-}
-
-.challenge-setup .fairness-setting {
-	display: grid;
-	flex: 1 1 180px;
-	gap: 6px;
-	min-width: 0;
-	margin: 0;
-	font-size: 14px;
-}
-
-.challenge-setup .fairness-setting > legend {
-	padding: 0;
-	font: inherit;
-}
-
-.challenge-setup .fairness-weight-input {
-	width: 100%;
-	font-variant-numeric: tabular-nums;
-	text-align: right;
-}
-
-.challenge-setup .fairness-description {
-	margin: 0;
-	font-size: 13px;
-}
-
-.challenge-setup .setup-section {
-	min-width: 0;
-}
-
-.challenge-setup
-	:where(
-		.settings,
-		.setup-section,
-		.npc-type-card,
-		.faction-panel,
-		.creature,
-		.turn-card,
-		.fairness-setting
-	) {
+.challenge-setup .setup-section,
+.challenge-setup .npc-type-card,
+.challenge-setup .faction-panel,
+.challenge-setup .creature,
+.challenge-setup .turn-card {
 	border: 0;
 	padding: 0;
 	background: transparent;
 }
 
-.challenge-setup .setup-section > legend:not(.visually-hidden),
-.challenge-setup .settings > legend:not(.visually-hidden) {
+.challenge-setup .setup-section > legend:not([data-visually-hidden]) {
 	padding: 0 8px;
 	font-size: 20px;
 	font-weight: 600;
 }
 
-.challenge-setup .creature > .entity-list {
+.challenge-setup .creature > .creature-turn-list {
 	grid-column: 1 / -1;
 }
 
@@ -99,11 +56,11 @@
 	padding-block-start: 12px;
 }
 
-.challenge-setup .npc-type-card > .entity-remove-action {
+.challenge-setup .npc-type-card > .npc-type-remove-action {
 	display: contents;
 }
 
-.challenge-setup .npc-type-card .form-field > span {
+.challenge-setup .npc-type-field-label {
 	min-height: 2lh;
 }
 
@@ -128,12 +85,6 @@
 	font-weight: 600;
 }
 
-.challenge-setup .faction-panel .creature {
-	grid-template-columns: minmax(0, 1fr);
-	gap: 12px;
-	padding: 12px;
-}
-
 .challenge-setup .creature {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -143,30 +94,16 @@
 	margin: 0;
 }
 
+.challenge-setup .creature-in-faction {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 12px;
+	padding: 12px;
+}
+
 .challenge-setup .creature legend {
 	padding: 0 8px 0 0;
 	font-size: 17px;
 	font-weight: 600;
-}
-
-.challenge-setup .creature-visibility {
-	display: flex;
-	min-height: 40px;
-	align-items: center;
-	gap: 8px;
-	font-size: 14px;
-}
-
-.challenge-setup .creature-visibility input {
-	width: 18px;
-	min-height: 18px;
-	margin: 0;
-	accent-color: var(--color-accent);
-}
-
-.challenge-setup .creature-visibility input:focus-visible {
-	outline: var(--focus-ring);
-	outline-offset: var(--focus-ring-offset);
 }
 
 .challenge-setup .turn-card {
@@ -184,12 +121,13 @@
 	font-weight: 600;
 }
 
-.challenge-setup .turn-card .turn-settings {
-	display: contents;
+.challenge-setup .fairness-weight-input {
+	width: 100%;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
 }
 
 @media (max-width: 640px) {
-	.challenge-setup .settings,
 	.challenge-setup .creature {
 		grid-template-columns: minmax(0, 1fr);
 	}

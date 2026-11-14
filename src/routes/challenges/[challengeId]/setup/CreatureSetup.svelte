@@ -77,7 +77,7 @@
 
 <Card title="Factions" headerSize="large" class="faction-board-card">
 	<fieldset class="setup-section faction-board-section">
-		<legend class="visually-hidden">Factions</legend>
+		<legend class="visually-hidden" data-visually-hidden>Factions</legend>
 		{#snippet unassignedFactionItem()}
 			{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
 				<FactionEditor

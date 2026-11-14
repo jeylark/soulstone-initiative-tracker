@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { HTMLInputAttributes } from 'svelte/elements';
 	import './form-controls.css';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	const inputId = $props.id();
 	const warningId = `${inputId}-warning`;

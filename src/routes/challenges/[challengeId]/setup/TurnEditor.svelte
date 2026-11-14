@@ -117,3 +117,9 @@
 		</SelectInput>
 	{/if}
 </div>
+
+<style>
+	.turn-settings {
+		display: contents;
+	}
+</style>

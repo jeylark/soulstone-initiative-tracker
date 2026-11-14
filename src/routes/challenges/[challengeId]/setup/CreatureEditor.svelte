@@ -159,6 +159,7 @@
 	/>
 </div>
 <EntityList
+	class="creature-turn-list"
 	entities={creature.turns}
 	adds={[
 		{
@@ -197,3 +198,13 @@
 		/>
 	{/snippet}
 </EntityList>
+
+<style>
+	.creature-visibility {
+		display: flex;
+		min-height: 40px;
+		align-items: center;
+		gap: 8px;
+		font-size: 14px;
+	}
+</style>

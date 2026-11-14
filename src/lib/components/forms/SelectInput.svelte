@@ -1,7 +1,7 @@
 <script lang="ts">
+	import './form-controls.css';
 	import type { Snippet } from 'svelte';
 	import type { HTMLSelectAttributes } from 'svelte/elements';
-	import './form-controls.css';
 
 	interface Props extends Omit<HTMLSelectAttributes, 'children'> {
 		/** Option content rendered inside the select. */

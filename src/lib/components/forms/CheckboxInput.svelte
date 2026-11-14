@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { HTMLInputAttributes } from 'svelte/elements';
 	import './form-controls.css';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	interface Props extends Omit<HTMLInputAttributes, 'type'> {
 		label: string;

@@ -7,6 +7,14 @@ afterEach(() => {
 });
 
 describe('NumberInput', () => {
+	it('applies a caller-owned class to the label', () => {
+		render(NumberInput, { label: 'Initiative stat', labelClass: 'npc-type-field-label' });
+
+		expect(screen.getByText('Initiative stat').classList.contains('npc-type-field-label')).toBe(
+			true
+		);
+	});
+
 	it('preserves numeric constraints and forwards input events', async () => {
 		const oninput = vi.fn();
 		render(NumberInput, {

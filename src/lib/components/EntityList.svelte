@@ -28,6 +28,8 @@
 		spacing?: 'standard' | 'compact';
 		/** Tooltip shown on the remove button. */
 		removeText?: string;
+		/** Caller-owned class applied to the remove-action wrapper. */
+		removeActionClass?: string;
 		/** Whether the remove button is disabled. */
 		isRemoveDisabled?: boolean;
 		/** Attributes applied to the entity fieldset. */
@@ -35,6 +37,8 @@
 	}
 
 	interface Props {
+		/** Caller-owned class applied to the list root. */
+		class?: string;
 		/** Add actions shown after the entity items. */
 		adds: readonly AddAction[];
 		/** Each snippet renders one supplemental item after entities and before add actions. */
@@ -56,6 +60,7 @@
 	}
 
 	let {
+		class: className = '',
 		adds,
 		onRemove,
 		removeLabelSelector,
@@ -68,7 +73,7 @@
 	}: Props = $props();
 </script>
 
-<div class="entity-list">
+<div class={`entity-list ${className}`}>
 	<div class={`entity-list-items entity-list-items--${layout}`}>
 		{#each entities as entity, index (entity.id)}
 			{@const itemOptions = itemOptionsSelector?.(entity, index) ?? {}}
@@ -82,6 +87,7 @@
 				spacing={itemOptions.spacing}
 				isStripItem={layout === 'strip'}
 				removeText={itemOptions.removeText}
+				removeActionClass={itemOptions.removeActionClass}
 				isRemoveDisabled={itemOptions.isRemoveDisabled}
 				{...itemOptions.fieldsetAttributes}
 			>

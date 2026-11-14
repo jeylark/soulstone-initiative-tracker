@@ -34,7 +34,7 @@
 
 <Card title="Challenge settings" headerSize="large">
 	<fieldset class="settings" disabled={isDisabled}>
-		<legend class="visually-hidden">Challenge settings</legend>
+		<legend class="visually-hidden" data-visually-hidden>Challenge settings</legend>
 		<TextInput
 			label="Challenge name"
 			value={name}
@@ -70,3 +70,44 @@
 		</fieldset>
 	</fieldset>
 </Card>
+
+<style>
+	.settings {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px 24px;
+		min-inline-size: 0;
+		margin: 0;
+		border: 0;
+		padding: 0;
+		background: transparent;
+	}
+
+	.fairness-setting {
+		display: grid;
+		flex: 1 1 180px;
+		gap: 6px;
+		min-width: 0;
+		margin: 0;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		font-size: 14px;
+	}
+
+	.fairness-setting > legend {
+		padding: 0;
+		font: inherit;
+	}
+
+	.fairness-description {
+		margin: 0;
+		font-size: 13px;
+	}
+
+	@media (max-width: 640px) {
+		.settings {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+</style>

@@ -59,13 +59,13 @@ describe('challenge setup view', () => {
 			'utf8'
 		);
 		expect(challengeSetupStyles).toMatch(
-			/\.challenge-setup\s+\.npc-type-card\s*>\s*\.entity-remove-action\s*\{\s*display:\s*contents/s
+			/\.challenge-setup\s+\.npc-type-card\s*>\s*\.npc-type-remove-action\s*\{\s*display:\s*contents/s
 		);
 		expect(challengeSetupStyles).toMatch(
 			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s
 		);
 		expect(challengeSetupStyles).toMatch(
-			/\.challenge-setup\s+\.npc-type-card\s+\.form-field\s*>\s*span\s*\{\s*min-height:\s*2lh/s
+			/\.challenge-setup\s+\.npc-type-field-label\s*\{\s*min-height:\s*2lh/s
 		);
 	});
 
