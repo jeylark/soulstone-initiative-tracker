@@ -53,6 +53,22 @@ describe('challenge setup view', () => {
 		);
 	});
 
+	it('keeps the NPC remove action out of the input grid', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.npc-type-card\s*>\s*\.entity-remove-action\s*\{\s*display:\s*contents/s
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.npc-type-card\s+\.form-field\s*>\s*span\s*\{\s*min-height:\s*2lh/s
+		);
+	});
+
 	it('renders the setup editor in a full-width container', async () => {
 		await renderSetup();
 		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });

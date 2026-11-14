@@ -96,6 +96,15 @@
 	gap: 10px;
 	min-width: 0;
 	margin: 0;
+	padding-block-start: 12px;
+}
+
+.challenge-setup .npc-type-card > .entity-remove-action {
+	display: contents;
+}
+
+.challenge-setup .npc-type-card .form-field > span {
+	min-height: 2lh;
 }
 
 .challenge-setup .npc-type-card legend {
