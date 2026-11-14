@@ -75,16 +75,27 @@
 	}: Props = $props();
 </script>
 
-<Card title="Factions" headerSize="large">
+<Card title="Factions" headerSize="large" class="faction-board-card">
 	<fieldset class="setup-section faction-board-section">
 		<legend>Factions</legend>
 		<EntityList
-			addLabel="Add Faction"
-			isAddDisabled={!canManageFactions}
-			onAdd={onCreateFaction}
+			entities={factions}
+			adds={[{ label: 'Add Faction', isDisabled: !canManageFactions, onAdd: onCreateFaction }]}
 			layout="grid"
+			legendSelector={(faction) => faction.name}
+			removeLabelSelector={(faction) => `Remove faction ${faction.name}`}
+			itemOptionsSelector={(faction) => ({
+				headingLevel: 'h3',
+				headerSize: 'medium',
+				variant: 'inset',
+				spacing: 'compact',
+				removeText: 'Remove faction',
+				isRemoveDisabled: !canManageFactions,
+				fieldsetAttributes: { class: 'faction-panel', ['data-entity-id']: faction.id }
+			})}
+			onRemove={(faction) => onRemoveFaction(faction.id)}
 		>
-			{#each factions as faction, factionIndex (faction.id)}
+			{#snippet entityEditor(faction, factionIndex)}
 				<FactionEditor
 					{faction}
 					{factionIndex}
@@ -98,7 +109,6 @@
 					{isTurnConfigurable}
 					onRename={onRenameFaction}
 					onColorChange={onFactionColorChange}
-					onRemove={onRemoveFaction}
 					{onCreateCharacter}
 					{onCreateNpc}
 					{onCreatureVisibilityChange}
@@ -111,36 +121,37 @@
 					{onRemoveTurn}
 					{onRemoveCreature}
 				/>
-			{/each}
-			{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
-				<FactionEditor
-					{factions}
-					{creatures}
-					{npcTypes}
-					{setupIssues}
-					{npcTypeId}
-					{canManageFactions}
-					{canManageCreaturesAndTurns}
-					{isCreatureConfigurable}
-					{isTurnConfigurable}
-					factionIndex={-1}
-					onRename={onRenameFaction}
-					onColorChange={onFactionColorChange}
-					onRemove={onRemoveFaction}
-					{onCreateCharacter}
-					{onCreateNpc}
-					{onCreatureVisibilityChange}
-					{onCreatureFactionChange}
-					{onNpcTypeChange}
-					{onCharacterNameChange}
-					{onCharacterInitiativeStatChange}
-					{onNpcIdentifierChange}
-					{onTurnChange}
-					{onAddTurn}
-					{onRemoveTurn}
-					{onRemoveCreature}
-				/>
-			{/if}
+			{/snippet}
+			{#snippet afterEntities()}
+				{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
+					<FactionEditor
+						{factions}
+						{creatures}
+						{npcTypes}
+						{setupIssues}
+						{npcTypeId}
+						{canManageFactions}
+						{canManageCreaturesAndTurns}
+						{isCreatureConfigurable}
+						{isTurnConfigurable}
+						factionIndex={-1}
+						onRename={onRenameFaction}
+						onColorChange={onFactionColorChange}
+						{onCreateCharacter}
+						{onCreateNpc}
+						{onCreatureVisibilityChange}
+						{onCreatureFactionChange}
+						{onNpcTypeChange}
+						{onCharacterNameChange}
+						{onCharacterInitiativeStatChange}
+						{onNpcIdentifierChange}
+						{onTurnChange}
+						{onAddTurn}
+						{onRemoveTurn}
+						{onRemoveCreature}
+					/>
+				{/if}
+			{/snippet}
 		</EntityList>
 	</fieldset>
 </Card>

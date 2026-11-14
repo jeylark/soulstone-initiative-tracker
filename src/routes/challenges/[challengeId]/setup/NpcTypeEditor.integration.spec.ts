@@ -48,6 +48,11 @@ describe('new challenge setup', () => {
 		).toBe(true);
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		const newType = screen.getByRole('group', { name: 'NPC Type 1' });
+		const heading = screen.getByRole('heading', { level: 3, name: 'NPC Type 1' });
+		expect(heading.parentElement).toBe(newType.parentElement);
+		expect(heading.classList.contains('card-header--small')).toBe(true);
+		expect(newType.parentElement?.classList.contains('card--subtle')).toBe(true);
+		expect(newType.parentElement?.classList.contains('card--compact')).toBe(true);
 		expect(
 			(
 				within(newType).getByRole('textbox', {
@@ -238,7 +243,7 @@ describe('new challenge setup', () => {
 			name: 'Remove NPC type NPC Type 1'
 		});
 		expect(removeNpcTypeButton.classList.contains('ui-button--danger')).toBe(true);
-		expect(removeNpcTypeButton.textContent?.trim()).toBe('Remove NPC type');
+		expect(removeNpcTypeButton.getAttribute('title')).toBe('Remove NPC type');
 		await fireEvent.click(removeNpcTypeButton);
 		expect(confirmation).toHaveBeenCalledWith(
 			expect.stringContaining('Remove NPC type "NPC Type 1"')

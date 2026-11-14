@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { DeepReadonly } from '#lib';
 	import {
 		FACTION_COLORS,
 		type ChallengeCreature,
@@ -11,14 +12,7 @@
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import CreatureEditor from './CreatureEditor.svelte';
 	import { issueMessage } from './issue-messages';
-	import {
-		ActionButton,
-		Card,
-		ColorPickerInput,
-		EntityList,
-		EntityListItem,
-		TextInput
-	} from '#lib/components';
+	import { ColorPickerInput, EntityList, TextInput } from '#lib/components';
 
 	interface Props {
 		faction?: Readonly<Faction>;
@@ -34,7 +28,6 @@
 		isTurnConfigurable: (turnId: StableId) => boolean;
 		onRename: (factionId: StableId, name: string) => void;
 		onColorChange: (factionId: StableId, color: FactionColor) => void;
-		onRemove: (factionId: StableId) => void;
 		onCreateCharacter: (factionId: StableId) => void;
 		onCreateNpc: (factionId: StableId) => void;
 		onCreatureVisibilityChange: (creatureId: StableId, isHidden: boolean) => void;
@@ -70,7 +63,6 @@
 		isTurnConfigurable,
 		onRename,
 		onColorChange,
-		onRemove,
 		onCreateCharacter,
 		onCreateNpc,
 		onCreatureVisibilityChange,
@@ -97,6 +89,12 @@
 	function npcName(creatureTypeId: StableId, identifier: string): string {
 		const typeName = npcTypes.find((npcType) => npcType.id === creatureTypeId)?.name ?? 'NPC';
 		return `${typeName} ${identifier}`.trim();
+	}
+
+	function creatureDisplayName(creature: DeepReadonly<ChallengeCreature>): string {
+		return creature.kind === 'character'
+			? creature.name
+			: npcName(creature.creatureTypeId, creature.identifier);
 	}
 
 	function targetTurns(): TurnTarget[] {
@@ -133,24 +131,41 @@
 </script>
 
 {#snippet creatureList()}
-	<EntityList layout={faction ? 'grid' : 'stack'}>
-		{#snippet actions()}
-			{#if faction}
-				<ActionButton
-					disabled={!canManageCreaturesAndTurns}
-					onclick={() => faction && onCreateCharacter(faction.id)}>Add Player</ActionButton
-				>
-				<ActionButton
-					disabled={!canManageCreaturesAndTurns || !npcTypeId}
-					onclick={() => faction && onCreateNpc(faction.id)}>Add NPC</ActionButton
-				>
-			{/if}
-		{/snippet}
-		{#each factionCreatures as creature (creature.id)}
-			{@const name =
-				creature.kind === 'character'
-					? creature.name
-					: npcName(creature.creatureTypeId, creature.identifier)}
+	<EntityList
+		layout={faction ? 'grid' : 'stack'}
+		entities={factionCreatures}
+		adds={faction
+			? [
+					{
+						label: 'Add Player',
+						isDisabled: !canManageCreaturesAndTurns,
+						onAdd: () => onCreateCharacter(faction.id)
+					},
+					{
+						label: 'Add NPC',
+						isDisabled: !canManageCreaturesAndTurns || !npcTypeId,
+						onAdd: () => onCreateNpc(faction.id)
+					}
+				]
+			: []}
+		legendSelector={creatureDisplayName}
+		removeLabelSelector={(creature) => `Remove ${creatureDisplayName(creature)}`}
+		itemOptionsSelector={(creature) => ({
+			headingLevel: 'h4',
+			headerSize: 'medium',
+			spacing: 'compact',
+			removeText: 'Remove creature',
+			isRemoveDisabled: !canManageCreaturesAndTurns,
+			fieldsetAttributes: {
+				class: 'creature',
+				['data-entity-id']: creature.id,
+				['aria-label']: creatureDisplayName(creature)
+			}
+		})}
+		onRemove={(creature) => onRemoveCreature(creature.id)}
+	>
+		{#snippet entityEditor(creature)}
+			{@const name = creatureDisplayName(creature)}
 			<CreatureEditor
 				{creature}
 				{name}
@@ -159,7 +174,7 @@
 					? creature.initiativeStat
 					: undefined}
 				{setupIssues}
-				issuePath={`$.creatures[${creatures.indexOf(creature)}]`}
+				issuePath={`$.creatures[${creatures.findIndex((item) => item.id === creature.id)}]`}
 				{npcTypes}
 				{factions}
 				targetTurns={targetTurns()}
@@ -176,51 +191,34 @@
 				{onTurnChange}
 				{onAddTurn}
 				{onRemoveTurn}
-				onRemove={onRemoveCreature}
 			/>
-		{/each}
+		{/snippet}
 	</EntityList>
 {/snippet}
 
 {#if faction}
-	<Card
-		title={faction.name}
-		headingLevel="h3"
-		headerSize="medium"
-		variant="inset"
-		spacing="compact"
-	>
-		<EntityListItem
-			class="faction-panel"
-			data-entity-id={faction.id}
-			legend={faction.name}
-			removeLabel={`Remove faction ${faction.name}`}
-			removeText="Remove faction"
-			isRemoveDisabled={!canManageFactions}
-			onRemove={() => onRemove(faction.id)}
-		>
-			<fieldset disabled={!canManageFactions}>
-				<TextInput
-					label="Faction name"
-					aria-label={`Faction name: ${faction.name}`}
-					value={faction.name}
-					isInvalid={factionNameError !== undefined}
-					invalidMessage={factionNameError}
-					oninput={(event) => onRename(faction.id, event.currentTarget.value)}
-				/>
-				<ColorPickerInput
-					label={`Faction color for ${faction.name}`}
-					name={`faction-color-${faction.id}`}
-					options={FACTION_COLORS}
-					value={faction.color}
-					isDisabled={!canManageFactions}
-					onchange={(color) => onColorChange(faction.id, color)}
-				/>
-			</fieldset>
+	<div>
+		<fieldset disabled={!canManageFactions}>
+			<TextInput
+				label="Faction name"
+				aria-label={`Faction name: ${faction.name}`}
+				value={faction.name}
+				isInvalid={factionNameError !== undefined}
+				invalidMessage={factionNameError}
+				oninput={(event) => onRename(faction.id, event.currentTarget.value)}
+			/>
+			<ColorPickerInput
+				label={`Faction color for ${faction.name}`}
+				name={`faction-color-${faction.id}`}
+				options={FACTION_COLORS}
+				value={faction.color}
+				isDisabled={!canManageFactions}
+				onchange={(color) => onColorChange(faction.id, color)}
+			/>
+		</fieldset>
 
-			{@render creatureList()}
-		</EntityListItem>
-	</Card>
+		{@render creatureList()}
+	</div>
 {:else}
 	<section aria-label="Unassigned creatures">
 		<h3>Unassigned creatures</h3>

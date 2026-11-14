@@ -37,6 +37,11 @@ describe('new challenge setup', () => {
 
 		const players = screen.getByRole('group', { name: 'Players' });
 		const aria = within(players).getByRole('group', { name: 'Aria' });
+		const heading = screen.getByRole('heading', { level: 4, name: 'Aria' });
+		expect(heading.parentElement).toBe(aria.parentElement);
+		expect(heading.classList.contains('card-header--medium')).toBe(true);
+		expect(aria.parentElement?.classList.contains('card--surface')).toBe(true);
+		expect(aria.parentElement?.classList.contains('card--compact')).toBe(true);
 		expect(
 			(within(aria).getByRole('textbox', { name: 'Character name: Aria' }) as HTMLInputElement)
 				.disabled

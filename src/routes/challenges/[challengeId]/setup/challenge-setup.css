@@ -1,6 +1,17 @@
 .challenge-setup {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 16px;
+}
+
+@media (min-width: 960px) {
+	.challenge-setup {
+		align-items: start;
+	}
+
+	.challenge-setup > .faction-board-card {
+		grid-column: 1 / -1;
+	}
 }
 
 .challenge-setup h2 {
