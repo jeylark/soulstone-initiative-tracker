@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import type { HTMLFieldsetAttributes } from 'svelte/elements';
@@ -11,6 +12,13 @@ afterEach(() => {
 const content = createRawSnippet(() => ({ render: () => '<p>Entity content</p>' }));
 
 describe('EntityListItem', () => {
+	it('keeps the remove action wrapper out of the content layout', () => {
+		const componentStyles = readFileSync('src/lib/components/EntityListItem.svelte', 'utf8');
+
+		expect(componentStyles).toMatch(/\.entity-remove-action\s*\{\s*display:\s*contents/s);
+		expect(componentStyles).not.toMatch(/\.entity-remove-action\s*\{[^}]*min-height/s);
+	});
+
 	it('uses a single card with the legend as its visible title and group name', () => {
 		const { container } = render(EntityListItem, {
 			legend: 'Player 1',
@@ -134,7 +142,6 @@ describe('EntityListItem', () => {
 		render(EntityListItem, {
 			legend: 'A',
 			removeLabel: 'Remove A',
-			removeActionClass: 'caller-remove-action',
 			onRemove,
 			children: content
 		});
@@ -142,7 +149,6 @@ describe('EntityListItem', () => {
 		const button = screen.getByRole('button', { name: 'Remove A' });
 		const actionRow = button.parentElement;
 		expect(actionRow?.classList.contains('entity-remove-action')).toBe(true);
-		expect(actionRow?.classList.contains('caller-remove-action')).toBe(true);
 		expect(actionRow?.nextElementSibling?.textContent).toContain('Entity content');
 		expect(
 			button.compareDocumentPosition(screen.getByText('Entity content')) &

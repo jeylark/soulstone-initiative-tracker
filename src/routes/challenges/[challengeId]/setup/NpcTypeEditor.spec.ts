@@ -26,7 +26,7 @@ describe('NpcTypeEditor', () => {
 		expect(screen.getByRole('heading', { name: 'NPC types', level: 2 })).toBeTruthy();
 	});
 
-	it('passes layout classes explicitly to the remove action and form labels', () => {
+	it('uses the shared remove action and form label styles', () => {
 		render(NpcTypeEditor, {
 			npcTypes: [{ id: createUuid(), name: 'Guard', initiativeStat: 2 }],
 			setupIssues: [],
@@ -40,7 +40,8 @@ describe('NpcTypeEditor', () => {
 		});
 
 		const npc = screen.getByRole('group', { name: 'Guard' });
-		expect(npc.querySelector('.npc-type-remove-action')).toBeTruthy();
+		expect(npc.querySelector('.entity-remove-action')).toBeTruthy();
+		expect(npc.querySelector('.npc-type-remove-action')).toBeNull();
 		expect(npc.querySelector('.npc-type-field-label')).toBeTruthy();
 	});
 });

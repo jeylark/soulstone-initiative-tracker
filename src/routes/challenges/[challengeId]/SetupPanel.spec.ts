@@ -53,13 +53,10 @@ describe('challenge setup view', () => {
 		);
 	});
 
-	it('keeps the NPC remove action out of the input grid', () => {
+	it('keeps NPC type fields spaced beneath their labels', () => {
 		const challengeSetupStyles = readFileSync(
 			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
 			'utf8'
-		);
-		expect(challengeSetupStyles).toMatch(
-			/\.challenge-setup\s+\.npc-type-card\s*>\s*\.npc-type-remove-action\s*\{\s*display:\s*contents/s
 		);
 		expect(challengeSetupStyles).toMatch(
 			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s

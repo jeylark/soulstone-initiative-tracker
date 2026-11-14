@@ -53,7 +53,6 @@ describe('EntityList', () => {
 				headerSize: 'small',
 				variant: 'subtle',
 				spacing: 'compact',
-				removeActionClass: 'caller-remove-action',
 				fieldsetAttributes: { class: 'entity-fields', ['data-entity-id']: entity.id }
 			})
 		});
@@ -65,11 +64,6 @@ describe('EntityList', () => {
 		expect(screen.getByRole('group', { name: 'Alpha' }).getAttribute('data-entity-id')).toBe(
 			entities[0].id
 		);
-		expect(
-			screen
-				.getByRole('button', { name: 'Remove Alpha' })
-				.parentElement?.classList.contains('caller-remove-action')
-		).toBe(true);
 	});
 
 	it('applies the caller-owned class to the list root', () => {

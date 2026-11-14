@@ -74,6 +74,11 @@ Follow these instructions for every task in this repository.
   child order, including wrappers around actions. A visually empty wrapper can
   still consume a grid cell; scope layout fixes to the affected component
   variant.
+- When a wrapper exists only to carry styling around an absolutely positioned
+  control, and has no semantic or layout role of its own, make it
+  `display: contents` in the owning reusable component so it does not consume
+  flow space or a grid cell. Prefer this shared behavior over caller-specific
+  wrapper classes and CSS overrides.
 - In compact form grids, account for wrapped labels and controls overlaid near
   the fields. Reserve space for overlays and keep label rows a consistent
   height when inputs need to align.

@@ -45,7 +45,6 @@
 				spacing: 'compact',
 				removeText: 'Remove NPC type',
 				isRemoveDisabled: !canManageNpcTypes,
-				removeActionClass: 'npc-type-remove-action',
 				fieldsetAttributes: { class: 'npc-type-card', ['data-entity-id']: npcType.id }
 			})}
 			onRemove={(npcType) => onRemove(npcType.id)}

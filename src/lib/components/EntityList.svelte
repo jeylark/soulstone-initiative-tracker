@@ -28,8 +28,6 @@
 		spacing?: 'standard' | 'compact';
 		/** Tooltip shown on the remove button. */
 		removeText?: string;
-		/** Caller-owned class applied to the remove-action wrapper. */
-		removeActionClass?: string;
 		/** Whether the remove button is disabled. */
 		isRemoveDisabled?: boolean;
 		/** Attributes applied to the entity fieldset. */
@@ -87,7 +85,6 @@
 				spacing={itemOptions.spacing}
 				isStripItem={layout === 'strip'}
 				removeText={itemOptions.removeText}
-				removeActionClass={itemOptions.removeActionClass}
 				isRemoveDisabled={itemOptions.isRemoveDisabled}
 				{...itemOptions.fieldsetAttributes}
 			>

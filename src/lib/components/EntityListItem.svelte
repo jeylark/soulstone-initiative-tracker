@@ -21,8 +21,6 @@
 		removeLabel?: string;
 		/** Tooltip text for the remove button. */
 		removeText?: string;
-		/** Caller-owned class applied to the remove-action wrapper. */
-		removeActionClass?: string;
 		/** Disables the remove button without disabling the rest of the entity. */
 		isRemoveDisabled?: boolean;
 		/** Called when the remove button is clicked. */
@@ -40,7 +38,6 @@
 		isStripItem = false,
 		removeLabel,
 		removeText = 'Remove',
-		removeActionClass = '',
 		isRemoveDisabled = false,
 		onRemove,
 		children,
@@ -52,7 +49,7 @@
 	<fieldset {...rest}>
 		<legend class="entity-list-item-legend">{legend}</legend>
 		{#if removeLabel && onRemove}
-			<div class={`entity-remove-action ${removeActionClass}`}>
+			<div class="entity-remove-action">
 				<ActionButton
 					variant="danger"
 					isOverlayAction
@@ -87,7 +84,7 @@
 	}
 
 	.entity-remove-action {
-		min-height: 32px;
+		display: contents;
 	}
 
 	.entity-remove-icon {
