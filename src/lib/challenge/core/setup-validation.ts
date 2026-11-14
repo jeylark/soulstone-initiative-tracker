@@ -155,7 +155,7 @@ export function validateChallengeSetup(
 	issues.push(
 		...addDuplicateNameIssues(
 			[...characterNames, ...npcTypeNames],
-			'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			'PC and NPC type names must be unique'
 		)
 	);
 	for (const creatureTypeId of new Set(

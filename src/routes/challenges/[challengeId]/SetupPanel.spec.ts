@@ -568,13 +568,11 @@ describe('challenge setup persistence', () => {
 			})),
 			...npcTypeNameInputs.map((input) => ({
 				input,
-				message:
-					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+				message: 'PC and NPC type names must be unique'
 			})),
 			{
 				input: characterNameInput,
-				message:
-					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+				message: 'PC and NPC type names must be unique'
 			},
 			...npcIdentifierInputs.map((input) => ({
 				input,
