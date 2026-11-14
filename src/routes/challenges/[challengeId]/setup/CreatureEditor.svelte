@@ -107,8 +107,8 @@
 	/>
 	{#if hasAppRollTurn}
 		<NumberInput
-			label="Initiative stat (d6)"
-			aria-label={`Initiative stat (d6) for ${characterName}`}
+			label="Initiative"
+			aria-label={`Initiative stat for ${characterName}`}
 			value={characterInitiativeStat ?? ''}
 			disabled={!isConfigurable}
 			min="0"

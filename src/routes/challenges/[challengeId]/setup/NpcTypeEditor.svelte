@@ -63,7 +63,7 @@
 					oninput={(event) => onRename(npcType.id, event.currentTarget.value)}
 				/>
 				<NumberInput
-					label="Initiative stat (d6)"
+					label="Initiative"
 					labelClass="npc-type-field-label"
 					aria-label={`Initiative stat for ${npcType.name}`}
 					value={npcType.initiativeStat}

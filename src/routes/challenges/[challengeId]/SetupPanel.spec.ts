@@ -326,7 +326,7 @@ describe('challenge setup persistence', () => {
 		expect(
 			(
 				screen.getByRole('spinbutton', {
-					name: 'Initiative stat (d6) for Aria'
+					name: 'Initiative for Aria'
 				}) as HTMLInputElement
 			).disabled
 		).toBe(true);
@@ -678,7 +678,7 @@ describe('challenge setup persistence', () => {
 
 		const view = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const statName = 'Initiative stat (d6) for Aria';
+		const statName = 'Initiative for Aria';
 		expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull();
 
 		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
@@ -721,7 +721,7 @@ describe('challenge setup persistence', () => {
 
 		const firstView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const input = screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
 		expect((input as HTMLInputElement).value).toBe('');
 		await fireEvent.input(input, { target: { value: '3' } });
 
@@ -736,7 +736,7 @@ describe('challenge setup persistence', () => {
 		const secondView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		const restoredInput = screen.getByRole('spinbutton', {
-			name: 'Initiative stat (d6) for Aria'
+			name: 'Initiative for Aria'
 		});
 		expect((restoredInput as HTMLInputElement).value).toBe('3');
 		await fireEvent.input(restoredInput, { target: { value: '' } });
@@ -775,12 +775,9 @@ describe('challenge setup persistence', () => {
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '2' }
+		});
 		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
 		expect(startButton.classList.contains('ui-button')).toBe(true);
 		await fireEvent.click(startButton);
@@ -1050,7 +1047,7 @@ describe('challenge setup persistence', () => {
 
 		const view = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const statName = 'Initiative stat (d6) for Aria';
+		const statName = 'Initiative for Aria';
 		expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull();
 
 		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
@@ -1093,7 +1090,7 @@ describe('challenge setup persistence', () => {
 
 		const firstView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const input = screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
 		expect((input as HTMLInputElement).value).toBe('');
 		await fireEvent.input(input, { target: { value: '3' } });
 
@@ -1108,7 +1105,7 @@ describe('challenge setup persistence', () => {
 		const secondView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		const restoredInput = screen.getByRole('spinbutton', {
-			name: 'Initiative stat (d6) for Aria'
+			name: 'Initiative for Aria'
 		});
 		expect((restoredInput as HTMLInputElement).value).toBe('3');
 		await fireEvent.input(restoredInput, { target: { value: '' } });
@@ -1147,12 +1144,9 @@ describe('challenge setup persistence', () => {
 		await fireEvent.click(disabledStartButton);
 		expect(mockedGoto).not.toHaveBeenCalled();
 
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '2' }
+		});
 		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
 		expect(startButton.classList.contains('ui-button')).toBe(true);
 		await fireEvent.click(startButton);
@@ -1925,12 +1919,9 @@ describe('initiative stat changes', () => {
 
 	it('discards a character’s app-rolled results before start', async () => {
 		await saveChallengeWithResults();
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '3' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '3' }
+		});
 
 		await waitFor(async () => {
 			const runState = (await loadChallengeLibrary()).challenges[0]?.runState;
@@ -1966,12 +1957,9 @@ describe('initiative stat changes', () => {
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
 			target: { value: '2' }
 		});
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '2' }
+		});
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Renamed' }
 		});
