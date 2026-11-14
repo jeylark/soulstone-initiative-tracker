@@ -904,10 +904,16 @@ describe('new challenge setup', () => {
 
 		const settings = screen.getByRole('group', { name: 'Challenge settings' });
 		expectCard(settings.parentElement?.classList.contains('card') ?? false);
+		expect(settings.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'Challenge settings', level: 2 })).toBeTruthy();
 
 		const npcTypes = screen.getByRole('group', { name: 'NPC types' });
 		expectCard(npcTypes.parentElement?.classList.contains('card') ?? false);
+		expect(npcTypes.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'NPC types', level: 2 })).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		const npcType = screen.getByRole('group', { name: 'NPC Type 1' });
@@ -916,6 +922,9 @@ describe('new challenge setup', () => {
 
 		const factions = screen.getByRole('group', { name: 'Factions' });
 		expectCard(factions.parentElement?.classList.contains('card') ?? false);
+		expect(factions.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'Factions', level: 2 })).toBeTruthy();
 		const players = within(factions).getByRole('group', { name: 'Players' });
 		expectCard(players.parentElement?.classList.contains('card') ?? false);

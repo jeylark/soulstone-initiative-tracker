@@ -39,6 +39,8 @@ describe('app layout', () => {
 
 		const darkModeButton = screen.getByRole('button', { name: 'Dark mode' });
 		expect(darkModeButton.getAttribute('aria-pressed')).toBe('false');
+		expect(darkModeButton.parentElement?.classList.contains('theme-toggle-action')).toBe(true);
+		expect(darkModeButton.querySelector('.theme-toggle-icon')).not.toBeNull();
 
 		await fireEvent.click(darkModeButton);
 

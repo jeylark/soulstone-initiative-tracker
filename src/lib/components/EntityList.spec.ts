@@ -16,7 +16,10 @@ type TestEntity = { readonly id: (typeof entities)[number]['id']; readonly name:
 const entityEditor = createRawSnippet<[TestEntity, number]>((getEntity, getIndex) => ({
 	render: () => `<p>${getEntity().name}:${getIndex()}</p>`
 }));
-const afterEntities = createRawSnippet(() => ({ render: () => '<p>Recovery section</p>' }));
+const afterEntityItems = [
+	createRawSnippet(() => ({ render: () => '<p>Recovery section</p>' })),
+	createRawSnippet(() => ({ render: () => '<p>Unassigned section</p>' }))
+];
 
 describe('EntityList', () => {
 	it('renders each entity through the editor snippet', () => {
@@ -124,11 +127,12 @@ describe('EntityList', () => {
 	});
 
 	it('applies the layout modifier class to the items container', () => {
-		render(EntityList<TestEntity>, {
+		const { container } = render(EntityList<TestEntity>, {
 			entities,
 			entityEditor,
 			adds: [],
 			layout: 'strip',
+			afterEntityItems,
 			legendSelector: (entity) => entity.name,
 			removeLabelSelector: (entity) => `Remove ${entity.name}`,
 			onRemove: vi.fn()
@@ -137,13 +141,16 @@ describe('EntityList', () => {
 		expect(document.querySelector('.entity-list-items')?.className).toContain(
 			'entity-list-items--strip'
 		);
+		expect(container.querySelectorAll('.card--strip-item')).toHaveLength(2);
+		expect(container.querySelectorAll('.entity-list-strip-item')).toHaveLength(2);
 	});
 
-	it('renders supplemental content after the entities and before the add actions', () => {
-		render(EntityList<TestEntity>, {
+	it('renders each supplemental item after the entities and before the add actions', () => {
+		const { container } = render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
-			afterEntities,
+			afterEntityItems,
+			layout: 'strip',
 			adds: [{ label: 'Add thing', onAdd: vi.fn() }],
 			legendSelector: (entity) => entity.name,
 			removeLabelSelector: (entity) => `Remove ${entity.name}`,
@@ -152,12 +159,17 @@ describe('EntityList', () => {
 
 		const entity = screen.getByRole('group', { name: 'Alpha' });
 		const recovery = screen.getByText('Recovery section');
+		const unassigned = screen.getByText('Unassigned section');
 		const addButton = screen.getByRole('button', { name: 'Add thing' });
 		expect(
 			entity.compareDocumentPosition(recovery) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		expect(
-			recovery.compareDocumentPosition(addButton) & Node.DOCUMENT_POSITION_FOLLOWING
+			recovery.compareDocumentPosition(unassigned) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
+		expect(
+			unassigned.compareDocumentPosition(addButton) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(container.querySelectorAll('.entity-list-strip-item')).toHaveLength(2);
 	});
 });

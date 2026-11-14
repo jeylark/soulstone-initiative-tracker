@@ -28,6 +28,15 @@ describe('EntityListItem', () => {
 		expect(screen.getByRole('group', { name: 'Player 1' }).parentElement).toBe(card);
 	});
 
+	it('keeps the fieldset legend accessible without displaying it a second time', () => {
+		render(EntityListItem, { legend: 'Player 1', children: content });
+
+		const group = screen.getByRole('group', { name: 'Player 1' });
+		const legend = group.querySelector('legend');
+		expect(legend?.textContent).toBe('Player 1');
+		expect(legend?.classList.contains('entity-list-item-legend')).toBe(true);
+	});
+
 	it('forwards heading and layout options to the card rather than the fieldset', () => {
 		render(EntityListItem, {
 			legend: 'Turn 1',

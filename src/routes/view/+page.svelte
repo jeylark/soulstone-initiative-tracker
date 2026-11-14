@@ -62,7 +62,9 @@
 				invalidMessage = '';
 			}}
 		/>
-		<ActionButton type="submit" disabled={isJoining}>Join session</ActionButton>
+		<div class="join-action">
+			<ActionButton type="submit" disabled={isJoining}>Join session</ActionButton>
+		</div>
 		{#if isJoining}
 			<p role="status">Joining live session...</p>
 		{/if}
@@ -76,7 +78,7 @@
 		max-inline-size: 32rem;
 	}
 
-	form :global(.ui-button) {
+	.join-action {
 		justify-self: start;
 	}
 </style>

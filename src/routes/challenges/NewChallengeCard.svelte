@@ -13,7 +13,7 @@
 	let { isDisabled, isCreating, onCreate }: Props = $props();
 </script>
 
-<Card title="New challenge" headingLevel="h3" headerSize="medium" class="new-challenge-card">
+<Card title="New challenge" headingLevel="h3" headerSize="medium" isFullHeight>
 	<div class="new-challenge-body">
 		<ActionButton disabled={isDisabled} onclick={onCreate}>
 			{isCreating ? 'Creating…' : 'Create new challenge'}
@@ -22,12 +22,6 @@
 </Card>
 
 <style>
-	/* Fill the grid cell so the card matches the height of neighboring challenge cards. */
-	:global(.new-challenge-card) {
-		height: 100%;
-		box-sizing: border-box;
-	}
-
 	.new-challenge-body {
 		display: flex;
 		align-items: center;

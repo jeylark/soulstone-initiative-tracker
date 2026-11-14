@@ -25,8 +25,11 @@ describe('InitiativeTurnCard', () => {
 		const props = cardProps();
 		const { container, rerender } = render(InitiativeTurnCard, props);
 		const card = container.querySelector('.initiative-card-tone');
+		const cardSurface = container.querySelector('.card');
 
 		expect(card?.classList.contains('initiative-card-tone--app')).toBe(true);
+		expect(cardSurface?.classList.contains('card--accented')).toBe(true);
+		expect(cardSurface?.classList.contains('card--content-sized')).toBe(true);
 		expect(screen.queryByRole('status')).toBeNull();
 		await fireEvent.click(
 			screen.getByRole('button', { name: `Roll initiative for ${props.title}` })
@@ -66,6 +69,7 @@ describe('InitiativeTurnCard', () => {
 		const { container } = render(InitiativeTurnCard, { ...cardProps(), mode: 'manual' });
 
 		expect(container.querySelector('.initiative-card-tone--app')).toBeNull();
+		expect(container.querySelector('.card')?.classList.contains('card--content-sized')).toBe(true);
 		expect(
 			screen.getByRole('spinbutton', { name: 'Initiative for Sentinel B - Turn 1' })
 		).toBeTruthy();

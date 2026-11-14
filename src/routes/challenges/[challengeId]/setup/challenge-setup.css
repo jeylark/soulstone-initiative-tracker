@@ -78,8 +78,8 @@
 	background: transparent;
 }
 
-.challenge-setup .setup-section > legend,
-.challenge-setup .settings > legend {
+.challenge-setup .setup-section > legend:not(.visually-hidden),
+.challenge-setup .settings > legend:not(.visually-hidden) {
 	padding: 0 8px;
 	font-size: 20px;
 	font-weight: 600;

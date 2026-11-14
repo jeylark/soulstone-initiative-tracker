@@ -77,9 +77,40 @@
 
 <Card title="Factions" headerSize="large" class="faction-board-card">
 	<fieldset class="setup-section faction-board-section">
-		<legend>Factions</legend>
+		<legend class="visually-hidden">Factions</legend>
+		{#snippet unassignedFactionItem()}
+			{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
+				<FactionEditor
+					{factions}
+					{creatures}
+					{npcTypes}
+					{setupIssues}
+					{npcTypeId}
+					{canManageFactions}
+					{canManageCreaturesAndTurns}
+					{isCreatureConfigurable}
+					{isTurnConfigurable}
+					factionIndex={-1}
+					onRename={onRenameFaction}
+					onColorChange={onFactionColorChange}
+					{onCreateCharacter}
+					{onCreateNpc}
+					{onCreatureVisibilityChange}
+					{onCreatureFactionChange}
+					{onNpcTypeChange}
+					{onCharacterNameChange}
+					{onCharacterInitiativeStatChange}
+					{onNpcIdentifierChange}
+					{onTurnChange}
+					{onAddTurn}
+					{onRemoveTurn}
+					{onRemoveCreature}
+				/>
+			{/if}
+		{/snippet}
 		<EntityList
 			entities={factions}
+			afterEntityItems={[unassignedFactionItem]}
 			adds={[{ label: 'Add Faction', isDisabled: !canManageFactions, onAdd: onCreateFaction }]}
 			layout="grid"
 			legendSelector={(faction) => faction.name}
@@ -121,36 +152,6 @@
 					{onRemoveTurn}
 					{onRemoveCreature}
 				/>
-			{/snippet}
-			{#snippet afterEntities()}
-				{#if creatures.some((creature) => !factions.some((faction) => faction.id === creature.factionId))}
-					<FactionEditor
-						{factions}
-						{creatures}
-						{npcTypes}
-						{setupIssues}
-						{npcTypeId}
-						{canManageFactions}
-						{canManageCreaturesAndTurns}
-						{isCreatureConfigurable}
-						{isTurnConfigurable}
-						factionIndex={-1}
-						onRename={onRenameFaction}
-						onColorChange={onFactionColorChange}
-						{onCreateCharacter}
-						{onCreateNpc}
-						{onCreatureVisibilityChange}
-						{onCreatureFactionChange}
-						{onNpcTypeChange}
-						{onCharacterNameChange}
-						{onCharacterInitiativeStatChange}
-						{onNpcIdentifierChange}
-						{onTurnChange}
-						{onAddTurn}
-						{onRemoveTurn}
-						{onRemoveCreature}
-					/>
-				{/if}
 			{/snippet}
 		</EntityList>
 	</fieldset>

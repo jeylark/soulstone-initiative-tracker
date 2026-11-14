@@ -26,6 +26,14 @@ describe('ActionButton', () => {
 		expect(button.classList.contains('extra')).toBe(true);
 	});
 
+	it('applies its overlay-action presentation to the button element', () => {
+		render(ActionButton, { isOverlayAction: true, children: label });
+
+		expect(
+			screen.getByRole('button', { name: 'Save' }).classList.contains('ui-button--overlay-action')
+		).toBe(true);
+	});
+
 	it('calls onclick when clicked', async () => {
 		const onclick = vi.fn();
 		render(ActionButton, { onclick, children: label });

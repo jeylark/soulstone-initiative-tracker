@@ -18,27 +18,28 @@
 			<img src="/soulstone-logo.png" alt="" width="40" height="40" />
 			<span>Soulstone</span>
 		</a>
-		<ActionButton
-			variant="neutral"
-			class="theme-toggle"
-			aria-pressed={theme.isDarkMode}
-			onclick={() => theme.toggle()}
-		>
-			{#if theme.isDarkMode}
-				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-					<circle cx="10" cy="10" r="3.5" />
-					<path
-						d="M10 1.8v2M10 16.2v2M18.2 10h-2M3.8 10h-2m14-5.8-1.4 1.4M5.6 14.4l-1.4 1.4m11.6 0-1.4-1.4M5.6 5.6 4.2 4.2"
-					/>
-				</svg>
-				Light mode
-			{:else}
-				<svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-					<path d="M16.8 12.6A7.3 7.3 0 0 1 7.4 3.2a7.4 7.4 0 1 0 9.4 9.4Z" />
-				</svg>
-				Dark mode
-			{/if}
-		</ActionButton>
+		<div class="theme-toggle-action">
+			<ActionButton
+				variant="neutral"
+				aria-pressed={theme.isDarkMode}
+				onclick={() => theme.toggle()}
+			>
+				{#if theme.isDarkMode}
+					<svg class="theme-toggle-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+						<circle cx="10" cy="10" r="3.5" />
+						<path
+							d="M10 1.8v2M10 16.2v2M18.2 10h-2M3.8 10h-2m14-5.8-1.4 1.4M5.6 14.4l-1.4 1.4m11.6 0-1.4-1.4M5.6 5.6 4.2 4.2"
+						/>
+					</svg>
+					Light mode
+				{:else}
+					<svg class="theme-toggle-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+						<path d="M16.8 12.6A7.3 7.3 0 0 1 7.4 3.2a7.4 7.4 0 1 0 9.4 9.4Z" />
+					</svg>
+					Dark mode
+				{/if}
+			</ActionButton>
+		</div>
 	</header>
 
 	<main>
@@ -84,7 +85,7 @@
 		display: block;
 	}
 
-	header :global(.theme-toggle) {
+	header .theme-toggle-action {
 		margin-left: auto;
 	}
 
@@ -101,7 +102,7 @@
 		outline-offset: var(--focus-ring-offset);
 	}
 
-	header :global(.theme-toggle svg) {
+	header .theme-toggle-icon {
 		width: 17px;
 		stroke: var(--color-accent);
 		stroke-linecap: round;

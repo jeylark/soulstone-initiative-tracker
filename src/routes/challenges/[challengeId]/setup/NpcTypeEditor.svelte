@@ -30,7 +30,7 @@
 
 <Card title="NPC types" headerSize="large">
 	<fieldset class="setup-section npc-type-strip-section">
-		<legend>NPC types</legend>
+		<legend class="visually-hidden">NPC types</legend>
 		{#if creationError}<p role="alert">{creationError}</p>{/if}
 		<EntityList
 			entities={npcTypes}

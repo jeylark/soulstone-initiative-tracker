@@ -34,7 +34,7 @@
 
 <Card title="Challenge settings" headerSize="large">
 	<fieldset class="settings" disabled={isDisabled}>
-		<legend>Challenge settings</legend>
+		<legend class="visually-hidden">Challenge settings</legend>
 		<TextInput
 			label="Challenge name"
 			value={name}

@@ -57,6 +57,7 @@ Follow these instructions for every task in this repository.
 
 ## UI Layout Lessons
 
+- When a Card renders a visible heading around a fieldset, keep the fieldset legend for accessible group naming but visually hide it to avoid duplicate titles. When changing shared Card styles, audit every Card/fieldset wrapper and ensure page-level legend rules do not override the hidden state.
 - When a grid layout has unexpected gaps or extra rows, inspect the rendered child order, including wrappers around actions. A visually empty wrapper can still consume a grid cell; scope layout fixes to the affected component variant.
 - In compact form grids, account for wrapped labels and controls overlaid near the fields. Reserve space for overlays and keep label rows a consistent height when inputs need to align.
 - CSS source assertions can guard layout rules, but they do not prove rendered geometry. Use focused tests and verify the affected view in a browser when available.

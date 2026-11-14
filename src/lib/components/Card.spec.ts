@@ -51,4 +51,27 @@ describe('Card', () => {
 		const heading = screen.getByRole('heading', { name: 'Card title' });
 		expect(heading.parentElement?.classList.contains('custom-card')).toBe(true);
 	});
+
+	it('owns layout and accent presentation on the card container', () => {
+		render(Card, {
+			title: 'Card title',
+			isFullHeight: true,
+			hasOverlayAction: true,
+			isAccented: true,
+			accentColor: '#1f5fbf',
+			isMuted: true,
+			isContentSized: true,
+			isStripItem: true,
+			children
+		});
+
+		const card = screen.getByRole('heading', { name: 'Card title' }).parentElement;
+		expect(card?.classList.contains('card--full-height')).toBe(true);
+		expect(card?.classList.contains('card--overlay-action')).toBe(true);
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.classList.contains('card--muted')).toBe(true);
+		expect(card?.classList.contains('card--content-sized')).toBe(true);
+		expect(card?.classList.contains('card--strip-item')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe('#1f5fbf');
+	});
 });
