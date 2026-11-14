@@ -564,7 +564,7 @@ describe('challenge setup persistence', () => {
 		const duplicateInputs = [
 			...factionNameInputs.map((input) => ({
 				input,
-				message: 'Faction names must be unique, ignoring case and surrounding whitespace.'
+				message: 'Faction names must be unique.'
 			})),
 			...npcTypeNameInputs.map((input) => ({
 				input,
@@ -577,7 +577,7 @@ describe('challenge setup persistence', () => {
 			...npcIdentifierInputs.map((input) => ({
 				input,
 				message:
-					'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+					'NPC identifiers must be unique within each type.'
 			}))
 		];
 
@@ -746,7 +746,7 @@ describe('challenge setup persistence', () => {
 		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
 		expect(
 			await screen.findAllByText(
-				'An initiative stat is required for characters with app-rolled turns.'
+				'Initiative is required.'
 			)
 		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
@@ -1122,7 +1122,7 @@ describe('challenge setup persistence', () => {
 		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
 		expect(
 			await screen.findAllByText(
-				'An initiative stat is required for characters with app-rolled turns.'
+				'Initiative is required.'
 			)
 		).toHaveLength(1);
 		await fireEvent.click(disabledStartButton);
