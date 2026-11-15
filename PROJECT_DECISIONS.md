@@ -43,7 +43,7 @@ A challenge with a generated turn order is running. The first entry is the curre
 - **Next turn** stays visible but disabled. **Calculate Turn Order** is available; when it succeeds and saves, editing ends, Setup and Roll relock, Spawn remains current, and the completed Spawn count is unchanged. Only the later **Next turn** completes Spawn and starts the next round. Missing results, unresolved ties, invalid setup, or a failed save keep editing active.
 - The editing state survives a reload, which opens Setup as usual. Edits autosave; there is no cancel-and-rollback.
 
-On wide screens the Setup tab's editor uses the full viewport width (with side padding) instead of the shell's centered column; Roll and Run keep the shell width. Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`, displayed in the center of the sticky app header. Tab selection is local page state and returns to Setup after a reload.
+On wide screens the Setup tab's editor uses the full viewport width (with side padding) instead of the shell's centered column; Roll and Run keep the shell width. Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`, displayed in the center of the sticky app header. Unavailable tabs are visibly distinguished and expose their disabled state, including while a Run-state save temporarily blocks navigation. Tab selection is local page state and returns to Setup after a reload.
 
 ## App navigation and views
 

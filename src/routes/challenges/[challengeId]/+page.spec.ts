@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import challengePage from './+page.svelte';
+import * as challengeLibrary from '#lib/challenge';
 import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 import { createSetupChallenge, seedStoredChallengeLibrary } from '../../view-test-support';
@@ -172,6 +174,15 @@ describe('challenge workflow tabs', () => {
 
 		const rollTab = await screen.findByRole('tab', { name: 'Roll' });
 		expect(rollTab.getAttribute('aria-disabled')).toBe('true');
+		expect(screen.getByRole('tab', { name: 'Setup' }).getAttribute('aria-disabled')).toBe('false');
+		expect(rollTab.closest('.workflow-tabs')).toBeTruthy();
+		const source = readFileSync('src/routes/challenges/[challengeId]/+page.svelte', 'utf8');
+		expect(source).toMatch(
+			/\.workflow-tabs\s+button\[aria-disabled=['"]true['"]\]\s*\{[^}]*color:\s*color-mix\(/s
+		);
+		expect(source).toMatch(
+			/\.workflow-tabs\s+button\[aria-disabled=['"]true['"]\]\s*\{[^}]*cursor:\s*not-allowed\s*;/s
+		);
 		await fireEvent.click(rollTab);
 
 		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
@@ -181,6 +192,12 @@ describe('challenge workflow tabs', () => {
 		expect(runTab.getAttribute('aria-disabled')).toBe('true');
 		await fireEvent.click(runTab);
 		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Valid challenge' }
+		});
+		expect(rollTab.getAttribute('aria-disabled')).toBe('false');
+		expect(runTab.getAttribute('aria-disabled')).toBe('false');
 	});
 
 	it('supports keyboard navigation between tabs', async () => {
@@ -194,6 +211,35 @@ describe('challenge workflow tabs', () => {
 		).toBeTruthy();
 		await waitFor(() => expect(rollTab.getAttribute('aria-selected')).toBe('true'));
 		expect(rollTab).toBe(document.activeElement);
+	});
+
+	it.each(['success', 'failure'])('reflects a pending Run save until %s', async (outcome) => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+
+		const pendingSave = Promise.withResolvers<void>();
+		vi.spyOn(challengeLibrary, 'saveChallengeToLibrary').mockReturnValueOnce(pendingSave.promise);
+		await fireEvent.click(screen.getByRole('button', { name: 'Next turn' }));
+
+		const setupTab = screen.getByRole('tab', { name: 'Setup' });
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(setupTab.getAttribute('aria-disabled')).toBe('true');
+		expect(rollTab.getAttribute('aria-disabled')).toBe('true');
+		expect(runTab.getAttribute('aria-disabled')).toBe('false');
+		expect(runTab.getAttribute('aria-selected')).toBe('true');
+		await fireEvent.click(setupTab);
+		expect(runTab.getAttribute('aria-selected')).toBe('true');
+
+		if (outcome === 'success') pendingSave.resolve();
+		else pendingSave.reject(new Error('Save failed'));
+		await waitFor(() => {
+			expect(setupTab.getAttribute('aria-disabled')).toBe('false');
+			expect(rollTab.getAttribute('aria-disabled')).toBe('false');
+		});
 	});
 
 	it('explains when the requested challenge does not exist', async () => {

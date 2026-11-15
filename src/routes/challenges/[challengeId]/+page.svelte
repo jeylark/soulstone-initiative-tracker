@@ -169,7 +169,8 @@
 				id={`challenge-tab-${tab}`}
 				role="tab"
 				aria-selected={activeTab === tab}
-				aria-disabled={tab !== 'setup' && setupIssues.length > 0}
+				aria-disabled={(tab !== 'setup' && setupIssues.length > 0) ||
+					(isTransitioning && tab !== activeTab)}
 				aria-controls={`challenge-panel-${tab}`}
 				tabindex={activeTab === tab ? 0 : -1}
 				onclick={() => void selectTab(tab)}
@@ -261,7 +262,7 @@
 		border-bottom: 3px solid transparent;
 		padding: 8px;
 		background: transparent;
-		color: var(--color-foreground-muted);
+		color: var(--color-foreground);
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;
@@ -270,6 +271,11 @@
 	.workflow-tabs button[aria-selected='true'] {
 		border-bottom-color: var(--color-accent);
 		color: var(--color-foreground);
+	}
+
+	.workflow-tabs button[aria-disabled='true'] {
+		color: color-mix(in srgb, var(--color-foreground) 55%, var(--color-background));
+		cursor: not-allowed;
 	}
 
 	.workflow-tabs button:focus-visible {
