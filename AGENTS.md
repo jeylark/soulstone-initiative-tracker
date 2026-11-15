@@ -56,8 +56,10 @@ Follow these instructions for every task in this repository.
   do not replace module- or component-owned tests.
 - Write comments to explain non-obvious intent, not to restate the code.
 
-## Before commiting changes
+## After implementation
 
+- Review the session for learnings that could reduce future agents' workload,
+  and add any useful learnings to this file's Lessons section.
 - Run `npx prettier --write` on every changed file.
 
 # Lessons
