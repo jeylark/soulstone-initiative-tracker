@@ -64,6 +64,8 @@ Follow these instructions for every task in this repository.
 
 ## UI Layout Lessons
 
+- Shared form alignment requires parent-owned tracks as well as participating child markup; place custom controls directly inside `FormGroup` and keep each visual row's label, control, and feedback tracks independent.
+- JSDOM can verify form-group structure and accessible associations, but not CSS subgrid geometry; verify rendered alignment separately in a browser.
 - Svelte scopes selectors in a component's `<style>` block, but a plain `.css`
   file imported by a component is global. Put shared class rules in a dedicated
   stylesheet that owns those class names; use explicit `class` props for

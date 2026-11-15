@@ -31,6 +31,19 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups creature controls, including visibility, separately from their turn list', async () => {
+		await renderSetup();
+		const players = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		const name = within(player).getByRole('textbox', { name: 'Character name: Player 1' });
+		const visibility = within(player).getByRole('checkbox', { name: 'Start hidden Player 1' });
+		const group = name.closest('.form-group');
+		expect(group?.classList.contains('creature-fields')).toBe(true);
+		expect(visibility.closest('.form-group')).toBe(group);
+		expect(group?.querySelector('.creature-turn-list')).toBeNull();
+	});
+
 	it('locks an existing creature configuration but leaves removal and new creatures available', async () => {
 		await saveChallengeToLibrary(createSpawnEditChallenge());
 		await renderSetup();

@@ -31,6 +31,20 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups conditional turn controls for shared row alignment', async () => {
+		await renderSetup();
+		const players = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		const turn = within(player).getByRole('group', { name: 'Turn 1' });
+		const mode = within(turn).getByRole('combobox', { name: 'Turn initiative' });
+		await fireEvent.change(mode, { target: { value: 'static' } });
+		const value = within(turn).getByRole('spinbutton', { name: 'Static initiative' });
+		const group = mode.closest('.form-group');
+		expect(group?.classList.contains('turn-settings')).toBe(true);
+		expect(value.closest('.form-group')).toBe(group);
+	});
+
 	it('allows new turn placement while preserving indices on locked relative hooks', async () => {
 		const challenge = createSpawnEditChallenge();
 		const targetTurnId = challenge.creatures[0]!.turns[0]!.id;

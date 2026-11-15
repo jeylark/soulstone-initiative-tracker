@@ -49,7 +49,7 @@
 
 <div class="form-field-messages form-field-messages--align-labels">
 	<label class="form-field">
-		<span class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
+		<span class="form-control-label" class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
 		<select
 			{...rest}
 			class={`form-control ${className}${hasWarning ? ' form-control--warning' : ''}${isInvalid ? ' form-control--invalid' : ''}`}

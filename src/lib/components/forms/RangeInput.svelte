@@ -1,8 +1,10 @@
 <script lang="ts">
 	import './form-controls.css';
+	import type { Snippet } from 'svelte';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	const inputId = $props.id();
+	const labelId = `${inputId}-label`;
 	const warningId = `${inputId}-warning`;
 	const invalidId = `${inputId}-invalid`;
 
@@ -40,6 +42,8 @@
 		isInvalid?: boolean;
 		/** Error text shared by both controls. */
 		invalidMessage?: string;
+		/** Optional supporting content displayed below the controls and messages. */
+		description?: Snippet;
 		/** Optional class assigned to the slider. */
 		class?: string;
 		/** Optional class assigned to the number field. */
@@ -66,6 +70,7 @@
 		warningMessage,
 		isInvalid = false,
 		invalidMessage,
+		description,
 		'aria-describedby': externalDescribedBy,
 		'aria-invalid': externalInvalid,
 		class: sliderClass = '',
@@ -85,8 +90,10 @@
 </script>
 
 <div class="form-field-messages form-field-messages--align-labels">
-	<fieldset class="form-range-field">
-		<legend><span class:visually-hidden={isLabelVisuallyHidden}>{label}</span></legend>
+	<span id={labelId} class="form-control-label" class:visually-hidden={isLabelVisuallyHidden}
+		>{label}</span
+	>
+	<fieldset class="form-range-field" aria-labelledby={labelId}>
 		<div class="form-range-input">
 			<label class="form-field">
 				<span class="visually-hidden">{label} slider</span>
@@ -133,5 +140,6 @@
 				{warningMessage}
 			</p>
 		{/if}
+		{#if description}{@render description()}{/if}
 	</div>
 </div>

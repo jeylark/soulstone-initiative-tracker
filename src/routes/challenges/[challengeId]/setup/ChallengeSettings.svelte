@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ValidationIssue } from '#lib/challenge';
-	import { Card, RangeInput, TextInput } from '#lib/components';
+	import { Card, FormGroup, RangeInput, TextInput } from '#lib/components';
 	import { issueMessage } from './issue-messages';
 
 	interface Props {
@@ -35,19 +35,17 @@
 <Card title="Challenge settings" headerSize="large">
 	<fieldset class="settings" disabled={isDisabled}>
 		<legend class="visually-hidden" data-visually-hidden>Challenge settings</legend>
-		<TextInput
-			label="Challenge name"
-			value={name}
-			autocomplete="off"
-			isInvalid={nameError !== undefined}
-			invalidMessage={nameError}
-			oninput={(event) => onNameChange(event.currentTarget.value)}
-		/>
-		<fieldset class="fairness-setting">
-			<legend>Fairness weight</legend>
+		<FormGroup class="settings-fields">
+			<TextInput
+				label="Challenge name"
+				value={name}
+				autocomplete="off"
+				isInvalid={nameError !== undefined}
+				invalidMessage={nameError}
+				oninput={(event) => onNameChange(event.currentTarget.value)}
+			/>
 			<RangeInput
 				label="Fairness weight"
-				isLabelVisuallyHidden
 				id="fairness-weight"
 				numberClass="fairness-weight-input"
 				value={fairnessWeight}
@@ -63,19 +61,19 @@
 					const weight = event.currentTarget.valueAsNumber;
 					if (Number.isFinite(weight)) onFairnessWeightChange(weight);
 				}}
-			/>
-			<p class="fairness-description" aria-live="polite">
-				{getFairnessDescription(fairnessWeight)}
-			</p>
-		</fieldset>
+			>
+				{#snippet description()}
+					<p class="fairness-description" aria-live="polite">
+						{getFairnessDescription(fairnessWeight)}
+					</p>
+				{/snippet}
+			</RangeInput>
+		</FormGroup>
 	</fieldset>
 </Card>
 
 <style>
 	.settings {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 16px 24px;
 		min-inline-size: 0;
 		margin: 0;
 		border: 0;
@@ -83,21 +81,10 @@
 		background: transparent;
 	}
 
-	.fairness-setting {
-		display: grid;
-		flex: 1 1 180px;
-		gap: 6px;
-		min-width: 0;
-		margin: 0;
-		border: 0;
-		padding: 0;
-		background: transparent;
-		font-size: 14px;
-	}
-
-	.fairness-setting > legend {
-		padding: 0;
-		font: inherit;
+	.settings-fields {
+		--form-group-row-gap: 16px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: 24px;
 	}
 
 	.fairness-description {
@@ -106,7 +93,7 @@
 	}
 
 	@media (max-width: 640px) {
-		.settings {
+		.settings-fields {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}

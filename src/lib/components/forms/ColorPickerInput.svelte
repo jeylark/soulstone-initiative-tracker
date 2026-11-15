@@ -36,6 +36,7 @@
 	}
 
 	const pickerId = $props.id();
+	const labelId = `${pickerId}-label`;
 	const warningId = `${pickerId}-warning`;
 	const invalidId = `${pickerId}-invalid`;
 
@@ -61,8 +62,13 @@
 </script>
 
 <div class="form-field-messages">
-	<fieldset class="form-color-picker" disabled={isDisabled} aria-describedby={describedBy}>
-		<legend class="form-color-picker__legend">{label}</legend>
+	<span id={labelId} class="form-control-label form-color-picker__legend">{label}</span>
+	<fieldset
+		class="form-color-picker"
+		disabled={isDisabled}
+		aria-labelledby={labelId}
+		aria-describedby={describedBy}
+	>
 		<div class="form-color-picker__options">
 			{#each options as option (option.value)}
 				<label class="form-color-picker__option" style={`--picker-color: ${option.hex}`}>

@@ -47,13 +47,15 @@
 }
 
 .challenge-setup .npc-type-card {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr);
-	align-items: end;
-	gap: 10px;
 	min-width: 0;
 	margin: 0;
 	padding-block-start: 12px;
+}
+
+.challenge-setup .npc-type-fields {
+	--form-group-row-gap: 10px;
+	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr);
+	column-gap: 10px;
 }
 
 .challenge-setup .npc-type-card legend {
@@ -88,17 +90,24 @@
 
 .challenge-setup .creature {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	align-items: end;
-	gap: 14px 20px;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 14px;
 	min-width: 0;
 	margin: 0;
 }
 
+.challenge-setup .creature-fields {
+	--form-group-row-gap: 14px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .challenge-setup .creature-in-faction {
-	grid-template-columns: minmax(0, 1fr);
 	gap: 12px;
 	padding: 12px;
+}
+
+.challenge-setup .creature-in-faction .creature-fields {
+	grid-template-columns: minmax(0, 1fr);
 }
 
 .challenge-setup .creature legend {
@@ -108,12 +117,13 @@
 }
 
 .challenge-setup .turn-card {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-	align-items: end;
-	gap: 12px;
 	min-width: 0;
 	margin: 0;
+}
+
+.challenge-setup .turn-settings {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+	column-gap: 12px;
 }
 
 .challenge-setup .turn-card > legend {
@@ -129,11 +139,11 @@
 }
 
 @media (max-width: 640px) {
-	.challenge-setup .creature {
+	.challenge-setup .creature-fields {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.challenge-setup .npc-type-card {
+	.challenge-setup .npc-type-fields {
 		grid-template-columns: minmax(0, 1fr) 82px;
 	}
 }

@@ -7,6 +7,14 @@ afterEach(() => {
 });
 
 describe('TextInput', () => {
+	it('exposes its label to the shared control rows', () => {
+		render(TextInput, { label: 'Long field label' });
+		const control = screen.getByRole('textbox', { name: 'Long field label' });
+		expect(control.closest('.form-field')?.querySelector('.form-control-label')?.textContent).toBe(
+			'Long field label'
+		);
+	});
+
 	it('uses shared wrapped-label row alignment', () => {
 		const { container } = render(TextInput, { label: 'Challenge name' });
 

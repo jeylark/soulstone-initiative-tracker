@@ -53,7 +53,7 @@ describe('challenge setup view', () => {
 		);
 	});
 
-	it('aligns stacked form fields without reserving space for short labels', () => {
+	it('uses content-sized shared form rows without reserving space for short labels', () => {
 		const challengeSetupStyles = readFileSync(
 			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
 			'utf8'
@@ -63,7 +63,7 @@ describe('challenge setup view', () => {
 			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s
 		);
 		expect(formControlStyles).toMatch(
-			/\.form-field-messages--align-labels\s*\{[^}]*align-self:\s*end/s
+			/\.form-group\s*>\s*\.form-field-messages\s*\{[^}]*grid-template-rows:\s*subgrid/s
 		);
 		expect(challengeSetupStyles).not.toMatch(/npc-type-field-label|min-height:\s*2lh/);
 	});

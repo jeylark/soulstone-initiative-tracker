@@ -16,11 +16,69 @@
 	align-self: end;
 }
 
+.form-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+	gap: 0 20px;
+	min-width: 0;
+}
+
+.form-group > .form-field-messages {
+	grid-row: span 3;
+	grid-template-rows: subgrid;
+	align-self: stretch;
+	gap: 0;
+}
+
+.form-group > .form-field-messages > .form-field {
+	grid-row: span 2;
+	grid-template-rows: subgrid;
+	gap: 0;
+}
+
+.form-group .form-control-label {
+	grid-row: 1;
+	align-self: end;
+	padding-block-end: 4px;
+}
+
+.form-group > .form-field-messages > .form-field > .form-control {
+	grid-row: 2;
+	align-self: start;
+}
+
+.form-control-label-placeholder {
+	display: none;
+}
+
+.form-group .form-control-label-placeholder {
+	display: block;
+	grid-row: 1;
+}
+
+.form-group .form-checkbox-field {
+	grid-row: 2;
+	align-self: center;
+}
+
+.form-group .form-range-field,
+.form-group .form-color-picker {
+	grid-row: 2;
+	align-self: start;
+}
+
+.form-group > .form-field-messages > .form-control-message-area {
+	grid-row: 3;
+	align-content: start;
+	padding-block: 2px var(--form-group-row-gap, 12px);
+}
+
 .form-checkbox-field {
 	display: flex;
 	min-height: 40px;
 	align-items: center;
 	gap: 8px;
+	font-size: 14px;
 }
 
 .form-checkbox-control {
@@ -119,8 +177,7 @@
 	border: 0;
 }
 
-.form-range-field > legend {
-	padding: 0 0 4px;
+.form-field-messages > .form-control-label {
 	font-size: 14px;
 }
 

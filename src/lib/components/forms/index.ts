@@ -4,6 +4,8 @@ export { default as NumberInput } from './NumberInput.svelte';
 export { default as CheckboxInput } from './CheckboxInput.svelte';
 /** Accessible color palette picker. */
 export { default as ColorPickerInput } from './ColorPickerInput.svelte';
+/** Aligns custom form controls in shared responsive rows. */
+export { default as FormGroup } from './FormGroup.svelte';
 /** Paired slider and number input with shared labeling and validation. */
 export { default as RangeInput } from './RangeInput.svelte';
 /** Select input control. */

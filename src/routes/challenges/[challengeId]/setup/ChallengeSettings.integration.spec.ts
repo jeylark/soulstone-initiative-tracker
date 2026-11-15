@@ -30,6 +30,18 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups the name and fairness controls while retaining the fairness description', async () => {
+		await renderSetup();
+		const name = screen.getByRole('textbox', { name: 'Challenge name' });
+		const fairness = screen.getByRole('spinbutton', { name: 'Fairness weight value' });
+		const group = name.closest('.form-group');
+		expect(group?.classList.contains('settings-fields')).toBe(true);
+		expect(fairness.closest('.form-group')).toBe(group);
+		expect(
+			group?.contains(screen.getByText('Initiative and faction balance have similar influence.'))
+		).toBe(true);
+	});
+
 	it('keeps challenge settings disabled and guarded during Spawn editing', async () => {
 		await saveChallengeToLibrary(createSpawnEditChallenge());
 		await renderSetup();

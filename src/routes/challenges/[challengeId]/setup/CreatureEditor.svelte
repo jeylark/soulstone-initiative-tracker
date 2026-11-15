@@ -10,7 +10,14 @@
 	import type { TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import { issueMessage } from './issue-messages';
 	import TurnEditor from './TurnEditor.svelte';
-	import { CheckboxInput, EntityList, NumberInput, SelectInput, TextInput } from '#lib/components';
+	import {
+		CheckboxInput,
+		EntityList,
+		FormGroup,
+		NumberInput,
+		SelectInput,
+		TextInput
+	} from '#lib/components';
 
 	interface Props {
 		creature: DeepReadonly<ChallengeCreature>;
@@ -80,84 +87,84 @@
 	);
 </script>
 
-{#if onFactionChange}
-	<SelectInput
-		label="Faction"
-		aria-label={`Faction for ${name}`}
-		value={creature.factionId}
-		disabled={!isConfigurable}
-		isInvalid={factionError !== undefined}
-		invalidMessage={factionError}
-		onchange={(event) => onFactionChange?.(creature.id, event.currentTarget.value as StableId)}
-	>
-		<option value={creature.factionId} disabled>Missing faction</option>
-		{#each factions as faction (faction.id)}<option value={faction.id}>{faction.name}</option
-			>{/each}
-	</SelectInput>
-{/if}
-{#if creature.kind === 'character'}
-	<TextInput
-		label="Character name"
-		aria-label={`Character name: ${characterName}`}
-		value={characterName}
-		disabled={!isConfigurable}
-		isInvalid={nameError !== undefined}
-		invalidMessage={nameError}
-		oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
-	/>
-	{#if hasAppRollTurn}
-		<NumberInput
-			label="Initiative"
-			aria-label={`Initiative stat for ${characterName}`}
-			value={characterInitiativeStat ?? ''}
+<FormGroup class="creature-fields">
+	{#if onFactionChange}
+		<SelectInput
+			label="Faction"
+			aria-label={`Faction for ${name}`}
+			value={creature.factionId}
 			disabled={!isConfigurable}
-			min="0"
-			step="1"
-			isInvalid={initiativeStatError !== undefined}
-			invalidMessage={initiativeStatError}
-			oninput={(event) => {
-				const value = event.currentTarget.valueAsNumber;
-				onCharacterInitiativeStatChange(creature.id, Number.isFinite(value) ? value : undefined);
+			isInvalid={factionError !== undefined}
+			invalidMessage={factionError}
+			onchange={(event) => onFactionChange?.(creature.id, event.currentTarget.value as StableId)}
+		>
+			<option value={creature.factionId} disabled>Missing faction</option>
+			{#each factions as faction (faction.id)}<option value={faction.id}>{faction.name}</option
+				>{/each}
+		</SelectInput>
+	{/if}
+	{#if creature.kind === 'character'}
+		<TextInput
+			label="Character name"
+			aria-label={`Character name: ${characterName}`}
+			value={characterName}
+			disabled={!isConfigurable}
+			isInvalid={nameError !== undefined}
+			invalidMessage={nameError}
+			oninput={(event) => onCharacterNameChange(creature.id, event.currentTarget.value)}
+		/>
+		{#if hasAppRollTurn}
+			<NumberInput
+				label="Initiative"
+				aria-label={`Initiative stat for ${characterName}`}
+				value={characterInitiativeStat ?? ''}
+				disabled={!isConfigurable}
+				min="0"
+				step="1"
+				isInvalid={initiativeStatError !== undefined}
+				invalidMessage={initiativeStatError}
+				oninput={(event) => {
+					const value = event.currentTarget.valueAsNumber;
+					onCharacterInitiativeStatChange(creature.id, Number.isFinite(value) ? value : undefined);
+				}}
+			/>
+		{/if}
+	{:else if creature.kind === 'npc'}
+		<SelectInput
+			label="NPC type"
+			aria-label={`NPC type for ${name}`}
+			value={creature.creatureTypeId}
+			disabled={!isConfigurable}
+			isInvalid={npcTypeError !== undefined}
+			invalidMessage={npcTypeError}
+			onchange={(event) => {
+				const isAccepted = onNpcTypeChange(creature.id, event.currentTarget.value as StableId);
+				if (!isAccepted) event.currentTarget.value = creature.creatureTypeId;
 			}}
+		>
+			{#if !npcTypes.some((npcType) => creature.kind === 'npc' && npcType.id === creature.creatureTypeId)}
+				<option value={creature.creatureTypeId} disabled>Missing NPC type</option>
+			{/if}
+			{#each npcTypes as npcType (npcType.id)}
+				<option value={npcType.id}>{npcType.name}</option>
+			{/each}
+		</SelectInput>
+		<TextInput
+			label="NPC identifier"
+			value={creature.identifier}
+			disabled={!isConfigurable}
+			isInvalid={identifierError !== undefined}
+			invalidMessage={identifierError}
+			oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
 		/>
 	{/if}
-{:else if creature.kind === 'npc'}
-	<SelectInput
-		label="NPC type"
-		aria-label={`NPC type for ${name}`}
-		value={creature.creatureTypeId}
-		disabled={!isConfigurable}
-		isInvalid={npcTypeError !== undefined}
-		invalidMessage={npcTypeError}
-		onchange={(event) => {
-			const isAccepted = onNpcTypeChange(creature.id, event.currentTarget.value as StableId);
-			if (!isAccepted) event.currentTarget.value = creature.creatureTypeId;
-		}}
-	>
-		{#if !npcTypes.some((npcType) => creature.kind === 'npc' && npcType.id === creature.creatureTypeId)}
-			<option value={creature.creatureTypeId} disabled>Missing NPC type</option>
-		{/if}
-		{#each npcTypes as npcType (npcType.id)}
-			<option value={npcType.id}>{npcType.name}</option>
-		{/each}
-	</SelectInput>
-	<TextInput
-		label="NPC identifier"
-		value={creature.identifier}
-		disabled={!isConfigurable}
-		isInvalid={identifierError !== undefined}
-		invalidMessage={identifierError}
-		oninput={(event) => onNpcIdentifierChange(creature.id, event.currentTarget.value)}
-	/>
-{/if}
-<div class="creature-visibility">
 	<CheckboxInput
 		label={`Start hidden ${name}`}
 		checked={creature.isHidden}
 		disabled={!isConfigurable}
 		onchange={(event) => onVisibilityChange(creature.id, event.currentTarget.checked)}
 	/>
-</div>
+</FormGroup>
 <EntityList
 	class="creature-turn-list"
 	entities={creature.turns}
@@ -198,13 +205,3 @@
 		/>
 	{/snippet}
 </EntityList>
-
-<style>
-	.creature-visibility {
-		display: flex;
-		min-height: 40px;
-		align-items: center;
-		gap: 8px;
-		font-size: 14px;
-	}
-</style>

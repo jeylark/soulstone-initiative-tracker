@@ -43,5 +43,7 @@ describe('NpcTypeEditor', () => {
 		expect(npc.querySelector('.entity-remove-action')).toBeTruthy();
 		expect(npc.querySelector('.npc-type-remove-action')).toBeNull();
 		expect(npc.querySelectorAll('.form-field-messages--align-labels')).toHaveLength(2);
+		const group = npc.querySelector('.form-group.npc-type-fields');
+		expect(group?.querySelectorAll(':scope > .form-field-messages')).toHaveLength(2);
 	});
 });
