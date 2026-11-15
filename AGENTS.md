@@ -104,6 +104,9 @@ Follow these instructions for every task in this repository.
 
 ## Accessibility and Interaction Lessons
 
+- When tabs cannot be selected, expose and visibly distinguish their unavailable state for both validation failures and temporary navigation locks; restore availability when the lock clears.
+- Before relying on shared disabled-control styles or theme colors, verify that the rendered control carries the required class and that the CSS variables are defined in both themes.
+
 ## Testing and Verification Lessons
 
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
