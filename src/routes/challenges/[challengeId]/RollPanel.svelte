@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		loadChallengeLibrary,
@@ -25,11 +25,13 @@
 	interface Props {
 		sharedChallenge?: Challenge;
 		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+		/** Optional action displayed beside the page title. */
+		titleActions?: Snippet;
 		/** Reports how many manual initiative inputs currently contain invalid values. */
 		onValidationCountChange?: (count: number) => void;
 	}
 
-	let { sharedChallenge, onTabChange, onValidationCountChange }: Props = $props();
+	let { sharedChallenge, onTabChange, onValidationCountChange, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -305,7 +307,7 @@
 	}
 </script>
 
-<ViewPage title="Initiative rolling">
+<ViewPage title="Initiative rolling" actions={titleActions}>
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}

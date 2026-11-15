@@ -28,6 +28,29 @@ beforeEach(async () => {
 });
 
 describe('challenge workflow tabs', () => {
+	it('keeps the default Download action alongside each workflow title', async () => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+
+		let download = await screen.findByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		let heading = await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		heading = await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		download = screen.getByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Run' }));
+		heading = await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		download = screen.getByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('downloads the challenge as a versioned file with its current run state', async () => {
 		const challenge = createRunChallenge();
 		challenge.name = 'Saved encounter';

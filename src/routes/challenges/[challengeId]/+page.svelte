@@ -198,6 +198,10 @@
 	</div>
 {/snippet}
 
+{#snippet downloadAction()}
+	<ActionButton onclick={() => void downloadChallenge()}>Download</ActionButton>
+{/snippet}
+
 {#if loadStatus === 'loading'}
 	<ViewPage title="Loading challenge">
 		<p>Loading challenge…</p>
@@ -213,11 +217,6 @@
 	</ViewPage>
 {:else}
 	<div class="challenge-workflow">
-		<div class="workflow-actions">
-			<ActionButton variant="neutral" onclick={() => void downloadChallenge()}
-				>Download</ActionButton
-			>
-		</div>
 		{#if downloadErrorDetails}
 			<ErrorDisplay
 				message="The challenge could not be downloaded."
@@ -237,12 +236,17 @@
 			tabindex="0"
 		>
 			{#if activeTab === 'setup'}
-				<SetupPanel sharedChallenge={challenge} onTabChange={selectTab} />
+				<SetupPanel
+					sharedChallenge={challenge}
+					onTabChange={selectTab}
+					titleActions={downloadAction}
+				/>
 			{:else if activeTab === 'roll'}
 				<RollPanel
 					sharedChallenge={challenge}
 					onTabChange={selectTab}
 					onValidationCountChange={(count) => (rollValidationCount = count)}
+					titleActions={downloadAction}
 				/>
 			{:else}
 				<RunPanel
@@ -251,6 +255,7 @@
 					onTabChange={selectTab}
 					onTransitionChange={(value) => (isTransitioning = value)}
 					onValidationCountChange={(count) => (runValidationCount = count)}
+					titleActions={downloadAction}
 				/>
 			{/if}
 		</div>
@@ -260,12 +265,6 @@
 <style>
 	.challenge-workflow {
 		padding-top: 20px;
-	}
-
-	.workflow-actions {
-		display: flex;
-		justify-content: flex-end;
-		padding-bottom: 12px;
 	}
 
 	.workflow-tabs {

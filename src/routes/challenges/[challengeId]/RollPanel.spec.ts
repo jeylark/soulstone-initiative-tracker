@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import rollChallengePage from './RollPanel.svelte';
 import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
@@ -27,6 +28,20 @@ beforeEach(async () => {
 });
 
 describe('running challenge view', () => {
+	it('renders title actions alongside the initiative heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(rollChallengePage, { sharedChallenge: createSetupChallenge(), titleActions });
+
+		const heading = await screen.findByRole('heading', {
+			level: 1,
+			name: 'Initiative rolling'
+		});
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('has a heading and a link back to the landing page', async () => {
 		render(rollChallengePage);
 

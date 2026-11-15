@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import turnOrderPage from './RunPanel.svelte';
 import {
@@ -38,6 +39,17 @@ beforeEach(async () => {
 });
 
 describe('turn-order run route', () => {
+	it('renders title actions alongside the turn-order heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(turnOrderPage, { sharedChallenge: createSetupChallenge(), titleActions });
+
+		const heading = await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('starts a live session and stores its reconnect credential separately', async () => {
 		const challenge = createRunChallenge();
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(

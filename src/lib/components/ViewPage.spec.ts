@@ -8,6 +8,7 @@ afterEach(() => {
 });
 
 const children = createRawSnippet(() => ({ render: () => '<p>View content</p>' }));
+const actions = createRawSnippet(() => ({ render: () => '<button>Title action</button>' }));
 
 describe('ViewPage', () => {
 	it('renders the title, children, and shared document title', () => {
@@ -16,5 +17,13 @@ describe('ViewPage', () => {
 		expect(screen.getByRole('heading', { level: 1, name: 'Saved challenges' })).toBeTruthy();
 		expect(screen.getByText('View content')).toBeTruthy();
 		expect(document.title).toBe('Saved challenges | Soulstone Initiative Tracker');
+	});
+
+	it('renders optional actions alongside the page title', () => {
+		render(ViewPage, { title: 'Saved challenges', children, actions });
+
+		const heading = screen.getByRole('heading', { level: 1, name: 'Saved challenges' });
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
 	});
 });

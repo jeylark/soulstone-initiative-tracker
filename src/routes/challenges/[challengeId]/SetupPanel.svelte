@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, type Snippet } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -48,9 +48,11 @@
 	interface Props {
 		sharedChallenge?: Challenge;
 		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+		/** Optional action displayed beside the page title. */
+		titleActions?: Snippet;
 	}
 
-	let { sharedChallenge, onTabChange }: Props = $props();
+	let { sharedChallenge, onTabChange, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -699,6 +701,7 @@
 		: loadStatus === 'loading'
 			? 'Loading challenge setup'
 			: 'Challenge setup unavailable'}
+	actions={titleActions}
 >
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge setup.</p>

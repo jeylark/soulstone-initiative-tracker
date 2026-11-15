@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import setupChallengePage from './SetupPanel.svelte';
 import {
@@ -40,6 +41,17 @@ beforeEach(async () => {
 });
 
 describe('challenge setup view', () => {
+	it('renders title actions alongside the setup heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(setupChallengePage, { titleActions });
+
+		const heading = await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('keeps challenge settings and NPC types in separate rows on wide screens', () => {
 		const challengeSetupStyles = readFileSync(
 			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
