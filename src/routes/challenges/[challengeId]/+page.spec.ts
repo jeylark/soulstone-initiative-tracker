@@ -200,6 +200,70 @@ describe('challenge workflow tabs', () => {
 		expect(runTab.getAttribute('aria-disabled')).toBe('false');
 	});
 
+	it('shows the current Setup validation count and removes it when fixed', async () => {
+		await saveChallengeToLibrary(createSetupChallenge());
+		render(challengePage);
+
+		const setupTab = await screen.findByRole('tab', { name: 'Setup' });
+		expect(setupTab.querySelector('.validation-count')?.textContent).toBe('1');
+		const validationDescriptionId = setupTab.getAttribute('aria-describedby');
+		assert(validationDescriptionId);
+		expect(document.getElementById(validationDescriptionId)?.textContent).toBe(
+			'1 validation error'
+		);
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Valid challenge' }
+		});
+		expect(setupTab.querySelector('.validation-count')).toBeNull();
+		expect(setupTab.getAttribute('aria-describedby')).toBeNull();
+	});
+
+	it('shows invalid Roll input counts and clears the count when leaving Roll', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 } };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+
+		await fireEvent.input(input, { target: { value: '8' } });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+
+		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('shows Run blockers by affected turn and clears the count when leaving Run', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(runTab.querySelector('.validation-count')?.textContent).toBe('2');
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(runTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(runTab);
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		expect(runTab.querySelector('.validation-count')).toBeNull();
+	});
+
 	it('supports keyboard navigation between tabs', async () => {
 		render(challengePage);
 		const setupTab = await screen.findByRole('tab', { name: 'Setup' });

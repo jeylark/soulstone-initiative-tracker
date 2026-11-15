@@ -642,9 +642,11 @@ describe('turn-order run route', () => {
 		const challenge = createRunChallenge();
 		challenge.runState = { initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 } };
 		await saveChallengeToLibrary(challenge);
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, { props: { sharedChallenge: challenge, onValidationCountChange } });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
 
 		expectPageError(
 			'Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab.'

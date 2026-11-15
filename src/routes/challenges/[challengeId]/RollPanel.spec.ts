@@ -34,6 +34,39 @@ describe('running challenge view', () => {
 			await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' })
 		).toBeTruthy();
 	});
+
+	it('reports the current invalid manual initiative count', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Initiative validation';
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = { initiativeResults: { [turnId]: 5 } };
+		const onValidationCountChange = vi.fn();
+		const { unmount } = render(rollChallengePage, {
+			sharedChallenge: challenge,
+			onValidationCountChange
+		});
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+		await fireEvent.input(input, { target: { value: '9' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(0));
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+
+		unmount();
+		expect(onValidationCountChange).toHaveBeenLastCalledWith(0);
+	});
 });
 
 describe('running challenge storage', () => {

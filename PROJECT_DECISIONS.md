@@ -45,6 +45,8 @@ A challenge with a generated turn order is running. The first entry is the curre
 
 On wide screens the Setup tab's editor uses the full viewport width (with side padding) instead of the shell's centered column; Roll and Run keep the shell width. Setup, Roll, and Run are tabs on one challenge detail page at `/challenges/[challengeId]`, displayed in the center of the sticky app header. Unavailable tabs are visibly distinguished and expose their disabled state, including while a Run-state save temporarily blocks navigation. Tab selection is local page state and returns to Setup after a reload.
 
+Each workflow tab displays a numeric validation badge when it has current errors. Setup counts its complete setup and saved-data issue list; Roll counts invalid manual initiative inputs; Run counts missing-result turns, unresolved tie groups, or invalid-placement turns after a generation attempt. Zero counts are omitted. Save and live-session failures and non-blocking status messages are not validation counts. The visible badge contains only the number, with its validation meaning provided accessibly.
+
 ## App navigation and views
 
 - The landing page offers:

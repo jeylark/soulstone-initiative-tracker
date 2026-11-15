@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		loadChallengeLibrary,
@@ -25,9 +25,11 @@
 	interface Props {
 		sharedChallenge?: Challenge;
 		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+		/** Reports how many manual initiative inputs currently contain invalid values. */
+		onValidationCountChange?: (count: number) => void;
 	}
 
-	let { sharedChallenge, onTabChange }: Props = $props();
+	let { sharedChallenge, onTabChange, onValidationCountChange }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -55,6 +57,15 @@
 		const initiative = Number(value);
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
 	}
+	let invalidInputCount = $derived(
+		Object.values(initiativeInputs).filter(
+			(value) => value !== undefined && value !== '' && parseInitiativeInput(value) === undefined
+		).length
+	);
+
+	$effect(() => onValidationCountChange?.(invalidInputCount));
+
+	onDestroy(() => onValidationCountChange?.(0));
 
 	/** Whether a turn's result may be changed; results collected before editing started never can. */
 	function isTurnLocked(turnId: StableId): boolean {

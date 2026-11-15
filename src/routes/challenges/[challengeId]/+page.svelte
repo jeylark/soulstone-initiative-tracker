@@ -32,6 +32,8 @@
 	let downloadErrorDetails = $state('');
 	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
+	let rollValidationCount = $state(0);
+	let runValidationCount = $state(0);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
@@ -165,18 +167,32 @@
 {#snippet workflowTabContent()}
 	<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
 		{#each workflowTabs as tab (tab)}
+			{@const validationCount =
+				tab === 'setup'
+					? setupIssues.length
+					: tab === 'roll'
+						? rollValidationCount
+						: runValidationCount}
 			<button
 				id={`challenge-tab-${tab}`}
 				role="tab"
+				aria-label={tabLabels[tab]}
 				aria-selected={activeTab === tab}
 				aria-disabled={(tab !== 'setup' && setupIssues.length > 0) ||
 					(isTransitioning && tab !== activeTab)}
+				aria-describedby={validationCount > 0 ? `challenge-tab-${tab}-validation` : undefined}
 				aria-controls={`challenge-panel-${tab}`}
 				tabindex={activeTab === tab ? 0 : -1}
 				onclick={() => void selectTab(tab)}
 				onkeydown={(event) => handleTabKeydown(event, tab)}
 			>
 				{tabLabels[tab]}
+				{#if validationCount > 0}
+					<span class="validation-count" aria-hidden="true">{validationCount}</span>
+					<span id={`challenge-tab-${tab}-validation`} class="tab-validation-description">
+						{validationCount} validation {validationCount === 1 ? 'error' : 'errors'}
+					</span>
+				{/if}
 			</button>
 		{/each}
 	</div>
@@ -223,13 +239,18 @@
 			{#if activeTab === 'setup'}
 				<SetupPanel sharedChallenge={challenge} onTabChange={selectTab} />
 			{:else if activeTab === 'roll'}
-				<RollPanel sharedChallenge={challenge} onTabChange={selectTab} />
+				<RollPanel
+					sharedChallenge={challenge}
+					onTabChange={selectTab}
+					onValidationCountChange={(count) => (rollValidationCount = count)}
+				/>
 			{:else}
 				<RunPanel
 					sharedChallenge={challenge}
 					onSave={saveNow}
 					onTabChange={selectTab}
 					onTransitionChange={(value) => (isTransitioning = value)}
+					onValidationCountChange={(count) => (runValidationCount = count)}
 				/>
 			{/if}
 		</div>
@@ -255,9 +276,13 @@
 	}
 
 	.workflow-tabs button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		flex: 1 1 0;
 		min-width: 0;
 		min-height: 44px;
+		gap: 8px;
 		border: 0;
 		border-bottom: 3px solid transparent;
 		padding: 8px;
@@ -266,6 +291,34 @@
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;
+	}
+
+	.validation-count {
+		display: inline-flex;
+		min-width: 20px;
+		height: 20px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		padding-inline: 5px;
+		background: var(--color-danger-surface);
+		color: var(--color-danger);
+		font-size: 0.75rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+	}
+
+	.tab-validation-description {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	.workflow-tabs button[aria-selected='true'] {
