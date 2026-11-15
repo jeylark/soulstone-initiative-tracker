@@ -112,6 +112,7 @@ Follow these instructions for every task in this repository.
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 - When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
 - Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.
+- Testing Library's `DEBUG_PRINT_LIMIT` limits individual DOM dumps, not complete role listings or timeout errors. Test the actual Vitest failure output when changing diagnostic formatting; async queries can wrap an earlier error again.
 
 ## Runtime and Error Handling Lessons
 
