@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { getContext, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		CHALLENGE_FORMAT_VERSION,
@@ -35,6 +35,15 @@
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
+	const header = getContext<
+		{ setContent: (content: Snippet) => void; clearContent: (content: Snippet) => void } | undefined
+	>('app-header-content');
+
+	$effect(() => {
+		if (loadStatus !== 'ready' || !challenge || !header) return;
+		header.setContent(workflowTabContent);
+		return () => header.clearContent(workflowTabContent);
+	});
 
 	onMount(() => {
 		void (async () => {
@@ -153,6 +162,25 @@
 	}
 </script>
 
+{#snippet workflowTabContent()}
+	<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
+		{#each workflowTabs as tab (tab)}
+			<button
+				id={`challenge-tab-${tab}`}
+				role="tab"
+				aria-selected={activeTab === tab}
+				aria-disabled={tab !== 'setup' && setupIssues.length > 0}
+				aria-controls={`challenge-panel-${tab}`}
+				tabindex={activeTab === tab ? 0 : -1}
+				onclick={() => void selectTab(tab)}
+				onkeydown={(event) => handleTabKeydown(event, tab)}
+			>
+				{tabLabels[tab]}
+			</button>
+		{/each}
+	</div>
+{/snippet}
+
 {#if loadStatus === 'loading'}
 	<ViewPage title="Loading challenge">
 		<p>Loading challenge…</p>
@@ -179,22 +207,9 @@
 				details={downloadErrorDetails}
 			/>
 		{/if}
-		<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
-			{#each workflowTabs as tab (tab)}
-				<button
-					id={`challenge-tab-${tab}`}
-					role="tab"
-					aria-selected={activeTab === tab}
-					aria-disabled={tab !== 'setup' && setupIssues.length > 0}
-					aria-controls={`challenge-panel-${tab}`}
-					tabindex={activeTab === tab ? 0 : -1}
-					onclick={() => void selectTab(tab)}
-					onkeydown={(event) => handleTabKeydown(event, tab)}
-				>
-					{tabLabels[tab]}
-				</button>
-			{/each}
-		</div>
+		{#if !header}
+			{@render workflowTabContent()}
+		{/if}
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
@@ -233,16 +248,18 @@
 
 	.workflow-tabs {
 		display: flex;
+		width: min(100%, 400px);
 		gap: 4px;
 		border-bottom: 1px solid var(--color-border-subtle);
 	}
 
 	.workflow-tabs button {
-		min-width: 88px;
+		flex: 1 1 0;
+		min-width: 0;
 		min-height: 44px;
 		border: 0;
 		border-bottom: 3px solid transparent;
-		padding: 8px 16px;
+		padding: 8px;
 		background: transparent;
 		color: var(--color-foreground-muted);
 		font: inherit;
@@ -262,12 +279,5 @@
 
 	[role='tabpanel'] {
 		min-width: 0;
-	}
-
-	@media (max-width: 480px) {
-		.workflow-tabs button {
-			flex: 1 1 0;
-			min-width: 0;
-		}
 	}
 </style>

@@ -95,6 +95,9 @@ Follow these instructions for every task in this repository.
 
 ## Architecture and Code Organization Lessons
 
+- Before planning route-specific content in the shared header, trace the owning page's state, validation, and save handlers; moving the controls must preserve those behaviors and their lifecycle.
+- A layout-scoped Svelte context can expose a page-owned snippet to the header without global state. Clear the registered snippet by identity on teardown so an older page cannot remove newer header content, and provide for standalone page tests.
+
 ## Data and State Management Lessons
 
 - Keep the complete validation issue set as the source for workflow blocking. Derive filtered presentation lists for inline fields and summaries so display changes cannot accidentally make an invalid workflow available.
