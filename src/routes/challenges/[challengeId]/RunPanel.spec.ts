@@ -810,13 +810,15 @@ describe('turn-order run route', () => {
 		expect(items[0]?.textContent).toContain('Initiative: 12');
 		expect(items[1]?.textContent).toContain('Initiative: 6');
 		expect(items[2]?.textContent).not.toContain('Initiative:');
+		const cards = items.map((item) => item.querySelector<HTMLElement>('.card'));
+		expect(cards.slice(0, 2).map((card) => card?.classList.contains('card--accented'))).toEqual([
+			true,
+			true
+		]);
 		expect(
-			items.map((item) =>
-				item
-					.querySelector<HTMLElement>('.turn-order-card-tone')
-					?.style.getPropertyValue('--faction-color')
-			)
-		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
+			cards.slice(0, 2).map((card) => card?.style.getPropertyValue('--card-accent-color'))
+		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)']);
+		expect(cards[2]?.classList.contains('card--accented')).toBe(false);
 	});
 
 	it('hides and restores all turns for a creature without changing the saved order or results', async () => {
