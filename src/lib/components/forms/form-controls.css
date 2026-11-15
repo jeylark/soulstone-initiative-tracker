@@ -12,6 +12,10 @@
 	min-width: 0;
 }
 
+.form-field-messages--align-labels {
+	align-self: end;
+}
+
 .form-checkbox-field {
 	display: flex;
 	min-height: 40px;

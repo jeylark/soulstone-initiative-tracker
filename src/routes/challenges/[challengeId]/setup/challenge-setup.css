@@ -56,10 +56,6 @@
 	padding-block-start: 12px;
 }
 
-.challenge-setup .npc-type-field-label {
-	min-height: 2lh;
-}
-
 .challenge-setup .npc-type-card legend {
 	padding: 0 6px;
 	font-size: 15px;

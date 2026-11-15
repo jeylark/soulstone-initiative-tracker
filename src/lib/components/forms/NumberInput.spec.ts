@@ -7,6 +7,12 @@ afterEach(() => {
 });
 
 describe('NumberInput', () => {
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(NumberInput, { label: 'Initiative' });
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('applies a caller-owned class to the label', () => {
 		render(NumberInput, { label: 'Initiative stat', labelClass: 'npc-type-field-label' });
 

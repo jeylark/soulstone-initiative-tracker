@@ -8,6 +8,15 @@ afterEach(() => {
 });
 
 describe('SelectInput', () => {
+	it('uses shared wrapped-label row alignment', () => {
+		render(SelectInput, {
+			label: 'Faction',
+			children: createRawSnippet(() => ({ render: () => '<option>Players</option>' }))
+		});
+
+		expect(document.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('renders child options and forwards selection changes and native attributes', async () => {
 		const onchange = vi.fn();
 		const children = createRawSnippet(() => ({

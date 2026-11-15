@@ -7,6 +7,12 @@ afterEach(() => {
 });
 
 describe('TextInput', () => {
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(TextInput, { label: 'Challenge name' });
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('applies a caller-owned class to the label', () => {
 		render(TextInput, { label: 'NPC type name', labelClass: 'npc-type-field-label' });
 

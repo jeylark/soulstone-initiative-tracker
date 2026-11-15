@@ -108,6 +108,7 @@ On wide screens the Setup tab's editor uses the full viewport width (with side p
 ## Coding guidelines
 
 - Work on each implementation task in a separate Git branch. Never merge into or push to `main`.
+- Stacked-label text, number, select, and range fields align to the bottom of their layout row when sibling field heights differ, such as when a label wraps. They do not reserve fixed height for labels that fit on one line. Checkbox and color-picker layouts are unaffected.
 - Prefer clear names and simple designs. Keep functions and components focused, avoid duplication, and avoid unnecessary abstractions.
 - Use PascalCase for types, camelCase for identifiers, and UPPER_SNAKE_CASE for constants. Prefix booleans with `is`, `has`, or `can`, and write acronyms as words (for example, `Uuid` and `Id`). ESLint enforces type and identifier casing, acronym style, and boolean prefixes.
 - Object, array, tuple, and collection parameters must be read-only: use `Readonly<T>`, `readonly T[]`, `readonly [A, B]`, `ReadonlySet<T>`, or `ReadonlyMap<K, V>` as appropriate. Do not accept mutable object or collection parameters, including accumulators; keep mutation local and return the resulting value. ESLint enforces this for explicitly typed parameters.

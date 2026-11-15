@@ -42,6 +42,6 @@ describe('NpcTypeEditor', () => {
 		const npc = screen.getByRole('group', { name: 'Guard' });
 		expect(npc.querySelector('.entity-remove-action')).toBeTruthy();
 		expect(npc.querySelector('.npc-type-remove-action')).toBeNull();
-		expect(npc.querySelector('.npc-type-field-label')).toBeTruthy();
+		expect(npc.querySelectorAll('.form-field-messages--align-labels')).toHaveLength(2);
 	});
 });

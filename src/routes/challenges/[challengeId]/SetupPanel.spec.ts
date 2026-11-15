@@ -53,17 +53,19 @@ describe('challenge setup view', () => {
 		);
 	});
 
-	it('keeps NPC type fields spaced beneath their labels', () => {
+	it('aligns stacked form fields without reserving space for short labels', () => {
 		const challengeSetupStyles = readFileSync(
 			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
 			'utf8'
 		);
+		const formControlStyles = readFileSync('src/lib/components/forms/form-controls.css', 'utf8');
 		expect(challengeSetupStyles).toMatch(
 			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s
 		);
-		expect(challengeSetupStyles).toMatch(
-			/\.challenge-setup\s+\.npc-type-field-label\s*\{\s*min-height:\s*2lh/s
+		expect(formControlStyles).toMatch(
+			/\.form-field-messages--align-labels\s*\{[^}]*align-self:\s*end/s
 		);
+		expect(challengeSetupStyles).not.toMatch(/npc-type-field-label|min-height:\s*2lh/);
 	});
 
 	it('spaces faction properties from the creature list', () => {

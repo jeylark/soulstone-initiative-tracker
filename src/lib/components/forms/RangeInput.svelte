@@ -84,7 +84,7 @@
 	);
 </script>
 
-<div class="form-field-messages">
+<div class="form-field-messages form-field-messages--align-labels">
 	<fieldset class="form-range-field">
 		<legend><span class:visually-hidden={isLabelVisuallyHidden}>{label}</span></legend>
 		<div class="form-range-input">

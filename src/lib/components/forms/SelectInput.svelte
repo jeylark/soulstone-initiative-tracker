@@ -47,7 +47,7 @@
 	);
 </script>
 
-<div class="form-field-messages">
+<div class="form-field-messages form-field-messages--align-labels">
 	<label class="form-field">
 		<span class:visually-hidden={isLabelVisuallyHidden}>{label}</span>
 		<select

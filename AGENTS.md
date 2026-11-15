@@ -84,6 +84,7 @@ Follow these instructions for every task in this repository.
 - In compact form grids, account for wrapped labels and controls overlaid near
   the fields. Reserve space for overlays and keep label rows a consistent
   height when inputs need to align.
+- Prefer generalized customizations over element-specific fixes.
 - CSS source assertions can guard layout rules, but they do not prove rendered
   geometry. Use focused tests and verify the affected view in a browser when
   available.

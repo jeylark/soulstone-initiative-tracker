@@ -7,6 +7,18 @@ afterEach(() => {
 });
 
 describe('RangeInput', () => {
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(RangeInput, {
+			label: 'Fairness weight',
+			value: 4,
+			min: 0,
+			max: 10,
+			step: 1
+		});
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('renders a shared label and forwards both control input events', async () => {
 		const onSliderInput = vi.fn();
 		const onNumberInput = vi.fn();

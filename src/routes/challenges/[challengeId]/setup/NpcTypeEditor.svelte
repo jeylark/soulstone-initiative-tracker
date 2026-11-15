@@ -54,7 +54,6 @@
 				{@const statError = issueMessage(setupIssues, `$.npcTypes[${index}].initiativeStat`)}
 				<TextInput
 					label="NPC type name"
-					labelClass="npc-type-field-label"
 					aria-label={`NPC type name: ${npcType.name}`}
 					value={npcType.name}
 					disabled={!isNpcTypeConfigurable(npcType.id)}
@@ -64,7 +63,6 @@
 				/>
 				<NumberInput
 					label="Initiative"
-					labelClass="npc-type-field-label"
 					aria-label={`Initiative stat for ${npcType.name}`}
 					value={npcType.initiativeStat}
 					disabled={!isNpcTypeConfigurable(npcType.id)}
