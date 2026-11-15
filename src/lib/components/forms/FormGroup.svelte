@@ -3,7 +3,7 @@
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		/** Caller-owned class for column sizing and responsive layout; row gaps use --form-group-row-gap. */
+		/** Caller-owned layout class; configure the grid with --form-group-min-column-width, --form-group-column-gap and --form-group-row-gap. */
 		class?: string;
 		/** Custom form controls rendered as direct children and sharing the group's alignment rows. */
 		children: Snippet;

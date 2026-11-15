@@ -74,6 +74,10 @@
 
 <style>
 	.settings {
+		--form-group-row-gap: 16px;
+		--form-group-min-column-width: 256px;
+		--form-group-column-gap: 24px;
+
 		min-inline-size: 0;
 		margin: 0;
 		border: 0;
@@ -81,20 +85,8 @@
 		background: transparent;
 	}
 
-	.settings-fields {
-		--form-group-row-gap: 16px;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		column-gap: 24px;
-	}
-
 	.fairness-description {
 		margin: 0;
 		font-size: 13px;
-	}
-
-	@media (max-width: 640px) {
-		.settings-fields {
-			grid-template-columns: minmax(0, 1fr);
-		}
 	}
 </style>

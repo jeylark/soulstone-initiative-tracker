@@ -65,11 +65,13 @@ Follow these instructions for every task in this repository.
 ## UI Layout Lessons
 
 - Shared form alignment requires parent-owned tracks as well as participating child markup; place custom controls directly inside `FormGroup` and keep each visual row's label, control, and feedback tracks independent.
+- `FormGroup` wraps based on available container width. For wider controls, configure `--form-group-min-column-width` and gaps on an owning ancestor instead of replacing its grid or relying on viewport breakpoints; defaults are 160px minimum and 20px column gap.
 - JSDOM can verify form-group structure and accessible associations, but not CSS subgrid geometry; verify rendered alignment separately in a browser.
 - Svelte scopes selectors in a component's `<style>` block, but a plain `.css`
   file imported by a component is global. Put shared class rules in a dedicated
   stylesheet that owns those class names; use explicit `class` props for
   caller-owned child styling, and avoid `:global()`.
+- A scoped selector targeting only a class passed to a child component can be reported unused and omitted by Svelte. Check compiler warnings and, where appropriate, pass styling through inherited CSS custom properties set on a parent-owned element.
 - When a Card renders a visible heading around a fieldset, keep the fieldset
   legend for accessible group naming but visually hide it to avoid duplicate
   titles. When changing shared Card styles, audit every Card/fieldset wrapper
@@ -103,6 +105,7 @@ Follow these instructions for every task in this repository.
 
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 - When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
+- Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.
 
 ## Runtime and Error Handling Lessons
 

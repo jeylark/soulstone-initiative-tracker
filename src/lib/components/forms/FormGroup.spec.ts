@@ -17,7 +17,12 @@ describe('FormGroup', () => {
 		expect(group?.classList.contains('form-group')).toBe(true);
 		expect(group?.classList.contains('custom-columns')).toBe(true);
 		expect(styles).toMatch(/\.form-group\s*\{[^}]*display:\s*grid/s);
-		expect(styles).toMatch(/\.form-group\s*\{[^}]*grid-template-columns:/s);
+		expect(styles).toMatch(
+			/\.form-group\s*\{[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*var\(--form-group-min-column-width,\s*160px\)\),\s*1fr\)\s*\)/s
+		);
+		expect(styles).toMatch(
+			/\.form-group\s*\{[^}]*gap:\s*0\s+var\(--form-group-column-gap,\s*20px\)/s
+		);
 		expect(styles).toMatch(
 			/\.form-group\s*>\s*\.form-field-messages\s*\{[^}]*grid-row:\s*span 3;[^}]*grid-template-rows:\s*subgrid/s
 		);

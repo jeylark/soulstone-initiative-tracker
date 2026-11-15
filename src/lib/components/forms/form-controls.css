@@ -18,8 +18,11 @@
 
 .form-group {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-	gap: 0 20px;
+	grid-template-columns: repeat(
+		auto-fit,
+		minmax(min(100%, var(--form-group-min-column-width, 160px)), 1fr)
+	);
+	gap: 0 var(--form-group-column-gap, 20px);
 	min-width: 0;
 }
 
