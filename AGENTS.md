@@ -123,5 +123,6 @@ Follow these instructions for every task in this repository.
 ## Tooling and Workflow Lessons
 
 - After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
+- When type-aware ESLint reports that a source file is missing from the project service after dependency installation, run `npm run prepare` to generate SvelteKit's project metadata before changing parser configuration.
 
 ## Documentation and Decision Lessons

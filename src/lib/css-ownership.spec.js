@@ -1,4 +1,4 @@
-import { RuleTester } from 'eslint';
+import { ESLint, RuleTester } from 'eslint';
 import svelteParser from 'svelte-eslint-parser';
 import { describe, expect, it } from 'vitest';
 import rule from '../../eslint/no-cross-component-styles.js';
@@ -11,6 +11,14 @@ const ruleTester = new RuleTester({
 });
 
 describe('no-global-svelte-styles', () => {
+	it('parses this JavaScript spec with the configured project service', async () => {
+		const eslint = new ESLint();
+		const results = await eslint.lintFiles(['src/lib/css-ownership.spec.js']);
+
+		expect(results).toHaveLength(1);
+		expect(results[0]?.fatalErrorCount).toBe(0);
+	});
+
 	it('allows shared stylesheet imports and caller-owned classes', () => {
 		expect(
 			ruleTester.run('no-global-svelte-styles', rule, {
