@@ -236,15 +236,10 @@
 			tabindex="0"
 		>
 			{#if activeTab === 'setup'}
-				<SetupPanel
-					sharedChallenge={challenge}
-					onTabChange={selectTab}
-					titleActions={downloadAction}
-				/>
+				<SetupPanel sharedChallenge={challenge} titleActions={downloadAction} />
 			{:else if activeTab === 'roll'}
 				<RollPanel
 					sharedChallenge={challenge}
-					onTabChange={selectTab}
 					onValidationCountChange={(count) => (rollValidationCount = count)}
 					titleActions={downloadAction}
 				/>

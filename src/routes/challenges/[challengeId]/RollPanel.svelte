@@ -20,18 +20,16 @@
 	import TieResolution from './roll/TieResolution.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
-	type WorkflowTab = 'setup' | 'roll' | 'run';
 
 	interface Props {
 		sharedChallenge?: Challenge;
-		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
 		/** Reports how many manual initiative inputs currently contain invalid values. */
 		onValidationCountChange?: (count: number) => void;
 	}
 
-	let { sharedChallenge, onTabChange, onValidationCountChange, titleActions }: Props = $props();
+	let { sharedChallenge, onValidationCountChange, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -263,48 +261,6 @@
 		);
 		return pendingSave;
 	}
-
-	async function returnToSetup(event?: Readonly<{ preventDefault: () => void }>): Promise<void> {
-		event?.preventDefault();
-		if (!challenge) return;
-		if (sharedChallenge && onTabChange) {
-			await onTabChange('setup');
-			return;
-		}
-
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
-	}
-
-	async function continueToTurnOrder(
-		event?: Readonly<{ preventDefault: () => void }>
-	): Promise<void> {
-		event?.preventDefault();
-		if (!challenge) return;
-		if (sharedChallenge && onTabChange) {
-			await onTabChange('run');
-			return;
-		}
-
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
-	}
 </script>
 
 <ViewPage title="Initiative rolling" actions={titleActions}>
@@ -343,10 +299,6 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
-		<ActionButton variant="neutral" onclick={() => void returnToSetup()}
-			>Return to setup</ActionButton
-		>
-		<ActionButton onclick={() => void continueToTurnOrder()}>Continue to turn order</ActionButton>
 	{:else}
 		{#if loadStatus === 'not-found'}
 			<ErrorDisplay message="The challenge was not found." />

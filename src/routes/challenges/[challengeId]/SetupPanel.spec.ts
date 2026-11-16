@@ -126,15 +126,11 @@ describe('challenge setup view', () => {
 		const summary = screen.getByRole('region', { name: 'Setup validation errors' });
 		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' });
 		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
-		const rollButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-
 		expect(nameInput.getAttribute('aria-invalid')).toBe('true');
 		expect(within(summary).queryByText(/^\$\.name:/)).toBeNull();
 		expect(summary.textContent).toContain('$.runState.spawnCount');
 		expect(editor.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(
-			summary.compareDocumentPosition(rollButton) & Node.DOCUMENT_POSITION_FOLLOWING
-		).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Roll Initiatives' })).toBeNull();
 	});
 
 	it('shows complete saved-data diagnostics and only resets progress after confirmation', async () => {
@@ -530,9 +526,6 @@ describe('challenge setup persistence', () => {
 		await waitFor(async () => {
 			expect((await loadChallengeLibrary()).challenges[0]?.fairnessWeight).toBe(-1);
 		});
-		expect(
-			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
-		).toBe(true);
 		expect(screen.getByText('Fairness weight must be a non-negative number.')).toBeTruthy();
 	});
 
@@ -665,9 +658,6 @@ describe('challenge setup persistence', () => {
 			const turn = (await loadChallengeLibrary()).challenges[0]?.creatures[0]?.turns[0];
 			expect(turn?.initiative).toEqual({ kind: 'fixed-position', from: 'top', position: 0.5 });
 		});
-		expect(
-			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
-		).toBe(true);
 	});
 
 	it('hides the character initiative stat unless a turn is app-rolled, keeping the value', async () => {
@@ -762,7 +752,7 @@ describe('challenge setup persistence', () => {
 		secondView.unmount();
 	});
 
-	it('shows all initiative-stat issues and blocks starting until they are fixed', async () => {
+	it('shows initiative-stat issues and clears them when fixed', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [
 			{
@@ -782,51 +772,23 @@ describe('challenge setup persistence', () => {
 		await saveChallengeToLibrary(challenge);
 
 		render(setupChallengePage);
-		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
-		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
 		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
-		await fireEvent.click(disabledStartButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
-
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
 			target: { value: '2' }
 		});
-		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(() => expect(screen.queryByText('Initiative is required.')).toBeNull());
 	});
 
-	it('saves the latest edits before starting the challenge', async () => {
-		await renderSetup();
-
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
-			target: { value: 'Ready to roll' }
-		});
-		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.closest('fieldset[disabled]')).toBeNull();
-		await fireEvent.click(startButton);
-
-		expect(mockedGoto).not.toHaveBeenCalled();
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.name).toBe('Ready to roll');
-		});
-	});
-
-	it('stays in setup and shows an error when starting cannot save', async () => {
+	it('shows an error when autosaving cannot save', async () => {
 		await renderSetup();
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Unsaved change' }
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
-
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Challenge setup' })).toBeTruthy();
 	});
 
 	it.each(['unknown', 'unreadable'] as const)(
@@ -1151,51 +1113,23 @@ describe('challenge setup persistence', () => {
 		await saveChallengeToLibrary(challenge);
 
 		render(setupChallengePage);
-		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
-		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
 		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
-		await fireEvent.click(disabledStartButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
-
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
 			target: { value: '2' }
 		});
-		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
+		await waitFor(() => expect(screen.queryByText('Initiative is required.')).toBeNull());
 	});
 
-	it('saves the latest edits before starting the challenge', async () => {
-		await renderSetup();
-
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
-			target: { value: 'Ready to roll' }
-		});
-		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.closest('fieldset[disabled]')).toBeNull();
-		await fireEvent.click(startButton);
-
-		expect(mockedGoto).not.toHaveBeenCalled();
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.name).toBe('Ready to roll');
-		});
-	});
-
-	it('stays in setup and shows an error when starting cannot save', async () => {
+	it('shows an error when autosaving cannot save', async () => {
 		await renderSetup();
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Unsaved change' }
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
-
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Challenge setup' })).toBeTruthy();
 	});
 
 	it.each(['unknown', 'unreadable'] as const)(

@@ -30,7 +30,6 @@
 	import './setup/challenge-setup.css';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
-	type WorkflowTab = 'setup' | 'roll' | 'run';
 	const LOCKED_BLANK_NPC_IDENTIFIER_ERROR =
 		'This NPC type has a locked NPC with a blank identifier. Choose another type or remove and recreate that NPC before adding another.';
 	const INLINE_SETUP_ISSUE_PATHS = [
@@ -47,12 +46,11 @@
 
 	interface Props {
 		sharedChallenge?: Challenge;
-		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
 	}
 
-	let { sharedChallenge, onTabChange, titleActions }: Props = $props();
+	let { sharedChallenge, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -184,29 +182,6 @@
 			}
 		}
 		invalidateGeneratedTurnOrder();
-	}
-
-	async function startChallenge(event?: Readonly<{ preventDefault: () => void }>) {
-		event?.preventDefault();
-		if (setupIssues.length > 0) return;
-		if (sharedChallenge && onTabChange) {
-			try {
-				await onTabChange('roll');
-			} catch {
-				hasSaveError = true;
-			}
-			return;
-		}
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
 	}
 
 	function updateChallengeName(name: string) {
@@ -777,13 +752,6 @@
 					onclick={resetSavedProgress}>Reset saved progress</ActionButton
 				>
 			</section>
-		{/if}
-		{#if setupIssues.length > 0}
-			<ActionButton disabled>Roll Initiatives</ActionButton>
-		{:else if sharedChallenge}
-			<ActionButton onclick={() => void startChallenge()}>Roll Initiatives</ActionButton>
-		{:else}
-			<ActionButton onclick={startChallenge}>Roll Initiatives</ActionButton>
 		{/if}
 	{:else}
 		{#if loadStatus === 'error'}
