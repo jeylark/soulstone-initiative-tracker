@@ -825,10 +825,11 @@ describe('turn-order run route', () => {
 		expect(items[1]?.textContent).toContain('Initiative: 6');
 		expect(items[2]?.textContent).not.toContain('Initiative:');
 		expect(
-			items.map((item) =>
-				item
-					.querySelector<HTMLElement>('.turn-order-card-tone')
-					?.style.getPropertyValue('--faction-color')
+			items.map(
+				(item) =>
+					item
+						.querySelector<HTMLElement>('.turn-order-card')
+						?.style.getPropertyValue('--card-accent-color') || undefined
 			)
 		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});
