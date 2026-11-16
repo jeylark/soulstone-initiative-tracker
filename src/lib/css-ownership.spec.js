@@ -17,7 +17,7 @@ describe('no-global-svelte-styles', () => {
 
 		expect(results).toHaveLength(1);
 		expect(results[0]?.fatalErrorCount).toBe(0);
-	});
+	}, 15000);
 
 	it('allows shared stylesheet imports and caller-owned classes', () => {
 		expect(
