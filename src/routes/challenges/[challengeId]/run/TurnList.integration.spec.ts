@@ -53,8 +53,8 @@ describe('turn list', () => {
 		expect(
 			items.map((item) =>
 				item
-					.querySelector<HTMLElement>('.turn-order-card-tone')
-					?.style.getPropertyValue('--faction-color')
+					.querySelector<HTMLElement>('.turn-order-card-tone .card')
+					?.style.getPropertyValue('--card-accent-color')
 			)
 		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});
