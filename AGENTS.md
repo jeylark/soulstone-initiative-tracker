@@ -125,6 +125,11 @@ Follow these instructions for every task in this repository.
 - When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
 - Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.
 - Testing Library's `DEBUG_PRINT_LIMIT` limits individual DOM dumps, not complete role listings or timeout errors. Test the actual Vitest failure output when changing diagnostic formatting; async queries can wrap an earlier error again.
+- `Card` renders its children inside a `card-body` region, so card content is
+  not a sibling of the card heading. Tests should resolve the owning card via
+  `closest('.card')` instead of `parentElement`; a structural change to a
+  shared component can break the same `parentElement` assumption across many
+  test files, so grep for the pattern and fix all occurrences together.
 
 ## Runtime and Error Handling Lessons
 
