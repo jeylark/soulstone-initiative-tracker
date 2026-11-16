@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import NumberInput from './NumberInput.svelte';
@@ -7,6 +8,38 @@ afterEach(() => {
 });
 
 describe('NumberInput', () => {
+	it('participates in shared label, control and feedback rows', () => {
+		const { container } = render(NumberInput, { label: 'A label that may wrap' });
+		const field = screen.getByRole('spinbutton', { name: 'A label that may wrap' });
+		const wrapper = field.closest('.form-field-messages');
+		const label = field.closest('.form-field');
+		const styles = readFileSync('src/lib/components/forms/form-controls.css', 'utf8');
+
+		expect(wrapper?.parentElement).toBe(container);
+		expect(label?.querySelector('.form-control-label')?.textContent).toBe('A label that may wrap');
+		expect(wrapper?.querySelector('.form-control-message-area')).toBeTruthy();
+		expect(styles).toMatch(
+			/\.form-group\s*>\s*\.form-field-messages\s*\{[^}]*grid-template-rows:\s*subgrid/s
+		);
+		expect(styles).toMatch(
+			/\.form-group\s*>\s*\.form-field-messages\s*>\s*\.form-field\s*\{[^}]*grid-template-rows:\s*subgrid/s
+		);
+	});
+
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(NumberInput, { label: 'Initiative' });
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
+	it('applies a caller-owned class to the label', () => {
+		render(NumberInput, { label: 'Initiative stat', labelClass: 'npc-type-field-label' });
+
+		expect(screen.getByText('Initiative stat').classList.contains('npc-type-field-label')).toBe(
+			true
+		);
+	});
+
 	it('preserves numeric constraints and forwards input events', async () => {
 		const oninput = vi.fn();
 		render(NumberInput, {

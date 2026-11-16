@@ -35,10 +35,12 @@
 	}
 
 	interface Props {
+		/** Caller-owned class applied to the list root. */
+		class?: string;
 		/** Add actions shown after the entity items. */
 		adds: readonly AddAction[];
-		/** Extra content rendered after entity items and before add actions. */
-		afterEntities?: Snippet;
+		/** Each snippet renders one supplemental item after entities and before add actions. */
+		afterEntityItems?: readonly Snippet[];
 		/** Selects the accessible name of each entity group. */
 		legendSelector?: (entity: DeepReadonly<T>, index: number) => string;
 		/** Selects the accessible name of each remove button. */
@@ -49,6 +51,8 @@
 		onRemove?: (entity: DeepReadonly<T>) => void;
 		/** How the items are arranged: vertical stack, wrapping strip, or responsive grid. */
 		layout?: 'grid' | 'strip' | 'stack';
+		/** Whether grid items keep their width when other tracks are empty. */
+		isGridItemWidthStable?: boolean;
 		/** Entities rendered in the list. */
 		entities: readonly DeepReadonly<T>[];
 		/** Content rendered inside each entity item, with its zero-based index. */
@@ -56,20 +60,25 @@
 	}
 
 	let {
+		class: className = '',
 		adds,
 		onRemove,
 		removeLabelSelector,
 		itemOptionsSelector,
 		layout = 'stack',
+		isGridItemWidthStable = false,
 		entities,
 		entityEditor,
 		legendSelector,
-		afterEntities
+		afterEntityItems
 	}: Props = $props();
 </script>
 
-<div class="entity-list">
-	<div class={`entity-list-items entity-list-items--${layout}`}>
+<div class={`entity-list ${className}`}>
+	<div
+		class={`entity-list-items entity-list-items--${layout}`}
+		class:entity-list-items--grid-stable={layout === 'grid' && isGridItemWidthStable}
+	>
 		{#each entities as entity, index (entity.id)}
 			{@const itemOptions = itemOptionsSelector?.(entity, index) ?? {}}
 			<EntityListItem
@@ -80,6 +89,7 @@
 				headerSize={itemOptions.headerSize}
 				variant={itemOptions.variant}
 				spacing={itemOptions.spacing}
+				isStripItem={layout === 'strip'}
 				removeText={itemOptions.removeText}
 				isRemoveDisabled={itemOptions.isRemoveDisabled}
 				{...itemOptions.fieldsetAttributes}
@@ -87,7 +97,13 @@
 				{@render entityEditor(entity, index)}
 			</EntityListItem>
 		{/each}
-		{@render afterEntities?.()}
+		{#each afterEntityItems ?? [] as afterEntityItem, index (index)}
+			{#if layout === 'strip'}
+				<div class="entity-list-strip-item">{@render afterEntityItem()}</div>
+			{:else}
+				{@render afterEntityItem()}
+			{/if}
+		{/each}
 	</div>
 	<div class="entity-list-actions">
 		{#each adds as add, index (index)}
@@ -126,7 +142,7 @@
 		gap: 12px;
 	}
 
-	.entity-list-items--strip > :global(*) {
+	.entity-list-strip-item {
 		flex: 0 1 min(280px, 100%);
 		min-width: 0;
 	}
@@ -136,5 +152,9 @@
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 		align-items: start;
 		gap: 20px;
+	}
+
+	.entity-list-items--grid-stable {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 	}
 </style>

@@ -2,7 +2,7 @@
 	import type { Turn, TurnInitiative, ValidationIssue } from '#lib/challenge';
 	import type { InitiativeChoice, TurnEditorChange, TurnTarget } from './challenge-setup-types';
 	import { issueMessage } from './issue-messages';
-	import { NumberInput, SelectInput } from '#lib/components';
+	import { FormGroup, NumberInput, SelectInput } from '#lib/components';
 
 	interface Props {
 		turn: Readonly<Turn>;
@@ -34,7 +34,7 @@
 	}
 </script>
 
-<div class="turn-settings">
+<FormGroup class="turn-settings">
 	<SelectInput
 		label="Turn initiative"
 		value={initiativeChoice(turn.initiative)}
@@ -116,4 +116,4 @@
 			{/each}
 		</SelectInput>
 	{/if}
-</div>
+</FormGroup>

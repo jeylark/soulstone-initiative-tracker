@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +17,10 @@ type TestEntity = { readonly id: (typeof entities)[number]['id']; readonly name:
 const entityEditor = createRawSnippet<[TestEntity, number]>((getEntity, getIndex) => ({
 	render: () => `<p>${getEntity().name}:${getIndex()}</p>`
 }));
-const afterEntities = createRawSnippet(() => ({ render: () => '<p>Recovery section</p>' }));
+const afterEntityItems = [
+	createRawSnippet(() => ({ render: () => '<p>Recovery section</p>' })),
+	createRawSnippet(() => ({ render: () => '<p>Unassigned section</p>' }))
+];
 
 describe('EntityList', () => {
 	it('renders each entity through the editor snippet', () => {
@@ -61,6 +65,17 @@ describe('EntityList', () => {
 		expect(screen.getByRole('group', { name: 'Alpha' }).getAttribute('data-entity-id')).toBe(
 			entities[0].id
 		);
+	});
+
+	it('applies the caller-owned class to the list root', () => {
+		const { container } = render(EntityList<TestEntity>, {
+			class: 'caller-list',
+			entities: [],
+			entityEditor,
+			adds: []
+		});
+
+		expect(container.firstElementChild?.classList.contains('caller-list')).toBe(true);
 	});
 
 	it('calls onRemove with the selected entity', async () => {
@@ -124,11 +139,12 @@ describe('EntityList', () => {
 	});
 
 	it('applies the layout modifier class to the items container', () => {
-		render(EntityList<TestEntity>, {
+		const { container } = render(EntityList<TestEntity>, {
 			entities,
 			entityEditor,
 			adds: [],
 			layout: 'strip',
+			afterEntityItems,
 			legendSelector: (entity) => entity.name,
 			removeLabelSelector: (entity) => `Remove ${entity.name}`,
 			onRemove: vi.fn()
@@ -137,13 +153,46 @@ describe('EntityList', () => {
 		expect(document.querySelector('.entity-list-items')?.className).toContain(
 			'entity-list-items--strip'
 		);
+		expect(container.querySelectorAll('.card--strip-item')).toHaveLength(2);
+		expect(container.querySelectorAll('.entity-list-strip-item')).toHaveLength(2);
 	});
 
-	it('renders supplemental content after the entities and before the add actions', () => {
-		render(EntityList<TestEntity>, {
+	it('fills grid rows by default and can preserve stable item widths', () => {
+		const { container } = render(EntityList<TestEntity>, {
+			entities,
+			entityEditor,
+			adds: [],
+			layout: 'grid'
+		});
+
+		const styles = readFileSync('src/lib/components/EntityList.svelte', 'utf8');
+		const grid = container.querySelector('.entity-list-items--grid');
+		expect(grid).toBeTruthy();
+		expect(grid?.classList.contains('entity-list-items--grid-stable')).toBe(false);
+		expect(styles).toMatch(
+			/\.entity-list-items--grid\s*\{[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*260px\),\s*1fr\)\s*\)/s
+		);
+
+		const stable = render(EntityList<TestEntity>, {
+			entities,
+			entityEditor,
+			adds: [],
+			layout: 'grid',
+			isGridItemWidthStable: true
+		});
+		const stableGrid = stable.container.querySelector('.entity-list-items--grid');
+		expect(stableGrid?.classList.contains('entity-list-items--grid-stable')).toBe(true);
+		expect(styles).toMatch(
+			/\.entity-list-items--grid-stable\s*\{[^}]*grid-template-columns:\s*repeat\(\s*auto-fill,\s*minmax\(min\(100%,\s*260px\),\s*1fr\)\s*\)/s
+		);
+	});
+
+	it('renders each supplemental item after the entities and before the add actions', () => {
+		const { container } = render(EntityList<TestEntity>, {
 			entities: [entities[0]],
 			entityEditor,
-			afterEntities,
+			afterEntityItems,
+			layout: 'strip',
 			adds: [{ label: 'Add thing', onAdd: vi.fn() }],
 			legendSelector: (entity) => entity.name,
 			removeLabelSelector: (entity) => `Remove ${entity.name}`,
@@ -152,12 +201,17 @@ describe('EntityList', () => {
 
 		const entity = screen.getByRole('group', { name: 'Alpha' });
 		const recovery = screen.getByText('Recovery section');
+		const unassigned = screen.getByText('Unassigned section');
 		const addButton = screen.getByRole('button', { name: 'Add thing' });
 		expect(
 			entity.compareDocumentPosition(recovery) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 		expect(
-			recovery.compareDocumentPosition(addButton) & Node.DOCUMENT_POSITION_FOLLOWING
+			recovery.compareDocumentPosition(unassigned) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
+		expect(
+			unassigned.compareDocumentPosition(addButton) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+		expect(container.querySelectorAll('.entity-list-strip-item')).toHaveLength(2);
 	});
 });

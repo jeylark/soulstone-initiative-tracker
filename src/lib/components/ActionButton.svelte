@@ -6,6 +6,8 @@
 
 	interface Props extends Omit<HTMLButtonAttributes, 'children'> {
 		variant?: 'primary' | 'danger' | 'neutral';
+		/** Positions the button over the top corner of a containing card. */
+		isOverlayAction?: boolean;
 		children: Snippet;
 		/** Whether the action is invalid; shows `invalidMessage` as an alert. */
 		isInvalid?: boolean;
@@ -19,6 +21,7 @@
 
 	let {
 		variant = 'primary',
+		isOverlayAction = false,
 		type = 'button',
 		class: className = '',
 		isInvalid = false,
@@ -44,7 +47,7 @@
 
 <button
 	{type}
-	class={`ui-button ui-button--${variant} ${className}`}
+	class={`ui-button ui-button--${variant} ${isOverlayAction ? 'ui-button--overlay-action' : ''} ${className}`}
 	{...rest}
 	aria-describedby={describedBy}
 >
@@ -60,3 +63,14 @@
 		{warningMessage}
 	</p>
 {/if}
+
+<style>
+	.ui-button--overlay-action {
+		position: absolute;
+		inset-block-start: 0;
+		inset-inline-end: 0;
+		min-width: 32px;
+		min-height: 32px;
+		padding: 6px;
+	}
+</style>

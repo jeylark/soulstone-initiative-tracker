@@ -31,6 +31,19 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups creature controls, including visibility, separately from their turn list', async () => {
+		await renderSetup();
+		const players = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		const name = within(player).getByRole('textbox', { name: 'Character name: Player 1' });
+		const visibility = within(player).getByRole('checkbox', { name: 'Start hidden Player 1' });
+		const group = name.closest('.form-group');
+		expect(group?.classList.contains('creature-fields')).toBe(true);
+		expect(visibility.closest('.form-group')).toBe(group);
+		expect(group?.querySelector('.creature-turn-list')).toBeNull();
+	});
+
 	it('locks an existing creature configuration but leaves removal and new creatures available', async () => {
 		await saveChallengeToLibrary(createSpawnEditChallenge());
 		await renderSetup();
@@ -38,10 +51,12 @@ describe('new challenge setup', () => {
 		const players = screen.getByRole('group', { name: 'Players' });
 		const aria = within(players).getByRole('group', { name: 'Aria' });
 		const heading = screen.getByRole('heading', { level: 4, name: 'Aria' });
-		expect(heading.parentElement).toBe(aria.parentElement);
+		const ariaCard = aria.closest('.card');
+		expect(ariaCard).not.toBeNull();
+		expect(heading.closest('.card')).toBe(ariaCard);
 		expect(heading.classList.contains('card-header--medium')).toBe(true);
-		expect(aria.parentElement?.classList.contains('card--surface')).toBe(true);
-		expect(aria.parentElement?.classList.contains('card--compact')).toBe(true);
+		expect(ariaCard?.classList.contains('card--surface')).toBe(true);
+		expect(ariaCard?.classList.contains('card--compact')).toBe(true);
 		expect(
 			(within(aria).getByRole('textbox', { name: 'Character name: Aria' }) as HTMLInputElement)
 				.disabled
@@ -135,7 +150,7 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
 		const visibility = within(player).getByRole('checkbox', {
-			name: 'Hidden from viewers: Player 1'
+			name: 'Start hidden Player 1'
 		}) as HTMLInputElement;
 
 		expect(visibility.checked).toBe(false);

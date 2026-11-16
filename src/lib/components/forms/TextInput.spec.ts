@@ -7,6 +7,26 @@ afterEach(() => {
 });
 
 describe('TextInput', () => {
+	it('exposes its label to the shared control rows', () => {
+		render(TextInput, { label: 'Long field label' });
+		const control = screen.getByRole('textbox', { name: 'Long field label' });
+		expect(control.closest('.form-field')?.querySelector('.form-control-label')?.textContent).toBe(
+			'Long field label'
+		);
+	});
+
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(TextInput, { label: 'Challenge name' });
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
+	it('applies a caller-owned class to the label', () => {
+		render(TextInput, { label: 'NPC type name', labelClass: 'npc-type-field-label' });
+
+		expect(screen.getByText('NPC type name').classList.contains('npc-type-field-label')).toBe(true);
+	});
+
 	it('renders a labeled text input and forwards input events and native attributes', async () => {
 		const oninput = vi.fn();
 		render(TextInput, {

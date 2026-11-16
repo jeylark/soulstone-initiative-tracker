@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RangeInput from './RangeInput.svelte';
 
@@ -7,6 +8,41 @@ afterEach(() => {
 });
 
 describe('RangeInput', () => {
+	it('renders optional supporting content after its controls', () => {
+		render(RangeInput, {
+			label: 'Fairness',
+			value: 1,
+			min: 0,
+			max: 10,
+			step: 1,
+			description: createRawSnippet(() => ({ render: () => '<p>Supporting detail</p>' }))
+		});
+		const field = screen.getByRole('group', { name: 'Fairness' }).closest('.form-field-messages');
+		expect(field?.querySelector('.form-control-message-area')?.textContent).toContain(
+			'Supporting detail'
+		);
+	});
+
+	it('exposes a shared label and a separately aligned control group', () => {
+		render(RangeInput, { label: 'Fairness', value: 1, min: 0, max: 10, step: 1 });
+		const group = screen.getByRole('group', { name: 'Fairness' });
+		const field = group.closest('.form-field-messages');
+		expect(field?.querySelector('.form-control-label')?.textContent).toBe('Fairness');
+		expect(group.parentElement).toBe(field);
+	});
+
+	it('uses shared wrapped-label row alignment', () => {
+		const { container } = render(RangeInput, {
+			label: 'Fairness weight',
+			value: 4,
+			min: 0,
+			max: 10,
+			step: 1
+		});
+
+		expect(container.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('renders a shared label and forwards both control input events', async () => {
 		const onSliderInput = vi.fn();
 		const onNumberInput = vi.fn();

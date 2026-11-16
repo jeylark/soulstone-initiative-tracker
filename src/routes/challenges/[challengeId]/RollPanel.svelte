@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		loadChallengeLibrary,
@@ -20,14 +20,16 @@
 	import TieResolution from './roll/TieResolution.svelte';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
-	type WorkflowTab = 'setup' | 'roll' | 'run';
 
 	interface Props {
 		sharedChallenge?: Challenge;
-		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+		/** Optional action displayed beside the page title. */
+		titleActions?: Snippet;
+		/** Reports how many manual initiative inputs currently contain invalid values. */
+		onValidationCountChange?: (count: number) => void;
 	}
 
-	let { sharedChallenge, onTabChange }: Props = $props();
+	let { sharedChallenge, onValidationCountChange, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -55,6 +57,15 @@
 		const initiative = Number(value);
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
 	}
+	let invalidInputCount = $derived(
+		Object.values(initiativeInputs).filter(
+			(value) => value !== undefined && value !== '' && parseInitiativeInput(value) === undefined
+		).length
+	);
+
+	$effect(() => onValidationCountChange?.(invalidInputCount));
+
+	onDestroy(() => onValidationCountChange?.(0));
 
 	/** Whether a turn's result may be changed; results collected before editing started never can. */
 	function isTurnLocked(turnId: StableId): boolean {
@@ -250,51 +261,9 @@
 		);
 		return pendingSave;
 	}
-
-	async function returnToSetup(event?: Readonly<{ preventDefault: () => void }>): Promise<void> {
-		event?.preventDefault();
-		if (!challenge) return;
-		if (sharedChallenge && onTabChange) {
-			await onTabChange('setup');
-			return;
-		}
-
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
-	}
-
-	async function continueToTurnOrder(
-		event?: Readonly<{ preventDefault: () => void }>
-	): Promise<void> {
-		event?.preventDefault();
-		if (!challenge) return;
-		if (sharedChallenge && onTabChange) {
-			await onTabChange('run');
-			return;
-		}
-
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
-	}
 </script>
 
-<ViewPage title="Initiative rolling">
+<ViewPage title="Initiative rolling" actions={titleActions}>
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}
@@ -330,10 +299,6 @@
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
-		<ActionButton variant="neutral" onclick={() => void returnToSetup()}
-			>Return to setup</ActionButton
-		>
-		<ActionButton onclick={() => void continueToTurnOrder()}>Continue to turn order</ActionButton>
 	{:else}
 		{#if loadStatus === 'not-found'}
 			<ErrorDisplay message="The challenge was not found." />

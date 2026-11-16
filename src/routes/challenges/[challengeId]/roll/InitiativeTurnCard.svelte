@@ -41,7 +41,15 @@
 	class:initiative-card-tone--app={mode === 'app'}
 	style={factionColor ? `--faction-color: ${factionColor}` : ''}
 >
-	<Card {title} headingLevel="h3" headerSize="small" spacing="compact" class="initiative-card">
+	<Card
+		{title}
+		headingLevel="h3"
+		headerSize="small"
+		spacing="compact"
+		isAccented
+		accentColor={factionColor}
+		isContentSized
+	>
 		<div class="initiative-field">
 			{#if mode === 'manual'}
 				<NumberInput
@@ -97,17 +105,6 @@
 		flex-basis: 20rem;
 		width: 20rem;
 		overflow-wrap: anywhere;
-	}
-
-	.initiative-card-tone :global(.initiative-card) {
-		border-left: 6px solid var(--faction-color, var(--color-border));
-		width: auto;
-		max-width: 100%;
-		background: color-mix(
-			in srgb,
-			var(--faction-color, var(--color-surface)) 22%,
-			var(--color-surface)
-		);
 	}
 
 	.initiative-field {

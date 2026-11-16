@@ -45,17 +45,16 @@
 		<div class="turn-order-card-details" aria-hidden="true"></div>
 	</Card>
 {:else}
-	<div
-		class="turn-order-card-tone"
-		class:is-hidden={item.display.isHidden}
-		style={factionColor ? `--faction-color: ${factionColor.hex}` : ''}
-	>
+	<div class="turn-order-card-tone" class:is-hidden={item.display.isHidden}>
 		<Card
 			title={item.display.faction?.name ?? 'Unknown faction'}
 			headingLevel="h2"
 			headerSize="small"
 			spacing="compact"
 			class="turn-order-card"
+			isAccented
+			accentColor={factionColor?.hex}
+			isMuted={item.display.isHidden}
 		>
 			<p class="turn-order-creature-name">{item.display.label}</p>
 			<div class="turn-order-card-details">
@@ -87,19 +86,6 @@
 		align-items: center;
 		gap: 8px;
 		margin-top: 12px;
-	}
-
-	.turn-order-card-tone :global(.turn-order-card) {
-		border-left: 6px solid var(--faction-color, var(--color-border));
-		background: color-mix(
-			in srgb,
-			var(--faction-color, var(--color-surface)) 22%,
-			var(--color-surface)
-		);
-	}
-
-	.turn-order-card-tone.is-hidden :global(.turn-order-card) {
-		background: color-mix(in srgb, #808080 18%, var(--color-surface));
 	}
 
 	.turn-order-card-details {

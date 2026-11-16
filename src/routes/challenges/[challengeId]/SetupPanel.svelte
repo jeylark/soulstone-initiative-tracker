@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, type Snippet } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { DeepReadonly } from '#lib';
 	import {
@@ -19,7 +19,8 @@
 		type InitiativeRollMode,
 		type NpcType,
 		type StableId,
-		type Turn
+		type Turn,
+		type ValidationIssue
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import ChallengeSettings from './setup/ChallengeSettings.svelte';
@@ -29,16 +30,27 @@
 	import './setup/challenge-setup.css';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
-	type WorkflowTab = 'setup' | 'roll' | 'run';
 	const LOCKED_BLANK_NPC_IDENTIFIER_ERROR =
 		'This NPC type has a locked NPC with a blank identifier. Choose another type or remove and recreate that NPC before adding another.';
+	const INLINE_SETUP_ISSUE_PATHS = [
+		/^\$\.(name|fairnessWeight)$/,
+		/^\$\.factions\[\d+\]\.name$/,
+		/^\$\.npcTypes\[\d+\]\.(name|initiativeStat)$/,
+		/^\$\.creatures\[\d+\]\.(name|identifier|initiativeStat|factionId|creatureTypeId)$/,
+		/^\$\.creatures\[\d+\]\.turns\[\d+\]\.initiative(?:\.(position|index|targetTurnId|value))?$/
+	];
+
+	function isInlineSetupIssue(issue: ValidationIssue): boolean {
+		return INLINE_SETUP_ISSUE_PATHS.some((path) => path.test(issue.path));
+	}
 
 	interface Props {
 		sharedChallenge?: Challenge;
-		onTabChange?: (tab: WorkflowTab) => Promise<void> | void;
+		/** Optional action displayed beside the page title. */
+		titleActions?: Snippet;
 	}
 
-	let { sharedChallenge, onTabChange }: Props = $props();
+	let { sharedChallenge, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -50,6 +62,7 @@
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
 	let setupIssues = $derived(loadStatus === 'ready' ? getChallengeSetupIssues(challenge) : []);
+	let summaryIssues = $derived(setupIssues.filter((issue) => !isInlineSetupIssue(issue)));
 	let isChallengeRunning = $derived(challenge.runState?.generatedTurnOrder !== undefined);
 	let spawnEditState = $derived(challenge.runState?.spawnEdit);
 	let isSpawnEditing = $derived(spawnEditState !== undefined);
@@ -169,29 +182,6 @@
 			}
 		}
 		invalidateGeneratedTurnOrder();
-	}
-
-	async function startChallenge(event?: Readonly<{ preventDefault: () => void }>) {
-		event?.preventDefault();
-		if (setupIssues.length > 0) return;
-		if (sharedChallenge && onTabChange) {
-			try {
-				await onTabChange('roll');
-			} catch {
-				hasSaveError = true;
-			}
-			return;
-		}
-		if (saveTimeout !== undefined) {
-			clearTimeout(saveTimeout);
-			saveTimeout = undefined;
-		}
-
-		try {
-			await enqueueSave($state.snapshot(challenge));
-		} catch {
-			hasSaveError = true;
-		}
 	}
 
 	function updateChallengeName(name: string) {
@@ -686,27 +676,13 @@
 		: loadStatus === 'loading'
 			? 'Loading challenge setup'
 			: 'Challenge setup unavailable'}
+	actions={titleActions}
 >
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge setup.</p>
 	{:else if loadStatus === 'ready'}
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
-		{/if}
-		{#if setupIssues.length > 0}
-			<section aria-label="Setup validation errors" class="setup-issue-summary">
-				<h2>Validation errors</h2>
-				<ul>
-					{#each setupIssues as issue (issue.path)}
-						<li>{issue.path}: {issue.message}</li>
-					{/each}
-				</ul>
-				<ActionButton
-					variant="danger"
-					disabled={!setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
-					onclick={resetSavedProgress}>Reset saved progress</ActionButton
-				>
-			</section>
 		{/if}
 		<div class="setup-wide" data-layout="full-width">
 			<fieldset aria-label="Challenge setup editing" class="setup-editing">
@@ -762,12 +738,20 @@
 				</div>
 			</fieldset>
 		</div>
-		{#if setupIssues.length > 0}
-			<ActionButton disabled>Roll Initiatives</ActionButton>
-		{:else if sharedChallenge}
-			<ActionButton onclick={() => void startChallenge()}>Roll Initiatives</ActionButton>
-		{:else}
-			<ActionButton onclick={startChallenge}>Roll Initiatives</ActionButton>
+		{#if summaryIssues.length > 0}
+			<section aria-label="Setup validation errors" class="setup-issue-summary">
+				<h2>Validation errors</h2>
+				<ul>
+					{#each summaryIssues as issue (issue.path)}
+						<li>{issue.path}: {issue.message}</li>
+					{/each}
+				</ul>
+				<ActionButton
+					variant="danger"
+					disabled={!setupIssues.some((issue) => issue.path.startsWith('$.runState'))}
+					onclick={resetSavedProgress}>Reset saved progress</ActionButton
+				>
+			</section>
 		{/if}
 	{:else}
 		{#if loadStatus === 'error'}
@@ -784,6 +768,7 @@
 	.setup-wide {
 		width: 100vw;
 		margin-inline: calc(50% - 50vw);
+		margin-block-end: 16px;
 		padding-inline: 20px;
 		box-sizing: border-box;
 	}

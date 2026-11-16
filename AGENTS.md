@@ -32,6 +32,11 @@ Follow these instructions for every task in this repository.
   module.
 - Prefer clear names and simple designs. Keep functions and components focused,
   avoid duplication.
+- Keep component-private classes and their styles within the owning component.
+  A component `<style>` block should style classes owned by that component.
+  Shared `.css` files may define reusable classes for multiple components.
+  Do not use `:global()` in Svelte styles. Explicit `class` props are allowed:
+  the component that passes the class owns and styles it.
 - Use PascalCase for types, camelCase for identifiers and UPPER_SNAKE_CASE for
   constants.
 - Prefix names of booleans with `is`, `are`, `has`, `have` or `can`.
@@ -51,6 +56,86 @@ Follow these instructions for every task in this repository.
   do not replace module- or component-owned tests.
 - Write comments to explain non-obvious intent, not to restate the code.
 
-## Before commiting changes
+## After finishing work
 
+- Review the session for learnings that could reduce future agents' workload,
+  and add any useful learnings to this file's [Lessons](#Lessons) section.
 - Run `npx prettier --write` on every changed file.
+
+# Lessons
+
+## UI Layout Lessons
+
+- Keep control positions stable while users interact with a page at a fixed viewport size; viewport resizing is explicitly outside this stability requirement.
+- For auto-sized CSS grids where adding or removing items should not resize remaining items, use `auto-fill` rather than `auto-fit`; `auto-fit` collapses unused tracks and can expand the occupied items.
+- Shared form alignment requires parent-owned tracks as well as participating child markup; place custom controls directly inside `FormGroup` and keep each visual row's label, control, and feedback tracks independent.
+- `FormGroup` wraps based on available container width. For wider controls, configure `--form-group-min-column-width` and gaps on an owning ancestor instead of replacing its grid or relying on viewport breakpoints; defaults are 160px minimum and 20px column gap.
+- JSDOM can verify form-group structure and accessible associations, but not CSS subgrid geometry; verify rendered alignment separately in a browser.
+- Svelte scopes selectors in a component's `<style>` block, but a plain `.css`
+  file imported by a component is global. Put shared class rules in a dedicated
+  stylesheet that owns those class names; use explicit `class` props for
+  caller-owned child styling, and avoid `:global()`.
+- A scoped selector targeting only a class passed to a child component can be reported unused and omitted by Svelte. Check compiler warnings and, where appropriate, pass styling through inherited CSS custom properties set on a parent-owned element.
+- When a Card renders a visible heading around a fieldset, keep the fieldset
+  legend for accessible group naming but visually hide it to avoid duplicate
+  titles. When changing shared Card styles, audit every Card/fieldset wrapper
+  and ensure page-level legend rules do not override the hidden state.
+- When a grid layout has unexpected gaps or extra rows, inspect the rendered
+  child order, including wrappers around actions. A visually empty wrapper can
+  still consume a grid cell; scope layout fixes to the affected component
+  variant.
+- When a wrapper exists only to carry styling around an absolutely positioned
+  control, and has no semantic or layout role of its own, make it
+  `display: contents` in the owning reusable component so it does not consume
+  flow space or a grid cell. Prefer this shared behavior over caller-specific
+  wrapper classes and CSS overrides.
+- In compact form grids, account for wrapped labels and controls overlaid near
+  the fields. Reserve space for overlays and keep label rows a consistent
+  height when inputs need to align.
+- Prefer generalized customizations over element-specific fixes.
+- Reserve clearance for controls overlapping a native scrollbar outside the scrollport; internal padding moves content but does not shorten the scrollbar track. Keep per-instance scrollbar insets on the scrolling element so nested cards do not inherit them.
+- CSS source assertions can guard layout rules, but they do not prove rendered
+  geometry. Use focused tests and verify the affected view in a browser when
+  available.
+
+## Architecture and Code Organization Lessons
+
+- Before planning route-specific content in the shared header, trace the owning page's state, validation, and save handlers; moving the controls must preserve those behaviors and their lifecycle.
+- A layout-scoped Svelte context can expose a page-owned snippet to the header without global state. Clear the registered snippet by identity on teardown so an older page cannot remove newer header content, and provide for standalone page tests.
+
+## Data and State Management Lessons
+
+- Keep the complete validation issue set as the source for workflow blocking. Derive filtered presentation lists for inline fields and summaries so display changes cannot accidentally make an invalid workflow available.
+
+## Accessibility and Interaction Lessons
+
+- `Card` already provides a named, keyboard-focusable content region. Avoid
+  giving an enclosing section the same accessible name, which creates
+  duplicate nested landmarks and makes single-region queries ambiguous.
+- When tabs cannot be selected, expose and visibly distinguish their unavailable state for both validation failures and temporary navigation locks; restore availability when the lock clears.
+- Before relying on shared disabled-control styles or theme colors, verify that the rendered control carries the required class and that the CSS variables are defined in both themes.
+- Text inside a tab contributes to its accessible name even when visually clipped and referenced with `aria-describedby`; use an explicit `aria-label` when the tab's name must remain stable and expose supplemental status through its description.
+
+## Testing and Verification Lessons
+
+- Svelte dimension bindings use a shared ResizeObserver. In JSDOM layout tests, provide a minimal observer fixture and mock the measured dimension; exercise resize notifications and verify the element is unobserved on teardown.
+- In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
+- In this JSDOM environment, `Blob.stream()` may be unavailable; use `new Response(text).body` when a test needs a readable stream fixture.
+- When tab selection awaits persistence, wait for the destination panel or selected state before asserting that the previous panel's local state was cleared; `fireEvent.click` alone does not await the full async transition.
+- When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
+- Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.
+- Testing Library's `DEBUG_PRINT_LIMIT` limits individual DOM dumps, not complete role listings or timeout errors. Test the actual Vitest failure output when changing diagnostic formatting; async queries can wrap an earlier error again.
+- `Card` renders its children inside a `card-body` region, so card content is
+  not a sibling of the card heading. Tests should resolve the owning card via
+  `closest('.card')` instead of `parentElement`; a structural change to a
+  shared component can break the same `parentElement` assumption across many
+  test files, so grep for the pattern and fix all occurrences together.
+
+## Runtime and Error Handling Lessons
+
+## Tooling and Workflow Lessons
+
+- After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
+- When type-aware ESLint reports that a source file is missing from the project service after dependency installation, run `npm run prepare` to generate SvelteKit's project metadata before changing parser configuration.
+
+## Documentation and Decision Lessons

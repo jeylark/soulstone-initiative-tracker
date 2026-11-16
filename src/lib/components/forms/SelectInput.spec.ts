@@ -8,6 +8,26 @@ afterEach(() => {
 });
 
 describe('SelectInput', () => {
+	it('exposes its label to the shared control rows', () => {
+		render(SelectInput, {
+			label: 'Long field label',
+			children: createRawSnippet(() => ({ render: () => '<option>One</option>' }))
+		});
+		const control = screen.getByRole('combobox', { name: 'Long field label' });
+		expect(control.closest('.form-field')?.querySelector('.form-control-label')?.textContent).toBe(
+			'Long field label'
+		);
+	});
+
+	it('uses shared wrapped-label row alignment', () => {
+		render(SelectInput, {
+			label: 'Faction',
+			children: createRawSnippet(() => ({ render: () => '<option>Players</option>' }))
+		});
+
+		expect(document.querySelector('.form-field-messages--align-labels')).toBeTruthy();
+	});
+
 	it('renders child options and forwards selection changes and native attributes', async () => {
 		const onchange = vi.fn();
 		const children = createRawSnippet(() => ({

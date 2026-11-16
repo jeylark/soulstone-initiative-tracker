@@ -1,11 +1,11 @@
 .challenge-setup {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 16px;
 }
 
 @media (min-width: 960px) {
 	.challenge-setup {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
 		align-items: start;
 	}
 
@@ -26,76 +26,36 @@
 	font-weight: 600;
 }
 
-.challenge-setup .settings {
-	min-inline-size: 0;
-	margin: 0;
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16px 24px;
-}
-
-.challenge-setup .fairness-setting {
-	display: grid;
-	flex: 1 1 180px;
-	gap: 6px;
-	min-width: 0;
-	margin: 0;
-	font-size: 14px;
-}
-
-.challenge-setup .fairness-setting > legend {
-	padding: 0;
-	font: inherit;
-}
-
-.challenge-setup .fairness-weight-input {
-	width: 100%;
-	font-variant-numeric: tabular-nums;
-	text-align: right;
-}
-
-.challenge-setup .fairness-description {
-	margin: 0;
-	font-size: 13px;
-}
-
-.challenge-setup .setup-section {
-	min-width: 0;
-}
-
-.challenge-setup
-	:where(
-		.settings,
-		.setup-section,
-		.npc-type-card,
-		.faction-panel,
-		.creature,
-		.turn-card,
-		.fairness-setting
-	) {
+.challenge-setup .setup-section,
+.challenge-setup .npc-type-card,
+.challenge-setup .faction-panel,
+.challenge-setup .creature,
+.challenge-setup .turn-card {
 	border: 0;
 	padding: 0;
 	background: transparent;
 }
 
-.challenge-setup .setup-section > legend,
-.challenge-setup .settings > legend {
+.challenge-setup .setup-section > legend:not([data-visually-hidden]) {
 	padding: 0 8px;
 	font-size: 20px;
 	font-weight: 600;
 }
 
-.challenge-setup .creature > .entity-list {
+.challenge-setup .creature > .creature-turn-list {
 	grid-column: 1 / -1;
 }
 
 .challenge-setup .npc-type-card {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr);
-	align-items: end;
-	gap: 10px;
 	min-width: 0;
 	margin: 0;
+	padding-block-start: 12px;
+}
+
+.challenge-setup .npc-type-fields {
+	--form-group-row-gap: 10px;
+	grid-template-columns: minmax(0, 1fr) minmax(72px, 0.5fr);
+	column-gap: 10px;
 }
 
 .challenge-setup .npc-type-card legend {
@@ -119,19 +79,35 @@
 	font-weight: 600;
 }
 
-.challenge-setup .faction-panel .creature {
-	grid-template-columns: minmax(0, 1fr);
+.challenge-setup .faction-editor-content {
+	display: grid;
 	gap: 12px;
-	padding: 12px;
+}
+
+.challenge-setup .faction-editor-content > fieldset {
+	border: 0;
 }
 
 .challenge-setup .creature {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	align-items: end;
-	gap: 14px 20px;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 14px;
 	min-width: 0;
 	margin: 0;
+}
+
+.challenge-setup .creature-fields {
+	--form-group-row-gap: 14px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.challenge-setup .creature-in-faction {
+	gap: 12px;
+	padding: 12px;
+}
+
+.challenge-setup .creature-in-faction .creature-fields {
+	grid-template-columns: minmax(0, 1fr);
 }
 
 .challenge-setup .creature legend {
@@ -140,33 +116,14 @@
 	font-weight: 600;
 }
 
-.challenge-setup .creature-visibility {
-	display: flex;
-	min-height: 40px;
-	align-items: center;
-	gap: 8px;
-	font-size: 14px;
-}
-
-.challenge-setup .creature-visibility input {
-	width: 18px;
-	min-height: 18px;
-	margin: 0;
-	accent-color: var(--color-accent);
-}
-
-.challenge-setup .creature-visibility input:focus-visible {
-	outline: var(--focus-ring);
-	outline-offset: var(--focus-ring-offset);
-}
-
 .challenge-setup .turn-card {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-	align-items: end;
-	gap: 12px;
 	min-width: 0;
 	margin: 0;
+}
+
+.challenge-setup .turn-settings {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+	column-gap: 12px;
 }
 
 .challenge-setup .turn-card > legend {
@@ -175,17 +132,18 @@
 	font-weight: 600;
 }
 
-.challenge-setup .turn-card .turn-settings {
-	display: contents;
+.challenge-setup .fairness-weight-input {
+	width: 100%;
+	font-variant-numeric: tabular-nums;
+	text-align: right;
 }
 
 @media (max-width: 640px) {
-	.challenge-setup .settings,
-	.challenge-setup .creature {
+	.challenge-setup .creature-fields {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.challenge-setup .npc-type-card {
+	.challenge-setup .npc-type-fields {
 		grid-template-columns: minmax(0, 1fr) 82px;
 	}
 }

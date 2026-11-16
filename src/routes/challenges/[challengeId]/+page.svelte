@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { getContext, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		CHALLENGE_FORMAT_VERSION,
@@ -32,9 +32,20 @@
 	let downloadErrorDetails = $state('');
 	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
+	let rollValidationCount = $state(0);
+	let runValidationCount = $state(0);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 	let isFirstRun = true;
+	const header = getContext<
+		{ setContent: (content: Snippet) => void; clearContent: (content: Snippet) => void } | undefined
+	>('app-header-content');
+
+	$effect(() => {
+		if (loadStatus !== 'ready' || !challenge || !header) return;
+		header.setContent(workflowTabContent);
+		return () => header.clearContent(workflowTabContent);
+	});
 
 	onMount(() => {
 		void (async () => {
@@ -153,6 +164,44 @@
 	}
 </script>
 
+{#snippet workflowTabContent()}
+	<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
+		{#each workflowTabs as tab (tab)}
+			{@const validationCount =
+				tab === 'setup'
+					? setupIssues.length
+					: tab === 'roll'
+						? rollValidationCount
+						: runValidationCount}
+			<button
+				id={`challenge-tab-${tab}`}
+				role="tab"
+				aria-label={tabLabels[tab]}
+				aria-selected={activeTab === tab}
+				aria-disabled={(tab !== 'setup' && setupIssues.length > 0) ||
+					(isTransitioning && tab !== activeTab)}
+				aria-describedby={validationCount > 0 ? `challenge-tab-${tab}-validation` : undefined}
+				aria-controls={`challenge-panel-${tab}`}
+				tabindex={activeTab === tab ? 0 : -1}
+				onclick={() => void selectTab(tab)}
+				onkeydown={(event) => handleTabKeydown(event, tab)}
+			>
+				{tabLabels[tab]}
+				{#if validationCount > 0}
+					<span class="validation-count" aria-hidden="true">{validationCount}</span>
+					<span id={`challenge-tab-${tab}-validation`} class="tab-validation-description">
+						{validationCount} validation {validationCount === 1 ? 'error' : 'errors'}
+					</span>
+				{/if}
+			</button>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet downloadAction()}
+	<ActionButton onclick={() => void downloadChallenge()}>Download</ActionButton>
+{/snippet}
+
 {#if loadStatus === 'loading'}
 	<ViewPage title="Loading challenge">
 		<p>Loading challenge…</p>
@@ -168,33 +217,15 @@
 	</ViewPage>
 {:else}
 	<div class="challenge-workflow">
-		<div class="workflow-actions">
-			<ActionButton variant="neutral" onclick={() => void downloadChallenge()}
-				>Download</ActionButton
-			>
-		</div>
 		{#if downloadErrorDetails}
 			<ErrorDisplay
 				message="The challenge could not be downloaded."
 				details={downloadErrorDetails}
 			/>
 		{/if}
-		<div class="workflow-tabs" role="tablist" aria-label="Challenge workflow">
-			{#each workflowTabs as tab (tab)}
-				<button
-					id={`challenge-tab-${tab}`}
-					role="tab"
-					aria-selected={activeTab === tab}
-					aria-disabled={tab !== 'setup' && setupIssues.length > 0}
-					aria-controls={`challenge-panel-${tab}`}
-					tabindex={activeTab === tab ? 0 : -1}
-					onclick={() => void selectTab(tab)}
-					onkeydown={(event) => handleTabKeydown(event, tab)}
-				>
-					{tabLabels[tab]}
-				</button>
-			{/each}
-		</div>
+		{#if !header}
+			{@render workflowTabContent()}
+		{/if}
 		{#if hasSaveError}
 			<ErrorDisplay message="Changes could not be saved." />
 		{/if}
@@ -205,15 +236,21 @@
 			tabindex="0"
 		>
 			{#if activeTab === 'setup'}
-				<SetupPanel sharedChallenge={challenge} onTabChange={selectTab} />
+				<SetupPanel sharedChallenge={challenge} titleActions={downloadAction} />
 			{:else if activeTab === 'roll'}
-				<RollPanel sharedChallenge={challenge} onTabChange={selectTab} />
+				<RollPanel
+					sharedChallenge={challenge}
+					onValidationCountChange={(count) => (rollValidationCount = count)}
+					titleActions={downloadAction}
+				/>
 			{:else}
 				<RunPanel
 					sharedChallenge={challenge}
 					onSave={saveNow}
 					onTabChange={selectTab}
 					onTransitionChange={(value) => (isTransitioning = value)}
+					onValidationCountChange={(count) => (runValidationCount = count)}
+					titleActions={downloadAction}
 				/>
 			{/if}
 		</div>
@@ -225,34 +262,67 @@
 		padding-top: 20px;
 	}
 
-	.workflow-actions {
-		display: flex;
-		justify-content: flex-end;
-		padding-bottom: 12px;
-	}
-
 	.workflow-tabs {
 		display: flex;
+		width: min(100%, 400px);
 		gap: 4px;
 		border-bottom: 1px solid var(--color-border-subtle);
 	}
 
 	.workflow-tabs button {
-		min-width: 88px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1 1 0;
+		min-width: 0;
 		min-height: 44px;
+		gap: 8px;
 		border: 0;
 		border-bottom: 3px solid transparent;
-		padding: 8px 16px;
+		padding: 8px;
 		background: transparent;
-		color: var(--color-foreground-muted);
+		color: var(--color-foreground);
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;
 	}
 
+	.validation-count {
+		display: inline-flex;
+		min-width: 20px;
+		height: 20px;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		padding-inline: 5px;
+		background: var(--color-danger-surface);
+		color: var(--color-danger);
+		font-size: 0.75rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+	}
+
+	.tab-validation-description {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.workflow-tabs button[aria-selected='true'] {
 		border-bottom-color: var(--color-accent);
 		color: var(--color-foreground);
+	}
+
+	.workflow-tabs button[aria-disabled='true'] {
+		color: color-mix(in srgb, var(--color-foreground) 55%, var(--color-background));
+		cursor: not-allowed;
 	}
 
 	.workflow-tabs button:focus-visible {
@@ -262,12 +332,5 @@
 
 	[role='tabpanel'] {
 		min-width: 0;
-	}
-
-	@media (max-width: 480px) {
-		.workflow-tabs button {
-			flex: 1 1 0;
-			min-width: 0;
-		}
 	}
 </style>

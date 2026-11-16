@@ -133,6 +133,7 @@
 {#snippet creatureList()}
 	<EntityList
 		layout={faction ? 'grid' : 'stack'}
+		isGridItemWidthStable={faction !== undefined}
 		entities={factionCreatures}
 		adds={faction
 			? [
@@ -157,7 +158,7 @@
 			removeText: 'Remove creature',
 			isRemoveDisabled: !canManageCreaturesAndTurns,
 			fieldsetAttributes: {
-				class: 'creature',
+				class: faction ? 'creature creature-in-faction' : 'creature',
 				['data-entity-id']: creature.id,
 				['aria-label']: creatureDisplayName(creature)
 			}
@@ -197,7 +198,7 @@
 {/snippet}
 
 {#if faction}
-	<div>
+	<div class="faction-editor-content">
 		<fieldset disabled={!canManageFactions}>
 			<TextInput
 				label="Faction name"

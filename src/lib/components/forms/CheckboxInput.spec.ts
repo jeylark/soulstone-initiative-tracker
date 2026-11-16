@@ -7,6 +7,14 @@ afterEach(() => {
 });
 
 describe('CheckboxInput', () => {
+	it('places the checkbox and its label together in the shared control row', () => {
+		render(CheckboxInput, { label: 'Hidden from viewers' });
+		const control = screen.getByRole('checkbox', { name: 'Hidden from viewers' });
+		const field = control.closest('.form-field-messages');
+		expect(field?.querySelector('.form-control-label-placeholder')).toBeTruthy();
+		expect(control.closest('.form-checkbox-field')?.parentElement).toBe(field);
+	});
+
 	it('renders a labeled checkbox and forwards native attributes and change events', async () => {
 		const onchange = vi.fn();
 		render(CheckboxInput, {

@@ -15,6 +15,8 @@
 		variant?: 'surface' | 'subtle' | 'inset';
 		/** Padding of the card. Defaults to standard. */
 		spacing?: 'standard' | 'compact';
+		/** Applies the standard width and shrink behavior when used in an EntityList strip. */
+		isStripItem?: boolean;
 		/** Accessible name of the remove button. */
 		removeLabel?: string;
 		/** Tooltip text for the remove button. */
@@ -33,6 +35,7 @@
 		headerSize,
 		variant,
 		spacing,
+		isStripItem = false,
 		removeLabel,
 		removeText = 'Remove',
 		isRemoveDisabled = false,
@@ -42,20 +45,29 @@
 	}: Props = $props();
 </script>
 
-<Card title={legend} {headingLevel} {headerSize} {variant} {spacing}>
+<Card
+	title={legend}
+	{headingLevel}
+	{headerSize}
+	{variant}
+	{spacing}
+	hasOverlayAction
+	{isStripItem}
+	scrollbarInsetTop={removeLabel && onRemove ? 32 : 0}
+>
 	<fieldset {...rest}>
-		<legend>{legend}</legend>
+		<legend class="entity-list-item-legend">{legend}</legend>
 		{#if removeLabel && onRemove}
 			<div class="entity-remove-action">
 				<ActionButton
 					variant="danger"
-					class="entity-remove-button"
+					isOverlayAction
 					aria-label={removeLabel}
 					title={removeText}
 					disabled={isRemoveDisabled}
 					onclick={onRemove}
 				>
-					<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+					<svg class="entity-remove-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24">
 						<path
 							d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m-6 4v8m4-8v8"
 						/>
@@ -68,29 +80,23 @@
 </Card>
 
 <style>
-	:global(.card:has(> fieldset)) {
-		position: relative;
-	}
-
-	:global(.card:has(> fieldset) > .card-header) {
-		max-width: calc(100% - 48px);
-		overflow-wrap: anywhere;
+	.entity-list-item-legend {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
 	}
 
 	.entity-remove-action {
-		min-height: 32px;
+		display: contents;
 	}
 
-	:global(.entity-remove-button) {
-		position: absolute;
-		inset-block-start: 0;
-		inset-inline-end: 0;
-		min-width: 32px;
-		min-height: 32px;
-		padding: 6px;
-	}
-
-	:global(.entity-remove-button svg) {
+	.entity-remove-icon {
 		width: 16px;
 		height: 16px;
 		fill: none;

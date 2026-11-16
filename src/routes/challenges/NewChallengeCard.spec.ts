@@ -12,6 +12,11 @@ describe('NewChallengeCard', () => {
 		render(NewChallengeCard, { isDisabled: false, isCreating: false, onCreate });
 
 		expect(screen.getByRole('heading', { level: 3, name: 'New challenge' })).toBeTruthy();
+		expect(
+			screen
+				.getByRole('heading', { name: 'New challenge' })
+				.parentElement?.classList.contains('card--full-height')
+		).toBe(true);
 		await fireEvent.click(screen.getByRole('button', { name: 'Create new challenge' }));
 		expect(onCreate).toHaveBeenCalledOnce();
 	});

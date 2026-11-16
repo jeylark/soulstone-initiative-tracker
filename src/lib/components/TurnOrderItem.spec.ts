@@ -61,14 +61,15 @@ describe('TurnOrderItem', () => {
 		const { container } = render(TurnOrderItem, {
 			props: { item: createTurnItem(6, false, true) }
 		});
+		const card = container.querySelector<HTMLElement>('.card');
 
 		expect(screen.getByRole('heading', { name: 'Players' })).toBeTruthy();
 		expect(screen.getByText('Aria', { selector: '.turn-order-creature-name' })).toBeTruthy();
-		expect(
-			container
-				.querySelector<HTMLElement>('.turn-order-card-tone')
-				?.style.getPropertyValue('--faction-color')
-		).toBe('light-dark(#1f5fbf, #5c9dff)');
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe(
+			'light-dark(#1f5fbf, #5c9dff)'
+		);
+		expect(card?.classList.contains('card--muted')).toBe(false);
 	});
 
 	it('uses a fallback title when the faction is missing', () => {
@@ -88,6 +89,7 @@ describe('TurnOrderItem', () => {
 		expect(
 			screen.getByText('Aria - Turn 2', { selector: '.turn-order-creature-name' })
 		).toBeTruthy();
+		expect(container.querySelector('.card')?.classList.contains('card--muted')).toBe(false);
 		expect(container.querySelector('.turn-order-position')).toBeNull();
 	});
 
@@ -97,6 +99,7 @@ describe('TurnOrderItem', () => {
 		const { unmount } = render(TurnOrderItem, {
 			props: { item, onVisibilityChange }
 		});
+		expect(document.querySelector('.card')?.classList.contains('card--muted')).toBe(true);
 
 		const checkbox = screen.getByRole('checkbox', {
 			name: 'Hidden from viewers: Aria'

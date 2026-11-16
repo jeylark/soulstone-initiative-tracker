@@ -71,7 +71,7 @@ describe('validateChallengeSetup', () => {
 		expect(issues).toEqual([
 			{
 				path: `$.creatures[0].initiativeStat`,
-				message: 'An initiative stat is required for characters with app-rolled turns.'
+				message: 'Initiative is required.'
 			}
 		]);
 	});
@@ -83,7 +83,7 @@ describe('validateChallengeSetup', () => {
 
 			expect(issues).toContainEqual({
 				path: '$.creatures[0].initiativeStat',
-				message: 'Initiative stat must be a non-negative whole number.'
+				message: 'Initiative must be a non-negative whole number.'
 			});
 		}
 	);
@@ -95,11 +95,11 @@ describe('validateChallengeSetup', () => {
 		expect(validateChallengeSetup(challenge)).toEqual([
 			{
 				path: '$.npcTypes[0].initiativeStat',
-				message: 'Initiative stat must be a non-negative whole number.'
+				message: 'Initiative must be a non-negative whole number.'
 			},
 			{
 				path: '$.creatures[0].initiativeStat',
-				message: 'An initiative stat is required for characters with app-rolled turns.'
+				message: 'Initiative is required.'
 			}
 		]);
 	});

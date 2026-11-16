@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
 	import {
 		advanceTurn,
@@ -37,10 +37,21 @@
 		sharedChallenge?: Challenge;
 		onSave?: () => Promise<void>;
 		onTabChange?: (tab: 'setup') => Promise<void> | void;
+		/** Optional action displayed beside the page title. */
+		titleActions?: Snippet;
 		onTransitionChange?: (isTransitioning: boolean) => void;
+		/** Reports how many turns or tie groups currently block turn-order generation. */
+		onValidationCountChange?: (count: number) => void;
 	}
 
-	let { sharedChallenge, onSave, onTabChange, onTransitionChange }: Props = $props();
+	let {
+		sharedChallenge,
+		onSave,
+		onTabChange,
+		onTransitionChange,
+		onValidationCountChange,
+		titleActions
+	}: Props = $props();
 	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
 
 	let loadStatus = $state<LoadStatus>('loading');
@@ -57,6 +68,17 @@
 	let localChallenge = $state<Challenge>();
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
+	let generationIssueCount = $derived.by(() => {
+		if (!generationIssue) return 0;
+		return generationIssue.status === 'unresolved-ties'
+			? generationIssue.groups.length
+			: generationIssue.turnIds.length;
+	});
+
+	$effect(() => onValidationCountChange?.(generationIssueCount));
+
+	onDestroy(() => onValidationCountChange?.(0));
+
 	let saveQueue: Promise<void> = Promise.resolve();
 	let isEditing = $derived(challenge?.runState?.spawnEdit !== undefined);
 	let isSpawnCurrent = $derived(challenge?.runState?.generatedTurnOrder?.[0]?.kind === 'spawn');
@@ -383,7 +405,7 @@
 	}
 </script>
 
-<ViewPage title="Turn order">
+<ViewPage title="Turn order" actions={titleActions}>
 	{#if loadStatus === 'loading'}
 		<p>Loading challenge…</p>
 	{:else if loadStatus === 'ready' && challenge}

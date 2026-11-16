@@ -31,12 +31,38 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups faction properties with its creature list', async () => {
+		await renderSetup();
+
+		const faction = screen.getByRole('group', { name: 'Players' });
+		const factionContent = faction.querySelector('.faction-editor-content');
+		expect(factionContent).not.toBeNull();
+		expect(
+			within(factionContent as HTMLElement).getByRole('textbox', {
+				name: 'Faction name: Players'
+			})
+		).toBeTruthy();
+		expect(
+			within(factionContent as HTMLElement).getByRole('button', { name: 'Add Player' })
+		).toBeTruthy();
+	});
+
 	it('lays out creatures in a responsive grid within each faction', async () => {
 		await renderSetup();
 
 		const faction = screen.getByRole('group', { name: 'Players' });
-		const creatureList = faction.querySelector('.faction-panel .entity-list-items');
-		expect(creatureList?.classList.contains('entity-list-items--grid')).toBe(true);
+		await fireEvent.click(within(faction).getByRole('button', { name: 'Add Player' }));
+
+		const player = within(faction).getByRole('group', { name: 'Player 1' });
+		const creatureGrid = player.closest('.entity-list-items');
+		expect(creatureGrid?.classList.contains('entity-list-items--grid')).toBe(true);
+		expect(creatureGrid?.classList.contains('entity-list-items--grid-stable')).toBe(true);
+		expect(
+			screen
+				.getByRole('group', { name: 'Players' })
+				.closest('.entity-list-items')
+				?.classList.contains('entity-list-items--grid-stable')
+		).toBe(false);
 	});
 
 	it('locks faction configuration and removal while allowing creature additions', async () => {
@@ -45,10 +71,12 @@ describe('new challenge setup', () => {
 
 		const players = screen.getByRole('group', { name: 'Players' });
 		const heading = screen.getByRole('heading', { level: 3, name: 'Players' });
-		expect(heading.parentElement).toBe(players.parentElement);
+		const playersCard = players.closest('.card');
+		expect(playersCard).not.toBeNull();
+		expect(heading.closest('.card')).toBe(playersCard);
 		expect(heading.classList.contains('card-header--medium')).toBe(true);
-		expect(players.parentElement?.classList.contains('card--inset')).toBe(true);
-		expect(players.parentElement?.classList.contains('card--compact')).toBe(true);
+		expect(playersCard?.classList.contains('card--inset')).toBe(true);
+		expect(playersCard?.classList.contains('card--compact')).toBe(true);
 		expect(
 			(screen.getByRole('textbox', { name: 'Faction name: Players' }) as HTMLInputElement).matches(
 				':disabled'
@@ -86,10 +114,11 @@ describe('new challenge setup', () => {
 		await renderSetup();
 		const unassignedCreatures = screen.getByRole('region', { name: 'Unassigned creatures' });
 		const group = within(unassignedCreatures);
-		expect(group.getByRole('group', { name: 'Orphan' })).toBeTruthy();
-		expect(unassignedCreatures.querySelector('.entity-list-items')?.className).toContain(
-			'entity-list-items--stack'
-		);
+		const orphan = group.getByRole('group', { name: 'Orphan' });
+		expect(orphan).toBeTruthy();
+		expect(
+			orphan.closest('.entity-list-items')?.classList.contains('entity-list-items--stack')
+		).toBe(true);
 		expect(group.queryByRole('button', { name: 'Add Player' })).toBeNull();
 		expect(group.queryByRole('button', { name: /Remove faction/ })).toBeNull();
 		expect(group.queryByRole('textbox', { name: /Faction name/ })).toBeNull();

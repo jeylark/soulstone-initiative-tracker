@@ -146,16 +146,11 @@ export function validateChallengeSetup(
 			'NPC identifier'
 		)
 	);
-	issues.push(
-		...addDuplicateNameIssues(
-			factionNames,
-			'Faction names must be unique, ignoring case and surrounding whitespace.'
-		)
-	);
+	issues.push(...addDuplicateNameIssues(factionNames, 'Faction names must be unique.'));
 	issues.push(
 		...addDuplicateNameIssues(
 			[...characterNames, ...npcTypeNames],
-			'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+			'PC and NPC type names must be unique'
 		)
 	);
 	for (const creatureTypeId of new Set(
@@ -166,7 +161,7 @@ export function validateChallengeSetup(
 				npcIdentifiers
 					.filter((item) => item.creatureTypeId === creatureTypeId)
 					.map(({ path, value }) => ({ path, value })),
-				'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+				'NPC identifiers must be unique within each type.'
 			)
 		);
 	}
@@ -182,7 +177,7 @@ export function validateChallengeSetup(
 		if (!validInitiativeStat(npcType.initiativeStat)) {
 			issues.push({
 				path: `$.npcTypes[${index}].initiativeStat`,
-				message: 'Initiative stat must be a non-negative whole number.'
+				message: 'Initiative must be a non-negative whole number.'
 			});
 		}
 	});
@@ -197,8 +192,8 @@ export function validateChallengeSetup(
 					path: `$.creatures[${creatureIndex}].initiativeStat`,
 					message:
 						creature.initiativeStat === undefined
-							? 'An initiative stat is required for characters with app-rolled turns.'
-							: 'Initiative stat must be a non-negative whole number.'
+							? 'Initiative is required.'
+							: 'Initiative must be a non-negative whole number.'
 				});
 			}
 		}

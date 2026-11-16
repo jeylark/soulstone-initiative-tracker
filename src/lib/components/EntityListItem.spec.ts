@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import type { HTMLFieldsetAttributes } from 'svelte/elements';
@@ -11,6 +12,62 @@ afterEach(() => {
 const content = createRawSnippet(() => ({ render: () => '<p>Entity content</p>' }));
 
 describe('EntityListItem', () => {
+	it.each([false, true])(
+		'reserves top scrollbar clearance for a remove button with disabled state %s',
+		(isRemoveDisabled) => {
+			render(EntityListItem, {
+				legend: 'Player 1',
+				removeLabel: 'Remove Player 1',
+				onRemove: vi.fn(),
+				isRemoveDisabled,
+				children: content
+			});
+			const body = screen.getByRole('region', { name: 'Player 1' });
+			expect(body.style.getPropertyValue('--card-scrollbar-inset-top')).toBe('32px');
+			expect(body.style.getPropertyValue('--card-scrollbar-inset-bottom')).toBe('0px');
+			expect(
+				(screen.getByRole('button', { name: 'Remove Player 1' }) as HTMLButtonElement).disabled
+			).toBe(isRemoveDisabled);
+		}
+	);
+
+	it.each([
+		{ removeLabel: 'Remove Player 1', onRemove: undefined },
+		{ removeLabel: undefined, onRemove: vi.fn() },
+		{ removeLabel: '', onRemove: vi.fn() }
+	])('omits scrollbar clearance when the remove action is not rendered: %j', (action) => {
+		render(EntityListItem, { legend: 'Player 1', children: content, ...action });
+		expect(screen.queryByRole('button')).toBeNull();
+		const body = screen.getByRole('region', { name: 'Player 1' });
+		expect(body.style.getPropertyValue('--card-scrollbar-inset-top')).toBe('0px');
+		expect(body.style.getPropertyValue('--card-scrollbar-inset-bottom')).toBe('0px');
+	});
+
+	it('updates scrollbar clearance when the remove action is removed and restored', async () => {
+		const onRemove = vi.fn();
+		const { rerender } = render(EntityListItem, {
+			legend: 'Player 1',
+			removeLabel: 'Remove Player 1',
+			onRemove,
+			children: content
+		});
+		const body = screen.getByRole('region', { name: 'Player 1' });
+		expect(body.style.getPropertyValue('--card-scrollbar-inset-top')).toBe('32px');
+		await rerender({ onRemove: undefined });
+		expect(screen.queryByRole('button')).toBeNull();
+		expect(body.style.getPropertyValue('--card-scrollbar-inset-top')).toBe('0px');
+		await rerender({ onRemove });
+		expect(screen.getByRole('button', { name: 'Remove Player 1' })).toBeTruthy();
+		expect(body.style.getPropertyValue('--card-scrollbar-inset-top')).toBe('32px');
+	});
+
+	it('keeps the remove action wrapper out of the content layout', () => {
+		const componentStyles = readFileSync('src/lib/components/EntityListItem.svelte', 'utf8');
+
+		expect(componentStyles).toMatch(/\.entity-remove-action\s*\{\s*display:\s*contents/s);
+		expect(componentStyles).not.toMatch(/\.entity-remove-action\s*\{[^}]*min-height/s);
+	});
+
 	it('uses a single card with the legend as its visible title and group name', () => {
 		const { container } = render(EntityListItem, {
 			legend: 'Player 1',
@@ -25,7 +82,18 @@ describe('EntityListItem', () => {
 		expect(card?.classList.contains('card--surface')).toBe(true);
 		expect(card?.classList.contains('card--standard')).toBe(true);
 		expect(heading.classList.contains('card-header--large')).toBe(true);
-		expect(screen.getByRole('group', { name: 'Player 1' }).parentElement).toBe(card);
+		const body = screen.getByRole('region', { name: 'Player 1' });
+		expect(screen.getByRole('group', { name: 'Player 1' }).parentElement).toBe(body);
+		expect(body.parentElement).toBe(card);
+	});
+
+	it('keeps the fieldset legend accessible without displaying it a second time', () => {
+		render(EntityListItem, { legend: 'Player 1', children: content });
+
+		const group = screen.getByRole('group', { name: 'Player 1' });
+		const legend = group.querySelector('legend');
+		expect(legend?.textContent).toBe('Player 1');
+		expect(legend?.classList.contains('entity-list-item-legend')).toBe(true);
 	});
 
 	it('forwards heading and layout options to the card rather than the fieldset', () => {

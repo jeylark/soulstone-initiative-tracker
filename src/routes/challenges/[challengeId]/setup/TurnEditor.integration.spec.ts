@@ -31,6 +31,20 @@ beforeEach(async () => {
 });
 
 describe('new challenge setup', () => {
+	it('groups conditional turn controls for shared row alignment', async () => {
+		await renderSetup();
+		const players = screen.getByRole('group', { name: 'Players' });
+		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
+		const player = within(players).getByRole('group', { name: 'Player 1' });
+		const turn = within(player).getByRole('group', { name: 'Turn 1' });
+		const mode = within(turn).getByRole('combobox', { name: 'Turn initiative' });
+		await fireEvent.change(mode, { target: { value: 'static' } });
+		const value = within(turn).getByRole('spinbutton', { name: 'Static initiative' });
+		const group = mode.closest('.form-group');
+		expect(group?.classList.contains('turn-settings')).toBe(true);
+		expect(value.closest('.form-group')).toBe(group);
+	});
+
 	it('allows new turn placement while preserving indices on locked relative hooks', async () => {
 		const challenge = createSpawnEditChallenge();
 		const targetTurnId = challenge.creatures[0]!.turns[0]!.id;
@@ -73,10 +87,12 @@ describe('new challenge setup', () => {
 		await fireEvent.click(addTurn);
 		const newTurn = within(bryn).getByRole('group', { name: 'Turn 2' });
 		const heading = within(bryn).getByRole('heading', { level: 5, name: 'Turn 2' });
-		expect(heading.parentElement).toBe(newTurn.parentElement);
+		const newTurnCard = newTurn.closest('.card');
+		expect(newTurnCard).not.toBeNull();
+		expect(heading.closest('.card')).toBe(newTurnCard);
 		expect(heading.classList.contains('card-header--compact')).toBe(true);
-		expect(newTurn.parentElement?.classList.contains('card--inset')).toBe(true);
-		expect(newTurn.parentElement?.classList.contains('card--compact')).toBe(true);
+		expect(newTurnCard?.classList.contains('card--inset')).toBe(true);
+		expect(newTurnCard?.classList.contains('card--compact')).toBe(true);
 		const mode = within(newTurn).getByRole('combobox', { name: 'Turn initiative' });
 		expect((mode as HTMLSelectElement).disabled).toBe(false);
 		await fireEvent.change(mode, { target: { value: 'relative-after' } });
@@ -90,10 +106,12 @@ describe('new challenge setup', () => {
 
 		const lockedSibling = within(aria).getByRole('group', { name: 'Turn 3' });
 		await fireEvent.click(within(aria).getByRole('button', { name: 'Remove Turn 2 for Aria' }));
-		expect(
-			(within(lockedSibling).getByRole('spinbutton', { name: 'Index' }) as HTMLInputElement).value
-		).toBe('2');
-		expect(screen.getByRole('region', { name: 'Setup validation errors' })).toBeTruthy();
+		const preservedIndex = within(lockedSibling).getByRole('spinbutton', { name: 'Index' });
+		expect((preservedIndex as HTMLInputElement).value).toBe('2');
+		expect(preservedIndex.getAttribute('aria-invalid')).toBe('true');
+		expect(within(lockedSibling).getByRole('alert').textContent).toContain(
+			'Multiple hooks need unique, contiguous indices starting at 1.'
+		);
 	});
 
 	it('keeps invalid singleton indices editable and explicitly repairs a missing target', async () => {

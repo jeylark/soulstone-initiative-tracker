@@ -1,5 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import turnOrderPage from './RunPanel.svelte';
 import {
@@ -38,6 +39,17 @@ beforeEach(async () => {
 });
 
 describe('turn-order run route', () => {
+	it('renders title actions alongside the turn-order heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(turnOrderPage, { sharedChallenge: createSetupChallenge(), titleActions });
+
+		const heading = await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('starts a live session and stores its reconnect credential separately', async () => {
 		const challenge = createRunChallenge();
 		const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
@@ -642,9 +654,11 @@ describe('turn-order run route', () => {
 		const challenge = createRunChallenge();
 		challenge.runState = { initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 } };
 		await saveChallengeToLibrary(challenge);
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, { props: { sharedChallenge: challenge, onValidationCountChange } });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
 
 		expectPageError(
 			'Turn order cannot be generated until tied turns in the same faction are ordered on the Roll tab.'
@@ -813,8 +827,8 @@ describe('turn-order run route', () => {
 		expect(
 			items.map((item) =>
 				item
-					.querySelector<HTMLElement>('.turn-order-card-tone')
-					?.style.getPropertyValue('--faction-color')
+					.querySelector<HTMLElement>('.turn-order-card-tone .card')
+					?.style.getPropertyValue('--card-accent-color')
 			)
 		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});

@@ -7,6 +7,20 @@ afterEach(() => {
 });
 
 describe('ColorPickerInput', () => {
+	it('exposes the palette label and options as separate shared rows', () => {
+		render(ColorPickerInput, {
+			label: 'Faction color',
+			name: 'color',
+			options: [{ value: 'blue', label: 'Blue', hex: '#5687c8' }],
+			value: 'blue',
+			onchange: vi.fn()
+		});
+		const group = screen.getByRole('group', { name: 'Faction color' });
+		const field = group.closest('.form-field-messages');
+		expect(field?.querySelector('.form-control-label')?.textContent).toBe('Faction color');
+		expect(group.parentElement).toBe(field);
+	});
+
 	it('renders an accessible configurable palette and reports the selected color', async () => {
 		const onchange = vi.fn();
 		render(ColorPickerInput, {

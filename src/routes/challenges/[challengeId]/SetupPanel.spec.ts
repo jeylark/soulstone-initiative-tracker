@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import setupChallengePage from './SetupPanel.svelte';
 import {
@@ -39,10 +41,96 @@ beforeEach(async () => {
 });
 
 describe('challenge setup view', () => {
+	it('renders title actions alongside the setup heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(setupChallengePage, { titleActions });
+
+		const heading = await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
+	it('keeps challenge settings and NPC types in separate rows on wide screens', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s
+		);
+		expect(challengeSetupStyles).not.toMatch(
+			/@media\s*\(min-width:\s*960px\)\s*\{\s*\.challenge-setup\s*\{[^}]*grid-template-columns:\s*repeat\(2/s
+		);
+	});
+
+	it('uses content-sized shared form rows without reserving space for short labels', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		const formControlStyles = readFileSync('src/lib/components/forms/form-controls.css', 'utf8');
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.npc-type-card\s*\{[^}]*padding-block-start:\s*12px/s
+		);
+		expect(formControlStyles).toMatch(
+			/\.form-group\s*>\s*\.form-field-messages\s*\{[^}]*grid-template-rows:\s*subgrid/s
+		);
+		expect(challengeSetupStyles).not.toMatch(/npc-type-field-label|min-height:\s*2lh/);
+	});
+
+	it('spaces faction properties from the creature list', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.faction-editor-content\s*\{[^}]*display:\s*grid;[^}]*gap:\s*12px/s
+		);
+	});
+
+	it('removes the border around faction properties', () => {
+		const challengeSetupStyles = readFileSync(
+			'src/routes/challenges/[challengeId]/setup/challenge-setup.css',
+			'utf8'
+		);
+		expect(challengeSetupStyles).toMatch(
+			/\.challenge-setup\s+\.faction-editor-content\s*>\s*fieldset\s*\{[^}]*border:\s*0/s
+		);
+	});
+
 	it('renders the setup editor in a full-width container', async () => {
 		await renderSetup();
 		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
 		expect(editor.closest('[data-layout="full-width"]')).toBeTruthy();
+	});
+
+	it('spaces the setup editor from following controls', () => {
+		const setupPanel = readFileSync(
+			'src/routes/challenges/[challengeId]/SetupPanel.svelte',
+			'utf8'
+		);
+		expect(setupPanel).toMatch(/\.setup-wide\s*\{[^}]*margin-block-end:\s*16px/s);
+	});
+
+	it('shows only unassociated validation errors below the setup fields', async () => {
+		const challenge = {
+			...createSetupChallenge(),
+			name: ' ',
+			runState: { initiativeResults: {}, spawnCount: -1 }
+		};
+		await saveChallengeToLibrary(challenge);
+		await renderSetup();
+
+		const summary = screen.getByRole('region', { name: 'Setup validation errors' });
+		const nameInput = screen.getByRole('textbox', { name: 'Challenge name' });
+		const editor = screen.getByRole('group', { name: 'Challenge setup editing' });
+		expect(nameInput.getAttribute('aria-invalid')).toBe('true');
+		expect(within(summary).queryByText(/^\$\.name:/)).toBeNull();
+		expect(summary.textContent).toContain('$.runState.spawnCount');
+		expect(editor.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(screen.queryByRole('button', { name: 'Roll Initiatives' })).toBeNull();
 	});
 
 	it('shows complete saved-data diagnostics and only resets progress after confirmation', async () => {
@@ -248,7 +336,7 @@ describe('challenge setup persistence', () => {
 		expect(
 			(
 				screen.getByRole('spinbutton', {
-					name: 'Initiative stat (d6) for Aria'
+					name: 'Initiative stat for Aria'
 				}) as HTMLInputElement
 			).disabled
 		).toBe(true);
@@ -438,9 +526,6 @@ describe('challenge setup persistence', () => {
 		await waitFor(async () => {
 			expect((await loadChallengeLibrary()).challenges[0]?.fairnessWeight).toBe(-1);
 		});
-		expect(
-			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
-		).toBe(true);
 		expect(screen.getByText('Fairness weight must be a non-negative number.')).toBeTruthy();
 	});
 
@@ -462,7 +547,7 @@ describe('challenge setup persistence', () => {
 		const npcTypeName = screen.getByRole('textbox', { name: /^NPC type name/ });
 		expect(npcTypeName.getAttribute('aria-invalid')).toBe('true');
 		expect(screen.getByText('NPC type name must not be blank.')).toBeTruthy();
-		expect(document.querySelector('.setup-validation-issues')).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Setup validation errors' })).toBeNull();
 	});
 
 	it('marks every input in duplicate-name groups as invalid', async () => {
@@ -514,22 +599,19 @@ describe('challenge setup persistence', () => {
 		const duplicateInputs = [
 			...factionNameInputs.map((input) => ({
 				input,
-				message: 'Faction names must be unique, ignoring case and surrounding whitespace.'
+				message: 'Faction names must be unique.'
 			})),
 			...npcTypeNameInputs.map((input) => ({
 				input,
-				message:
-					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+				message: 'PC and NPC type names must be unique'
 			})),
 			{
 				input: characterNameInput,
-				message:
-					'Player-character and NPC type names must be unique, ignoring case and surrounding whitespace.'
+				message: 'PC and NPC type names must be unique'
 			},
 			...npcIdentifierInputs.map((input) => ({
 				input,
-				message:
-					'NPC identifiers must be unique within each NPC type, ignoring case and surrounding whitespace.'
+				message: 'NPC identifiers must be unique within each type.'
 			}))
 		];
 
@@ -576,9 +658,6 @@ describe('challenge setup persistence', () => {
 			const turn = (await loadChallengeLibrary()).challenges[0]?.creatures[0]?.turns[0];
 			expect(turn?.initiative).toEqual({ kind: 'fixed-position', from: 'top', position: 0.5 });
 		});
-		expect(
-			(screen.getByRole('button', { name: 'Roll Initiatives' }) as HTMLButtonElement).disabled
-		).toBe(true);
 	});
 
 	it('hides the character initiative stat unless a turn is app-rolled, keeping the value', async () => {
@@ -603,7 +682,7 @@ describe('challenge setup persistence', () => {
 
 		const view = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const statName = 'Initiative stat (d6) for Aria';
+		const statName = 'Initiative stat for Aria';
 		expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull();
 
 		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
@@ -646,7 +725,7 @@ describe('challenge setup persistence', () => {
 
 		const firstView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const input = screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' });
 		expect((input as HTMLInputElement).value).toBe('');
 		await fireEvent.input(input, { target: { value: '3' } });
 
@@ -661,7 +740,7 @@ describe('challenge setup persistence', () => {
 		const secondView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		const restoredInput = screen.getByRole('spinbutton', {
-			name: 'Initiative stat (d6) for Aria'
+			name: 'Initiative stat for Aria'
 		});
 		expect((restoredInput as HTMLInputElement).value).toBe('3');
 		await fireEvent.input(restoredInput, { target: { value: '' } });
@@ -673,7 +752,7 @@ describe('challenge setup persistence', () => {
 		secondView.unmount();
 	});
 
-	it('shows all initiative-stat issues and blocks starting until they are fixed', async () => {
+	it('shows initiative-stat issues and clears them when fixed', async () => {
 		const challenge = createSetupChallenge();
 		challenge.creatures = [
 			{
@@ -693,58 +772,23 @@ describe('challenge setup persistence', () => {
 		await saveChallengeToLibrary(challenge);
 
 		render(setupChallengePage);
-		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
-		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
-		expect(
-			await screen.findAllByText(
-				'An initiative stat is required for characters with app-rolled turns.'
-			)
-		).toHaveLength(1);
-		await fireEvent.click(disabledStartButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
-
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
-		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
+			target: { value: '2' }
+		});
+		await waitFor(() => expect(screen.queryByText('Initiative is required.')).toBeNull());
 	});
 
-	it('saves the latest edits before starting the challenge', async () => {
-		await renderSetup();
-
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
-			target: { value: 'Ready to roll' }
-		});
-		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.closest('fieldset[disabled]')).toBeNull();
-		await fireEvent.click(startButton);
-
-		expect(mockedGoto).not.toHaveBeenCalled();
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.name).toBe('Ready to roll');
-		});
-	});
-
-	it('stays in setup and shows an error when starting cannot save', async () => {
+	it('shows an error when autosaving cannot save', async () => {
 		await renderSetup();
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Unsaved change' }
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
-
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Challenge setup' })).toBeTruthy();
 	});
 
 	it.each(['unknown', 'unreadable'] as const)(
@@ -873,29 +917,38 @@ describe('new challenge setup', () => {
 		const expectCard = (hasCard: boolean) => expect(hasCard).toBe(true);
 
 		const settings = screen.getByRole('group', { name: 'Challenge settings' });
-		expectCard(settings.parentElement?.classList.contains('card') ?? false);
+		expectCard(settings.parentElement?.classList.contains('card-body') ?? false);
+		expect(settings.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'Challenge settings', level: 2 })).toBeTruthy();
 
 		const npcTypes = screen.getByRole('group', { name: 'NPC types' });
-		expectCard(npcTypes.parentElement?.classList.contains('card') ?? false);
+		expectCard(npcTypes.parentElement?.classList.contains('card-body') ?? false);
+		expect(npcTypes.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'NPC types', level: 2 })).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		const npcType = screen.getByRole('group', { name: 'NPC Type 1' });
-		expectCard(npcType.parentElement?.classList.contains('card') ?? false);
+		expectCard(npcType.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'NPC Type 1', level: 3 })).toBeTruthy();
 
 		const factions = screen.getByRole('group', { name: 'Factions' });
-		expectCard(factions.parentElement?.classList.contains('card') ?? false);
+		expectCard(factions.parentElement?.classList.contains('card-body') ?? false);
+		expect(factions.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
+			true
+		);
 		expect(screen.getByRole('heading', { name: 'Factions', level: 2 })).toBeTruthy();
 		const players = within(factions).getByRole('group', { name: 'Players' });
-		expectCard(players.parentElement?.classList.contains('card') ?? false);
+		expectCard(players.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Players', level: 3 })).toBeTruthy();
 		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
 		const player = within(players).getByRole('group', { name: 'Player 1' });
-		expectCard(player.parentElement?.classList.contains('card') ?? false);
+		expectCard(player.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Player 1', level: 4 })).toBeTruthy();
 		const turn = within(player).getByRole('group', { name: 'Turn 1' });
-		expectCard(turn.parentElement?.classList.contains('card') ?? false);
+		expectCard(turn.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Turn 1', level: 5 })).toBeTruthy();
 	});
 
@@ -970,7 +1023,7 @@ describe('challenge setup persistence', () => {
 
 		const view = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const statName = 'Initiative stat (d6) for Aria';
+		const statName = 'Initiative stat for Aria';
 		expect(screen.queryByRole('spinbutton', { name: statName })).toBeNull();
 
 		await fireEvent.change(screen.getByRole('combobox', { name: /Turn initiative/ }), {
@@ -1013,7 +1066,7 @@ describe('challenge setup persistence', () => {
 
 		const firstView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
-		const input = screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' });
 		expect((input as HTMLInputElement).value).toBe('');
 		await fireEvent.input(input, { target: { value: '3' } });
 
@@ -1028,7 +1081,7 @@ describe('challenge setup persistence', () => {
 		const secondView = render(setupChallengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		const restoredInput = screen.getByRole('spinbutton', {
-			name: 'Initiative stat (d6) for Aria'
+			name: 'Initiative stat for Aria'
 		});
 		expect((restoredInput as HTMLInputElement).value).toBe('3');
 		await fireEvent.input(restoredInput, { target: { value: '' } });
@@ -1060,58 +1113,23 @@ describe('challenge setup persistence', () => {
 		await saveChallengeToLibrary(challenge);
 
 		render(setupChallengePage);
-		const disabledStartButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect((disabledStartButton as HTMLButtonElement).disabled).toBe(true);
-		expect(disabledStartButton.classList.contains('ui-button')).toBe(true);
-		expect(
-			await screen.findAllByText(
-				'An initiative stat is required for characters with app-rolled turns.'
-			)
-		).toHaveLength(1);
-		await fireEvent.click(disabledStartButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
-
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
-		const startButton = await screen.findByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.classList.contains('ui-button')).toBe(true);
-		await fireEvent.click(startButton);
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(await screen.findAllByText('Initiative is required.')).toHaveLength(1);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
+			target: { value: '2' }
+		});
+		await waitFor(() => expect(screen.queryByText('Initiative is required.')).toBeNull());
 	});
 
-	it('saves the latest edits before starting the challenge', async () => {
-		await renderSetup();
-
-		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
-			target: { value: 'Ready to roll' }
-		});
-		const startButton = screen.getByRole('button', { name: 'Roll Initiatives' });
-		expect(startButton.closest('fieldset[disabled]')).toBeNull();
-		await fireEvent.click(startButton);
-
-		expect(mockedGoto).not.toHaveBeenCalled();
-		await waitFor(async () => {
-			const saved = (await loadChallengeLibrary()).challenges[0];
-			expect(saved?.name).toBe('Ready to roll');
-		});
-	});
-
-	it('stays in setup and shows an error when starting cannot save', async () => {
+	it('shows an error when autosaving cannot save', async () => {
 		await renderSetup();
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Unsaved change' }
 		});
 		vi.stubGlobal('indexedDB', undefined);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Roll Initiatives' }));
-
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Challenge setup' })).toBeTruthy();
 	});
 
 	it.each(['unknown', 'unreadable'] as const)(
@@ -1239,8 +1257,8 @@ describe('new challenge setup', () => {
 
 		// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- DOM elements are not readonly
 		const expectCard = (group: HTMLElement, variant: string, spacing: string) => {
-			const card = group.parentElement;
-			expect(card?.classList.contains('card')).toBe(true);
+			expect(group.parentElement?.classList.contains('card-body')).toBe(true);
+			const card = group.closest('.card');
 			expect(card?.classList.contains(`card--${variant}`)).toBe(true);
 			expect(card?.classList.contains(`card--${spacing}`)).toBe(true);
 		};
@@ -1481,7 +1499,7 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(playersPanel).getByRole('button', { name: 'Add Player' }));
 		const player = within(playersPanel).getByRole('group', { name: 'Player 1' });
 		const visibility = within(player).getByRole('checkbox', {
-			name: 'Hidden from viewers: Player 1'
+			name: 'Start hidden Player 1'
 		}) as HTMLInputElement;
 
 		expect(visibility.checked).toBe(false);
@@ -1849,12 +1867,9 @@ describe('initiative stat changes', () => {
 
 	it('discards a character’s app-rolled results before start', async () => {
 		await saveChallengeWithResults();
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '3' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
+			target: { value: '3' }
+		});
 
 		await waitFor(async () => {
 			const runState = (await loadChallengeLibrary()).challenges[0]?.runState;
@@ -1890,12 +1905,9 @@ describe('initiative stat changes', () => {
 		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Ghoul' }), {
 			target: { value: '2' }
 		});
-		await fireEvent.input(
-			screen.getByRole('spinbutton', { name: 'Initiative stat (d6) for Aria' }),
-			{
-				target: { value: '2' }
-			}
-		);
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative stat for Aria' }), {
+			target: { value: '2' }
+		});
 		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
 			target: { value: 'Renamed' }
 		});

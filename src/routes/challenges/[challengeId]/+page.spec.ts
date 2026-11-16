@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import challengePage from './+page.svelte';
+import * as challengeLibrary from '#lib/challenge';
 import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 import { createSetupChallenge, seedStoredChallengeLibrary } from '../../view-test-support';
@@ -26,6 +28,29 @@ beforeEach(async () => {
 });
 
 describe('challenge workflow tabs', () => {
+	it('keeps the default Download action alongside each workflow title', async () => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+
+		let download = await screen.findByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		let heading = await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		heading = await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		download = screen.getByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Run' }));
+		heading = await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		download = screen.getByRole('button', { name: 'Download' });
+		expect(download.classList.contains('ui-button--primary')).toBe(true);
+		expect(download.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('downloads the challenge as a versioned file with its current run state', async () => {
 		const challenge = createRunChallenge();
 		challenge.name = 'Saved encounter';
@@ -45,10 +70,7 @@ describe('challenge workflow tabs', () => {
 		await vi.waitFor(() => expect(createObjectUrl).toHaveBeenCalledOnce());
 		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0];
 		assert(downloadedBlob instanceof Blob);
-		const decompressed = new Response(await downloadedBlob.arrayBuffer()).body?.pipeThrough(
-			new DecompressionStream('gzip')
-		);
-		const downloadedLibrary = JSON.parse(await new Response(decompressed).text());
+		const downloadedLibrary = JSON.parse(await downloadedBlob.text());
 		expect(downloadedLibrary).toMatchObject({
 			formatVersion: 1,
 			challenges: [
@@ -172,6 +194,15 @@ describe('challenge workflow tabs', () => {
 
 		const rollTab = await screen.findByRole('tab', { name: 'Roll' });
 		expect(rollTab.getAttribute('aria-disabled')).toBe('true');
+		expect(screen.getByRole('tab', { name: 'Setup' }).getAttribute('aria-disabled')).toBe('false');
+		expect(rollTab.closest('.workflow-tabs')).toBeTruthy();
+		const source = readFileSync('src/routes/challenges/[challengeId]/+page.svelte', 'utf8');
+		expect(source).toMatch(
+			/\.workflow-tabs\s+button\[aria-disabled=['"]true['"]\]\s*\{[^}]*color:\s*color-mix\(/s
+		);
+		expect(source).toMatch(
+			/\.workflow-tabs\s+button\[aria-disabled=['"]true['"]\]\s*\{[^}]*cursor:\s*not-allowed\s*;/s
+		);
 		await fireEvent.click(rollTab);
 
 		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
@@ -181,6 +212,76 @@ describe('challenge workflow tabs', () => {
 		expect(runTab.getAttribute('aria-disabled')).toBe('true');
 		await fireEvent.click(runTab);
 		expect(screen.getByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Valid challenge' }
+		});
+		expect(rollTab.getAttribute('aria-disabled')).toBe('false');
+		expect(runTab.getAttribute('aria-disabled')).toBe('false');
+	});
+
+	it('shows the current Setup validation count and removes it when fixed', async () => {
+		await saveChallengeToLibrary(createSetupChallenge());
+		render(challengePage);
+
+		const setupTab = await screen.findByRole('tab', { name: 'Setup' });
+		expect(setupTab.querySelector('.validation-count')?.textContent).toBe('1');
+		const validationDescriptionId = setupTab.getAttribute('aria-describedby');
+		assert(validationDescriptionId);
+		expect(document.getElementById(validationDescriptionId)?.textContent).toBe(
+			'1 validation error'
+		);
+
+		await fireEvent.input(screen.getByRole('textbox', { name: 'Challenge name' }), {
+			target: { value: 'Valid challenge' }
+		});
+		expect(setupTab.querySelector('.validation-count')).toBeNull();
+		expect(setupTab.getAttribute('aria-describedby')).toBeNull();
+	});
+
+	it('shows invalid Roll input counts and clears the count when leaving Roll', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: { [ariaTurnId]: 6, [rookTurnId]: 12 } };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const input = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+
+		await fireEvent.input(input, { target: { value: '8' } });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+
+		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('shows Run blockers by affected turn and clears the count when leaving Run', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(runTab.querySelector('.validation-count')?.textContent).toBe('2');
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(runTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(runTab);
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		expect(runTab.querySelector('.validation-count')).toBeNull();
 	});
 
 	it('supports keyboard navigation between tabs', async () => {
@@ -194,6 +295,35 @@ describe('challenge workflow tabs', () => {
 		).toBeTruthy();
 		await waitFor(() => expect(rollTab.getAttribute('aria-selected')).toBe('true'));
 		expect(rollTab).toBe(document.activeElement);
+	});
+
+	it.each(['success', 'failure'])('reflects a pending Run save until %s', async (outcome) => {
+		const challenge = createRunChallenge();
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+
+		const pendingSave = Promise.withResolvers<void>();
+		vi.spyOn(challengeLibrary, 'saveChallengeToLibrary').mockReturnValueOnce(pendingSave.promise);
+		await fireEvent.click(screen.getByRole('button', { name: 'Next turn' }));
+
+		const setupTab = screen.getByRole('tab', { name: 'Setup' });
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(setupTab.getAttribute('aria-disabled')).toBe('true');
+		expect(rollTab.getAttribute('aria-disabled')).toBe('true');
+		expect(runTab.getAttribute('aria-disabled')).toBe('false');
+		expect(runTab.getAttribute('aria-selected')).toBe('true');
+		await fireEvent.click(setupTab);
+		expect(runTab.getAttribute('aria-selected')).toBe('true');
+
+		if (outcome === 'success') pendingSave.resolve();
+		else pendingSave.reject(new Error('Save failed'));
+		await waitFor(() => {
+			expect(setupTab.getAttribute('aria-disabled')).toBe('false');
+			expect(rollTab.getAttribute('aria-disabled')).toBe('false');
+		});
 	});
 
 	it('explains when the requested challenge does not exist', async () => {

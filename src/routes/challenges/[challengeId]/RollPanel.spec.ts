@@ -1,17 +1,16 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import rollChallengePage from './RollPanel.svelte';
 import { saveChallengeToLibrary, loadChallengeLibrary, type StableId } from '#lib/challenge';
 import { createSetupChallenge, expectPageError } from '../../view-test-support';
 
-const { mockedPage, mockedGoto } = vi.hoisted(() => ({
-	mockedPage: { params: {} as Record<string, string> },
-	mockedGoto: vi.fn()
+const { mockedPage } = vi.hoisted(() => ({
+	mockedPage: { params: {} as Record<string, string> }
 }));
 
 vi.mock('$app/state', () => ({ page: mockedPage }));
-vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
 
 afterEach(() => {
 	cleanup();
@@ -27,12 +26,59 @@ beforeEach(async () => {
 });
 
 describe('running challenge view', () => {
+	it('renders title actions alongside the initiative heading', async () => {
+		const titleActions = createRawSnippet(() => ({
+			render: () => '<button>Title action</button>'
+		}));
+		render(rollChallengePage, { sharedChallenge: createSetupChallenge(), titleActions });
+
+		const heading = await screen.findByRole('heading', {
+			level: 1,
+			name: 'Initiative rolling'
+		});
+		const action = screen.getByRole('button', { name: 'Title action' });
+		expect(action.closest('.view-page-heading')).toBe(heading.closest('.view-page-heading'));
+	});
+
 	it('has a heading and a link back to the landing page', async () => {
 		render(rollChallengePage);
 
 		expect(
 			await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' })
 		).toBeTruthy();
+	});
+
+	it('reports the current invalid manual initiative count', async () => {
+		const challenge = createSetupChallenge();
+		challenge.name = 'Initiative validation';
+		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
+		challenge.creatures = [
+			{
+				id: '00000000-0000-4000-8000-000000000011' as StableId,
+				kind: 'character',
+				name: 'Aria',
+				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
+				isHidden: false,
+				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
+			}
+		];
+		challenge.runState = { initiativeResults: { [turnId]: 5 } };
+		const onValidationCountChange = vi.fn();
+		const { unmount } = render(rollChallengePage, {
+			sharedChallenge: challenge,
+			onValidationCountChange
+		});
+		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
+
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+		await fireEvent.input(input, { target: { value: '9' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(0));
+		await fireEvent.input(input, { target: { value: '1.5' } });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+
+		unmount();
+		expect(onValidationCountChange).toHaveBeenLastCalledWith(0);
 	});
 });
 
@@ -172,68 +218,6 @@ describe('running challenge storage', () => {
 		});
 	});
 
-	it('saves the latest initiative before returning to setup', async () => {
-		const challenge = createSetupChallenge();
-		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
-		challenge.creatures = [
-			{
-				id: '00000000-0000-4000-8000-000000000011' as StableId,
-				kind: 'character',
-				name: 'Aria',
-				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
-				isHidden: false,
-				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
-			}
-		];
-		await saveChallengeToLibrary(challenge);
-
-		render(rollChallengePage);
-		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
-		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
-
-		await waitFor(async () => {
-			expect(
-				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
-			).toBe(12);
-		});
-		expect(mockedGoto).not.toHaveBeenCalled();
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
-			12
-		);
-	});
-
-	it('saves the latest initiative before continuing to turn order', async () => {
-		const challenge = createSetupChallenge();
-		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
-		challenge.creatures = [
-			{
-				id: '00000000-0000-4000-8000-000000000011' as StableId,
-				kind: 'character',
-				name: 'Aria',
-				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
-				isHidden: false,
-				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
-			}
-		];
-		await saveChallengeToLibrary(challenge);
-
-		render(rollChallengePage);
-		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
-		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
-
-		await waitFor(async () => {
-			expect(
-				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
-			).toBe(12);
-		});
-		expect(mockedGoto).not.toHaveBeenCalled();
-		expect((await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]).toBe(
-			12
-		);
-	});
-
 	it('shows a save error and stays on the roll page when persistence fails', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
@@ -256,40 +240,15 @@ describe('running challenge storage', () => {
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
 	});
 
-	it('does not continue to turn order when saving pending edits fails', async () => {
-		const challenge = createSetupChallenge();
-		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
-		challenge.creatures = [
-			{
-				id: '00000000-0000-4000-8000-000000000011' as StableId,
-				kind: 'character',
-				name: 'Aria',
-				factionId: '00000000-0000-4000-8000-000000000002' as StableId,
-				isHidden: false,
-				turns: [{ id: turnId, initiative: { kind: 'roll', mode: 'manual' } }]
-			}
-		];
-		await saveChallengeToLibrary(challenge);
-
-		render(rollChallengePage);
-		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
-		vi.stubGlobal('indexedDB', undefined);
-		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
-
-		await screen.findByRole('alert');
-		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
-	});
-
-	it('offers a return-to-setup action for the loaded challenge', async () => {
+	it('does not render panel navigation actions for the loaded challenge', async () => {
 		render(rollChallengePage);
 
-		expect(await screen.findByRole('button', { name: 'Return to setup' })).toBeTruthy();
+		await screen.findByRole('button', { name: 'Roll all remaining' });
+		expect(screen.queryByRole('button', { name: 'Return to setup' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Continue to turn order' })).toBeNull();
 	});
 
 	it.each([
@@ -381,7 +340,7 @@ describe('running challenge storage', () => {
 		});
 	});
 
-	it('saves the latest initiative before returning to setup', async () => {
+	it('autosaves the latest initiative without leaving Roll', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -399,9 +358,6 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
-
-		expect(mockedGoto).not.toHaveBeenCalled();
 		await waitFor(async () => {
 			expect(
 				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
@@ -409,7 +365,7 @@ describe('running challenge storage', () => {
 		});
 	});
 
-	it('saves the latest initiative before continuing to turn order', async () => {
+	it('autosaves the latest initiative without switching panels', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -427,9 +383,6 @@ describe('running challenge storage', () => {
 		render(rollChallengePage);
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
-
-		expect(mockedGoto).not.toHaveBeenCalled();
 		await waitFor(async () => {
 			expect(
 				(await loadChallengeLibrary()).challenges[0]?.runState?.initiativeResults[turnId]
@@ -459,11 +412,10 @@ describe('running challenge storage', () => {
 
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		await fireEvent.click(screen.getByRole('button', { name: 'Return to setup' }));
-		expect(mockedGoto).not.toHaveBeenCalled();
+		expect(screen.getByRole('heading', { name: 'Initiative rolling' })).toBeTruthy();
 	});
 
-	it('does not continue to turn order when saving pending edits fails', async () => {
+	it('shows a save error when autosaving pending edits fails', async () => {
 		const challenge = createSetupChallenge();
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
 		challenge.creatures = [
@@ -482,11 +434,8 @@ describe('running challenge storage', () => {
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 		vi.stubGlobal('indexedDB', undefined);
 		await fireEvent.input(input, { target: { value: '12' } });
-		await fireEvent.click(screen.getByRole('button', { name: 'Continue to turn order' }));
-
 		await screen.findByRole('alert');
 		expectPageError('Changes could not be saved.');
-		expect(mockedGoto).not.toHaveBeenCalled();
 	});
 
 	it('collects every manual-roll turn with its creature, turn, saved value, and faction color', async () => {
@@ -918,10 +867,12 @@ describe('running challenge storage', () => {
 		expect(screen.getByText('Initiative result: 10')).toBeTruthy();
 	});
 
-	it('offers a return-to-setup action for the loaded challenge', async () => {
+	it('does not render panel navigation actions for the loaded challenge', async () => {
 		render(rollChallengePage);
 
-		expect(await screen.findByRole('button', { name: 'Return to setup' })).toBeTruthy();
+		await screen.findByRole('button', { name: 'Roll all remaining' });
+		expect(screen.queryByRole('button', { name: 'Return to setup' })).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Continue to turn order' })).toBeNull();
 	});
 
 	it.each([

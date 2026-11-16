@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { HTMLInputAttributes } from 'svelte/elements';
 	import './form-controls.css';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	interface Props extends Omit<HTMLInputAttributes, 'type'> {
 		label: string;
@@ -40,7 +40,8 @@
 </script>
 
 <div class="form-field-messages">
-	<label class="form-field form-checkbox-field" class:is-invalid={isInvalid}>
+	<span class="form-control-label-placeholder" aria-hidden="true"></span>
+	<label class="form-checkbox-field" class:is-invalid={isInvalid}>
 		<input
 			{...rest}
 			class={`form-checkbox-control ${className}`}

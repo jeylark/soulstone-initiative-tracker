@@ -26,6 +26,25 @@ npm run build
 
 Pull requests run all four checks and build the Docker image in GitHub Actions.
 
+Testing Library error messages are limited to 500 characters, including the
+truncation notice. Set `TEST_ERROR_PRINT_LIMIT` to a positive integer to use a
+different character limit for a test run; invalid values use the default. Stack
+traces, assertion diffs, and other test output are not limited by this setting.
+Testing Library's separate `DEBUG_PRINT_LIMIT` also limits individual DOM dumps
+and defaults to 7000 characters.
+
+For example, in PowerShell:
+
+```powershell
+$previousLimit = [Environment]::GetEnvironmentVariable('TEST_ERROR_PRINT_LIMIT', 'Process')
+try {
+	$env:TEST_ERROR_PRINT_LIMIT = '10000'
+	npx vitest run src/test-setup.spec.ts
+} finally {
+	[Environment]::SetEnvironmentVariable('TEST_ERROR_PRINT_LIMIT', $previousLimit, 'Process')
+}
+```
+
 ## Deployment
 
 The app can be built and started locally in its production Node.js 26 LTS

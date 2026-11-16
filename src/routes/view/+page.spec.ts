@@ -28,9 +28,9 @@ describe('viewer entry page', () => {
 		expect(input.getAttribute('autocomplete')).toBe('off');
 		expect(input.getAttribute('spellcheck')).toBe('false');
 		expect(input.getAttribute('maxlength')).toBe('8');
-		expect(screen.getByRole('button', { name: 'Join session' }).getAttribute('type')).toBe(
-			'submit'
-		);
+		const joinButton = screen.getByRole('button', { name: 'Join session' });
+		expect(joinButton.getAttribute('type')).toBe('submit');
+		expect(joinButton.parentElement?.classList.contains('join-action')).toBe(true);
 		expect(screen.queryByRole('alert')).toBeNull();
 		expect(screen.queryByRole('status')).toBeNull();
 	});
