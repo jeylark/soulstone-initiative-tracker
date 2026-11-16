@@ -1,4 +1,5 @@
-export default {
+/** @type {import('eslint').Rule.RuleModule} */
+const noCrossComponentStyles = {
 	meta: {
 		type: 'problem',
 		docs: {
@@ -11,7 +12,14 @@ export default {
 	},
 	create(context) {
 		return {
+			/**
+			 * @param {import('eslint').Rule.Node | import('svelte-eslint-parser/lib/ast/index.js').SvelteStyleElement} node
+			 */
 			SvelteStyleElement(node) {
+				if (node.type !== 'SvelteStyleElement') {
+					return;
+				}
+
 				const styleText = node.children
 					.map((child) => (typeof child.value === 'string' ? child.value : ''))
 					.join('');
@@ -22,3 +30,5 @@ export default {
 		};
 	}
 };
+
+export default noCrossComponentStyles;

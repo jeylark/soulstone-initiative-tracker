@@ -61,7 +61,7 @@ describe('TurnOrderItem', () => {
 		const { container } = render(TurnOrderItem, {
 			props: { item: createTurnItem(6, false, true) }
 		});
-		const card = container.querySelector('.card');
+		const card = container.querySelector<HTMLElement>('.card');
 
 		expect(screen.getByRole('heading', { name: 'Players' })).toBeTruthy();
 		expect(screen.getByText('Aria', { selector: '.turn-order-creature-name' })).toBeTruthy();
