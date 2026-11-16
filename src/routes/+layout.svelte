@@ -8,6 +8,7 @@
 
 	let { children }: LayoutProps = $props();
 	let headerContent = $state<Snippet>();
+	let headerHeight = $state<number>();
 	setContext('app-header-content', {
 		setContent(content: Snippet) {
 			headerContent = content;
@@ -22,8 +23,12 @@
 	<link rel="icon" type="image/png" href="/soulstone-logo.png" />
 </svelte:head>
 
-<div class:theme-dark={theme.isDarkMode} class="app-shell">
-	<header>
+<div
+	class:theme-dark={theme.isDarkMode}
+	class="app-shell"
+	style:--app-sticky-header-height={headerHeight ? `${headerHeight}px` : undefined}
+>
+	<header bind:clientHeight={headerHeight}>
 		<div class="header-content">
 			<a class="home-link" href={resolve('/')} aria-label="Soulstone home" title="Soulstone home">
 				<img src="/soulstone-logo.png" alt="" width="40" height="40" />
@@ -68,6 +73,10 @@
 
 <style>
 	.app-shell {
+		--app-header-min-height: 72px;
+		--app-sticky-header-height: var(--app-header-min-height);
+		--app-sticky-footer-height: 0px;
+
 		display: flex;
 		min-height: 100vh;
 		min-height: 100svh;
@@ -102,7 +111,7 @@
 		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 10px;
-		min-height: 72px;
+		min-height: var(--app-header-min-height);
 		font-size: 14px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
@@ -145,8 +154,8 @@
 	}
 
 	@media (min-width: 760px) {
-		.header-content {
-			min-height: 84px;
+		.app-shell {
+			--app-header-min-height: 84px;
 		}
 	}
 

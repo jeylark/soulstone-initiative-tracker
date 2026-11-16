@@ -45,7 +45,16 @@
 	}: Props = $props();
 </script>
 
-<Card title={legend} {headingLevel} {headerSize} {variant} {spacing} hasOverlayAction {isStripItem}>
+<Card
+	title={legend}
+	{headingLevel}
+	{headerSize}
+	{variant}
+	{spacing}
+	hasOverlayAction
+	{isStripItem}
+	scrollbarInsetTop={removeLabel && onRemove ? 32 : 0}
+>
 	<fieldset {...rest}>
 		<legend class="entity-list-item-legend">{legend}</legend>
 		{#if removeLabel && onRemove}

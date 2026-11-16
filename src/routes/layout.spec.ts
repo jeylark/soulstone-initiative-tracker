@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { IDBFactory } from 'fake-indexeddb';
 import { createRawSnippet } from 'svelte';
 import type { Component } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Layout from './+layout.svelte';
 import LandingPage from './+page.svelte';
 import SavedChallengesPage from './challenges/+page.svelte';
@@ -12,6 +12,7 @@ import ViewerPage from './view/+page.svelte';
 import LayoutWithChallenge from './layout-test-support.svelte';
 import { createSetupChallenge } from './view-test-support';
 import { saveChallengeToLibrary } from '#lib/challenge';
+import type { DeepReadonly } from '#lib';
 
 vi.mock('$app/state', () => ({
 	page: {
@@ -20,8 +21,41 @@ vi.mock('$app/state', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 
+const resizeObservers: TestResizeObserver[] = [];
+
+class TestResizeObserver {
+	readonly targets = new Set<DeepReadonly<Element>>();
+	readonly callback: (entries: readonly { readonly target: DeepReadonly<Element> }[]) => void;
+
+	constructor(callback: TestResizeObserver['callback']) {
+		this.callback = callback;
+		resizeObservers.push(this);
+	}
+
+	observe(target: DeepReadonly<Element>) {
+		this.targets.add(target);
+	}
+
+	unobserve(target: DeepReadonly<Element>) {
+		this.targets.delete(target);
+	}
+
+	disconnect() {
+		this.targets.clear();
+	}
+
+	notify(target: DeepReadonly<Element>) {
+		this.callback([{ target }]);
+	}
+}
+
+beforeEach(() => {
+	vi.stubGlobal('ResizeObserver', TestResizeObserver);
+});
+
 afterEach(() => {
 	cleanup();
+	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 });
 
@@ -40,6 +74,49 @@ const renderLayout = () =>
 	});
 
 describe('app layout', () => {
+	it('provides responsive sticky-height fallbacks before a nonzero measurement', () => {
+		const { container } = renderLayout();
+		const shell = container.querySelector('.app-shell');
+		expect(shell).not.toBeNull();
+		expect(shell?.getAttribute('style') ?? '').not.toContain('0px');
+		const source = readFileSync('src/routes/+layout.svelte', 'utf8');
+		expect(source).toMatch(/\.app-shell\s*\{[^}]*--app-header-min-height:\s*72px/s);
+		expect(source).toMatch(/--app-sticky-header-height:\s*var\(--app-header-min-height\)/);
+		expect(source).toMatch(/--app-sticky-footer-height:\s*0px/);
+		expect(source).toMatch(
+			/\.header-content\s*\{[^}]*min-height:\s*var\(--app-header-min-height\)/s
+		);
+		expect(source).toMatch(
+			/@media\s*\(min-width:\s*760px\)\s*\{\s*\.app-shell\s*\{\s*--app-header-min-height:\s*84px/
+		);
+	});
+
+	it('publishes the measured header height, updates on resize and stops observing on teardown', async () => {
+		let headerHeight = 96;
+		vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function (
+			this: DeepReadonly<Element>
+		) {
+			return this.tagName === 'HEADER' ? headerHeight : 0;
+		});
+		const { container, unmount } = renderLayout();
+		const header = container.querySelector('header');
+		const shell = container.querySelector<HTMLElement>('.app-shell');
+		if (!header || !shell) throw new Error('Expected the app shell and header');
+		await waitFor(() =>
+			expect(shell.style.getPropertyValue('--app-sticky-header-height')).toBe('96px')
+		);
+		const observer = resizeObservers.find((candidate) => candidate.targets.has(header));
+		expect(observer).toBeDefined();
+		if (!observer) throw new Error('Expected the header to be observed');
+		headerHeight = 144;
+		observer.notify(header);
+		await waitFor(() =>
+			expect(shell.style.getPropertyValue('--app-sticky-header-height')).toBe('144px')
+		);
+		unmount();
+		expect(observer.targets.has(header)).toBe(false);
+	});
+
 	it('keeps the header sticky and its icon controls accessible on compact screens', () => {
 		const { container } = renderLayout();
 		const header = container.querySelector('header');

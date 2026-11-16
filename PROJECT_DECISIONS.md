@@ -49,6 +49,7 @@ Each workflow tab displays a numeric validation badge when it has current errors
 
 ## App navigation and views
 
+- Cards are content-sized by default, with a maximum height based on the visible viewport minus sticky headers and footers and clearance for the raised card title. The cap does not depend on the card's position in the page; page scrolling can bring a card fully into view. Titles remain visible while overflowing card contents scroll in a named, keyboard-focusable region. Full-height cards still fill their layout cell, subject to the same cap. The shell publishes its measured sticky-header height through `--app-sticky-header-height`, with responsive defaults before measurement; `--app-sticky-footer-height` reserves bottom space and currently defaults to zero because there is no sticky footer. Cards accept independent `scrollbarInsetTop` and `scrollbarInsetBottom` pixel values, defaulting to zero and clamping negative values to zero. These reserve space outside the scrolling body so its scrollbar clears overlaid controls. Entity list items reserve 32px at the top whenever their delete button is rendered, including when disabled; items without a delete button reserve no additional space.
 - The landing page offers:
   - Create a new challenge.
   - Load an existing challenge.

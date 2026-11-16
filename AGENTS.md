@@ -93,6 +93,7 @@ Follow these instructions for every task in this repository.
   the fields. Reserve space for overlays and keep label rows a consistent
   height when inputs need to align.
 - Prefer generalized customizations over element-specific fixes.
+- Reserve clearance for controls overlapping a native scrollbar outside the scrollport; internal padding moves content but does not shorten the scrollbar track. Keep per-instance scrollbar insets on the scrolling element so nested cards do not inherit them.
 - CSS source assertions can guard layout rules, but they do not prove rendered
   geometry. Use focused tests and verify the affected view in a browser when
   available.
@@ -114,6 +115,7 @@ Follow these instructions for every task in this repository.
 
 ## Testing and Verification Lessons
 
+- Svelte dimension bindings use a shared ResizeObserver. In JSDOM layout tests, provide a minimal observer fixture and mock the measured dimension; exercise resize notifications and verify the element is unobserved on teardown.
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 - In this JSDOM environment, `Blob.stream()` may be unavailable; use `new Response(text).body` when a test needs a readable stream fixture.
 - When tab selection awaits persistence, wait for the destination panel or selected state before asserting that the previous panel's local state was cleared; `fireEvent.click` alone does not await the full async transition.
