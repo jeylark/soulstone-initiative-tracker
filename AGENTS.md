@@ -109,6 +109,9 @@ Follow these instructions for every task in this repository.
 
 ## Accessibility and Interaction Lessons
 
+- `Card` already provides a named, keyboard-focusable content region. Avoid
+  giving an enclosing section the same accessible name, which creates
+  duplicate nested landmarks and makes single-region queries ambiguous.
 - When tabs cannot be selected, expose and visibly distinguish their unavailable state for both validation failures and temporary navigation locks; restore availability when the lock clears.
 - Before relying on shared disabled-control styles or theme colors, verify that the rendered control carries the required class and that the CSS variables are defined in both themes.
 - Text inside a tab contributes to its accessible name even when visually clipped and referenced with `aria-describedby`; use an explicit `aria-label` when the tab's name must remain stable and expose supplemental status through its description.

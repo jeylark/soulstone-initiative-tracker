@@ -60,7 +60,7 @@
 </script>
 
 {#if factionCreatures.length > 0}
-	<section aria-label={faction.name} class="faction-section">
+	<section class="faction-section">
 		<Card
 			title={faction.name}
 			headingLevel="h2"
