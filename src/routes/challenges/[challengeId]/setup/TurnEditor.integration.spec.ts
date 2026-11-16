@@ -104,10 +104,12 @@ describe('new challenge setup', () => {
 
 		const lockedSibling = within(aria).getByRole('group', { name: 'Turn 3' });
 		await fireEvent.click(within(aria).getByRole('button', { name: 'Remove Turn 2 for Aria' }));
-		expect(
-			(within(lockedSibling).getByRole('spinbutton', { name: 'Index' }) as HTMLInputElement).value
-		).toBe('2');
-		expect(screen.getByRole('region', { name: 'Setup validation errors' })).toBeTruthy();
+		const preservedIndex = within(lockedSibling).getByRole('spinbutton', { name: 'Index' });
+		expect((preservedIndex as HTMLInputElement).value).toBe('2');
+		expect(preservedIndex.getAttribute('aria-invalid')).toBe('true');
+		expect(within(lockedSibling).getByRole('alert').textContent).toContain(
+			'Multiple hooks need unique, contiguous indices starting at 1.'
+		);
 	});
 
 	it('keeps invalid singleton indices editable and explicitly repairs a missing target', async () => {
