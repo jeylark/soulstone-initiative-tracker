@@ -70,10 +70,7 @@ describe('challenge workflow tabs', () => {
 		await vi.waitFor(() => expect(createObjectUrl).toHaveBeenCalledOnce());
 		const downloadedBlob = createObjectUrl.mock.calls[0]?.[0];
 		assert(downloadedBlob instanceof Blob);
-		const decompressed = new Response(await downloadedBlob.arrayBuffer()).body?.pipeThrough(
-			new DecompressionStream('gzip')
-		);
-		const downloadedLibrary = JSON.parse(await new Response(decompressed).text());
+		const downloadedLibrary = JSON.parse(await downloadedBlob.text());
 		expect(downloadedLibrary).toMatchObject({
 			formatVersion: 1,
 			challenges: [

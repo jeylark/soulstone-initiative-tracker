@@ -113,6 +113,7 @@ Follow these instructions for every task in this repository.
 ## Testing and Verification Lessons
 
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
+- In this JSDOM environment, `Blob.stream()` may be unavailable; use `new Response(text).body` when a test needs a readable stream fixture.
 - When tab selection awaits persistence, wait for the destination panel or selected state before asserting that the previous panel's local state was cleared; `fireEvent.click` alone does not await the full async transition.
 - When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
 - Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.

@@ -2,7 +2,7 @@ import { downloadChallengeLibraryJson } from './json-files';
 import { loadChallengeLibrary } from '../storage/storage';
 
 /**
- * Downloads a gzip-compressed JSON backup of the complete current IndexedDB library.
+ * Downloads an uncompressed JSON backup of the complete current IndexedDB library.
  * @param indexedDbFactory IndexedDB factory to read from; defaults to the browser's global factory.
  * @returns A promise that resolves after the library has been read and the download initiated.
  * @throws If the stored library cannot be read or the browser cannot download the backup.

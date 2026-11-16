@@ -193,34 +193,61 @@ describe('challenge and library JSON files', () => {
 		});
 	});
 
-	it('downloads the challenge as a gzip-compressed JSON file', async () => {
+	it('downloads a challenge as a plain JSON file', async () => {
 		const createObjectUrl = vi.fn(() => 'blob:challenge');
 		const revokeObjectUrl = vi.fn();
 		stubObjectUrl(createObjectUrl, revokeObjectUrl);
-		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+		const downloadedFileNames: string[] = [];
+		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+			const anchor = document.querySelector<HTMLAnchorElement>('a[download]');
+			if (anchor) downloadedFileNames.push(anchor.download);
+		});
 
 		await downloadChallengeJson(library, firstChallengeId);
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
 		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:challenge');
+		const blob = createObjectUrl.mock.calls[0]?.[0];
+		assert(blob instanceof Blob);
+		expect(blob.type).toBe('application/json');
+		expect(await blob.text()).toBe(createChallengeJson(library, firstChallengeId));
+		expect(downloadedFileNames).toEqual(['the-old-keep.json']);
 	});
 
-	it('downloads a complete library backup as a gzip file', async () => {
+	it('downloads a complete library backup as a plain JSON file', async () => {
 		const createObjectUrl = vi.fn(() => 'blob:library');
 		const revokeObjectUrl = vi.fn();
 		stubObjectUrl(createObjectUrl, revokeObjectUrl);
-		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+		const downloadedFileNames: string[] = [];
+		const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+			const anchor = document.querySelector<HTMLAnchorElement>('a[download]');
+			if (anchor) downloadedFileNames.push(anchor.download);
+		});
 
 		await downloadChallengeLibraryJson(library);
 
 		expect(createObjectUrl).toHaveBeenCalledOnce();
 		expect(click).toHaveBeenCalledOnce();
 		expect(revokeObjectUrl).toHaveBeenCalledWith('blob:library');
+		const blob = createObjectUrl.mock.calls[0]?.[0];
+		assert(blob instanceof Blob);
+		expect(blob.type).toBe('application/json');
+		expect(await blob.text()).toBe(createChallengeLibraryJson(library));
+		expect(downloadedFileNames).toEqual(['soulstone-challenge-library.json']);
 	});
 
-	it('compresses downloads and reads them back, still accepting plain JSON', async () => {
-		const createObjectUrl = vi.fn<typeof URL.createObjectURL>(() => 'blob:gzip');
+	it('reads existing gzip backups after switching downloads to plain JSON', async () => {
+		const source = new Response(createChallengeLibraryJson(library)).body;
+		assert(source);
+		const compressedBody = new Response(source.pipeThrough(new CompressionStream('gzip')));
+		const gzipFile = new File([await compressedBody.arrayBuffer()], 'backup.json.gz');
+
+		await expect(readChallengeLibraryJsonFile(gzipFile)).resolves.toEqual(library);
+	});
+
+	it('downloads library JSON without gzip compression', async () => {
+		const createObjectUrl = vi.fn<typeof URL.createObjectURL>(() => 'blob:json');
 		stubObjectUrl(createObjectUrl, vi.fn());
 		const downloadedFileNames: string[] = [];
 		vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
@@ -233,10 +260,12 @@ describe('challenge and library JSON files', () => {
 		const blob = createObjectUrl.mock.calls[0]?.[0];
 		assert(blob instanceof Blob);
 		const bytes = new Uint8Array(await blob.arrayBuffer());
-		expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
-		expect(downloadedFileNames[0]).toBe('soulstone-challenge-library.json.gz');
-		const gzipFile = new File([bytes], 'backup.json.gz');
-		await expect(readChallengeLibraryJsonFile(gzipFile)).resolves.toEqual(library);
+		expect([bytes[0], bytes[1]]).not.toEqual([0x1f, 0x8b]);
+		expect(blob.type).toBe('application/json');
+		expect(downloadedFileNames[0]).toBe('soulstone-challenge-library.json');
+		await expect(readChallengeLibraryJsonFile(new File([bytes], 'backup.json'))).resolves.toEqual(
+			library
+		);
 	});
 
 	it('rejects a corrupt gzip file', async () => {

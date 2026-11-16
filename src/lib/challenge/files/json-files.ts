@@ -3,9 +3,8 @@ import { sanitizeChallenge } from './challenge-copy';
 import { type DeepReadonly } from '../../DeepReadonly';
 import { validateChallengeLibrary, type ValidationIssue } from '../core/validation';
 
-const GZIP_FILE_MIME_TYPE = 'application/gzip';
 const GZIP_MAGIC_BYTES = [0x1f, 0x8b];
-const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json.gz';
+const LIBRARY_FILE_NAME = 'soulstone-challenge-library.json';
 
 /** Failure while reading, validating, or writing challenge and library JSON files. */
 export class ChallengeJsonFileError extends Error {
@@ -173,33 +172,15 @@ function transformBody(
 	return body.pipeThrough(transform);
 }
 
-async function compressJson(json: string): Promise<Blob> {
-	try {
-		const stream = transformBody(json, new CompressionStream('gzip'));
-		return new Blob([await new Response(stream).arrayBuffer()], { type: GZIP_FILE_MIME_TYPE });
-	} catch (cause) {
-		throw new ChallengeJsonFileError(
-			'download-failed',
-			'Unable to compress the challenge JSON file.',
-			[],
-			cause
-		);
-	}
-}
-
 async function downloadJsonFile(fileName: string, json: string): Promise<void> {
-	if (
-		typeof document === 'undefined' ||
-		typeof URL.createObjectURL !== 'function' ||
-		typeof CompressionStream === 'undefined'
-	) {
+	if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
 		throw new ChallengeJsonFileError(
 			'browser-unavailable',
-			'Downloading compressed JSON files is only available in a modern browser.'
+			'Downloading JSON files is only available in a modern browser.'
 		);
 	}
 
-	const blobUrl = URL.createObjectURL(await compressJson(json));
+	const blobUrl = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
 	const link = document.createElement('a');
 	link.href = blobUrl;
 	link.download = fileName;
@@ -247,7 +228,7 @@ function createFileName(challengeName: string): string {
 		.trim()
 		.replace(/[\s_-]+/g, '-')
 		.toLowerCase();
-	return `${slug || 'challenge'}.json.gz`;
+	return `${slug || 'challenge'}.json`;
 }
 
 async function readFile(file: Readonly<File>): Promise<string> {
@@ -291,7 +272,7 @@ export function parseChallengeLibraryJson(json: string): ChallengeLibrary {
 }
 
 /**
- * Downloads a gzip-compressed JSON backup of the complete challenge library.
+ * Downloads an uncompressed JSON backup of the complete challenge library.
  * @param value Candidate library data to validate and download.
  * @returns A promise that resolves once the browser download has started.
  * @throws {ChallengeJsonFileError} If the value is invalid or the browser cannot download the file.
@@ -331,7 +312,7 @@ export function parseChallengeJson(json: string): ChallengeLibrary {
 }
 
 /**
- * Downloads one challenge as gzip-compressed JSON.
+ * Downloads one challenge as an uncompressed JSON file.
  * @param value Candidate library containing the challenge.
  * @param challengeId Stable ID of the challenge to download.
  * @returns A promise that resolves once the browser download has started.
