@@ -51,11 +51,10 @@ describe('turn list', () => {
 		expect(items[0]?.querySelector('.turn-order-creature-name')?.textContent).toBe('Rook');
 		expect(items[1]?.querySelector('.turn-order-creature-name')?.textContent).toBe('Aria');
 		expect(
-			items.map(
-				(item) =>
-					item
-						.querySelector<HTMLElement>('.turn-order-card')
-						?.style.getPropertyValue('--card-accent-color') || undefined
+			items.map((item) =>
+				item
+					.querySelector<HTMLElement>('.turn-order-card-tone .card')
+					?.style.getPropertyValue('--card-accent-color')
 			)
 		).toEqual(['light-dark(#d32f2f, #ff6b6b)', 'light-dark(#1f5fbf, #5c9dff)', undefined]);
 	});
