@@ -917,38 +917,38 @@ describe('new challenge setup', () => {
 		const expectCard = (hasCard: boolean) => expect(hasCard).toBe(true);
 
 		const settings = screen.getByRole('group', { name: 'Challenge settings' });
-		expectCard(settings.parentElement?.classList.contains('card') ?? false);
+		expectCard(settings.parentElement?.classList.contains('card-body') ?? false);
 		expect(settings.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
 			true
 		);
 		expect(screen.getByRole('heading', { name: 'Challenge settings', level: 2 })).toBeTruthy();
 
 		const npcTypes = screen.getByRole('group', { name: 'NPC types' });
-		expectCard(npcTypes.parentElement?.classList.contains('card') ?? false);
+		expectCard(npcTypes.parentElement?.classList.contains('card-body') ?? false);
 		expect(npcTypes.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
 			true
 		);
 		expect(screen.getByRole('heading', { name: 'NPC types', level: 2 })).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Add NPC Type' }));
 		const npcType = screen.getByRole('group', { name: 'NPC Type 1' });
-		expectCard(npcType.parentElement?.classList.contains('card') ?? false);
+		expectCard(npcType.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'NPC Type 1', level: 3 })).toBeTruthy();
 
 		const factions = screen.getByRole('group', { name: 'Factions' });
-		expectCard(factions.parentElement?.classList.contains('card') ?? false);
+		expectCard(factions.parentElement?.classList.contains('card-body') ?? false);
 		expect(factions.querySelector(':scope > legend')?.classList.contains('visually-hidden')).toBe(
 			true
 		);
 		expect(screen.getByRole('heading', { name: 'Factions', level: 2 })).toBeTruthy();
 		const players = within(factions).getByRole('group', { name: 'Players' });
-		expectCard(players.parentElement?.classList.contains('card') ?? false);
+		expectCard(players.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Players', level: 3 })).toBeTruthy();
 		await fireEvent.click(within(players).getByRole('button', { name: 'Add Player' }));
 		const player = within(players).getByRole('group', { name: 'Player 1' });
-		expectCard(player.parentElement?.classList.contains('card') ?? false);
+		expectCard(player.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Player 1', level: 4 })).toBeTruthy();
 		const turn = within(player).getByRole('group', { name: 'Turn 1' });
-		expectCard(turn.parentElement?.classList.contains('card') ?? false);
+		expectCard(turn.parentElement?.classList.contains('card-body') ?? false);
 		expect(screen.getByRole('heading', { name: 'Turn 1', level: 5 })).toBeTruthy();
 	});
 
@@ -1257,8 +1257,8 @@ describe('new challenge setup', () => {
 
 		// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- DOM elements are not readonly
 		const expectCard = (group: HTMLElement, variant: string, spacing: string) => {
-			const card = group.parentElement;
-			expect(card?.classList.contains('card')).toBe(true);
+			expect(group.parentElement?.classList.contains('card-body')).toBe(true);
+			const card = group.closest('.card');
 			expect(card?.classList.contains(`card--${variant}`)).toBe(true);
 			expect(card?.classList.contains(`card--${spacing}`)).toBe(true);
 		};
