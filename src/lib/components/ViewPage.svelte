@@ -28,7 +28,7 @@
 
 <style>
 	section {
-		padding-block: 24px 64px;
+		padding-block: 24px 16px;
 	}
 
 	.view-page-heading {

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -11,6 +12,14 @@ const children = createRawSnippet(() => ({ render: () => '<p>View content</p>' }
 const actions = createRawSnippet(() => ({ render: () => '<button>Title action</button>' }));
 
 describe('ViewPage', () => {
+	it('uses 16px of bottom padding below the page content', () => {
+		const { container } = render(ViewPage, { title: 'Saved challenges', children });
+
+		expect(container.querySelector('section')).not.toBeNull();
+		const source = readFileSync('src/lib/components/ViewPage.svelte', 'utf8');
+		expect(source).toMatch(/section\s*\{[^}]*padding-block:\s*24px\s+16px\s*;/s);
+	});
+
 	it('renders the title, children, and shared document title', () => {
 		render(ViewPage, { title: 'Saved challenges', children });
 
