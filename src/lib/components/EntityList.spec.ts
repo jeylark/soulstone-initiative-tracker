@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -154,6 +155,36 @@ describe('EntityList', () => {
 		);
 		expect(container.querySelectorAll('.card--strip-item')).toHaveLength(2);
 		expect(container.querySelectorAll('.entity-list-strip-item')).toHaveLength(2);
+	});
+
+	it('fills grid rows by default and can preserve stable item widths', () => {
+		const { container } = render(EntityList<TestEntity>, {
+			entities,
+			entityEditor,
+			adds: [],
+			layout: 'grid'
+		});
+
+		const styles = readFileSync('src/lib/components/EntityList.svelte', 'utf8');
+		const grid = container.querySelector('.entity-list-items--grid');
+		expect(grid).toBeTruthy();
+		expect(grid?.classList.contains('entity-list-items--grid-stable')).toBe(false);
+		expect(styles).toMatch(
+			/\.entity-list-items--grid\s*\{[^}]*grid-template-columns:\s*repeat\(\s*auto-fit,\s*minmax\(min\(100%,\s*260px\),\s*1fr\)\s*\)/s
+		);
+
+		const stable = render(EntityList<TestEntity>, {
+			entities,
+			entityEditor,
+			adds: [],
+			layout: 'grid',
+			isGridItemWidthStable: true
+		});
+		const stableGrid = stable.container.querySelector('.entity-list-items--grid');
+		expect(stableGrid?.classList.contains('entity-list-items--grid-stable')).toBe(true);
+		expect(styles).toMatch(
+			/\.entity-list-items--grid-stable\s*\{[^}]*grid-template-columns:\s*repeat\(\s*auto-fill,\s*minmax\(min\(100%,\s*260px\),\s*1fr\)\s*\)/s
+		);
 	});
 
 	it('renders each supplemental item after the entities and before the add actions', () => {

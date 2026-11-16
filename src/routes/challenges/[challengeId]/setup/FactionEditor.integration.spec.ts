@@ -54,9 +54,15 @@ describe('new challenge setup', () => {
 		await fireEvent.click(within(faction).getByRole('button', { name: 'Add Player' }));
 
 		const player = within(faction).getByRole('group', { name: 'Player 1' });
+		const creatureGrid = player.closest('.entity-list-items');
+		expect(creatureGrid?.classList.contains('entity-list-items--grid')).toBe(true);
+		expect(creatureGrid?.classList.contains('entity-list-items--grid-stable')).toBe(true);
 		expect(
-			player.closest('.entity-list-items')?.classList.contains('entity-list-items--grid')
-		).toBe(true);
+			screen
+				.getByRole('group', { name: 'Players' })
+				.closest('.entity-list-items')
+				?.classList.contains('entity-list-items--grid-stable')
+		).toBe(false);
 	});
 
 	it('locks faction configuration and removal while allowing creature additions', async () => {

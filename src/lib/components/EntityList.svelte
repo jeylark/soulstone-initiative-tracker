@@ -51,6 +51,8 @@
 		onRemove?: (entity: DeepReadonly<T>) => void;
 		/** How the items are arranged: vertical stack, wrapping strip, or responsive grid. */
 		layout?: 'grid' | 'strip' | 'stack';
+		/** Whether grid items keep their width when other tracks are empty. */
+		isGridItemWidthStable?: boolean;
 		/** Entities rendered in the list. */
 		entities: readonly DeepReadonly<T>[];
 		/** Content rendered inside each entity item, with its zero-based index. */
@@ -64,6 +66,7 @@
 		removeLabelSelector,
 		itemOptionsSelector,
 		layout = 'stack',
+		isGridItemWidthStable = false,
 		entities,
 		entityEditor,
 		legendSelector,
@@ -72,7 +75,10 @@
 </script>
 
 <div class={`entity-list ${className}`}>
-	<div class={`entity-list-items entity-list-items--${layout}`}>
+	<div
+		class={`entity-list-items entity-list-items--${layout}`}
+		class:entity-list-items--grid-stable={layout === 'grid' && isGridItemWidthStable}
+	>
 		{#each entities as entity, index (entity.id)}
 			{@const itemOptions = itemOptionsSelector?.(entity, index) ?? {}}
 			<EntityListItem
@@ -146,5 +152,9 @@
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 		align-items: start;
 		gap: 20px;
+	}
+
+	.entity-list-items--grid-stable {
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 	}
 </style>

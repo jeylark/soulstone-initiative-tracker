@@ -133,6 +133,7 @@
 {#snippet creatureList()}
 	<EntityList
 		layout={faction ? 'grid' : 'stack'}
+		isGridItemWidthStable={faction !== undefined}
 		entities={factionCreatures}
 		adds={faction
 			? [

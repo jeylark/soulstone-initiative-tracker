@@ -66,6 +66,8 @@ Follow these instructions for every task in this repository.
 
 ## UI Layout Lessons
 
+- Keep control positions stable while users interact with a page at a fixed viewport size; viewport resizing is explicitly outside this stability requirement.
+- For auto-sized CSS grids where adding or removing items should not resize remaining items, use `auto-fill` rather than `auto-fit`; `auto-fit` collapses unused tracks and can expand the occupied items.
 - Shared form alignment requires parent-owned tracks as well as participating child markup; place custom controls directly inside `FormGroup` and keep each visual row's label, control, and feedback tracks independent.
 - `FormGroup` wraps based on available container width. For wider controls, configure `--form-group-min-column-width` and gaps on an owning ancestor instead of replacing its grid or relying on viewport breakpoints; defaults are 160px minimum and 20px column gap.
 - JSDOM can verify form-group structure and accessible associations, but not CSS subgrid geometry; verify rendered alignment separately in a browser.
