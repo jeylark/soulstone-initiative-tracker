@@ -2,6 +2,7 @@ import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import savedChallengesPage from './+page.svelte';
+import type { DeepReadonly } from '#lib/DeepReadonly';
 import {
 	loadChallengeLibrary,
 	loadChallengeLibraryWithDiagnostics,
@@ -312,6 +313,47 @@ describe('challenge hub', () => {
 		expect(await screen.findByRole('heading', { level: 3, name: 'Ashen Company' })).toBeTruthy();
 		const challengeLink = screen.getByRole('link', { name: 'Load Ashen Company' });
 		expect(challengeLink.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
+	});
+
+	it('copies setup settings, saves the new challenge, and opens its setup page', async () => {
+		const source = { ...createSpawnEditChallenge(), name: 'Ashen Company' };
+		await saveChallengeToLibrary(source);
+		render(savedChallengesPage);
+		await screen.findByRole('heading', { level: 3, name: 'Ashen Company' });
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Copy Ashen Company' }));
+
+		await vi.waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		const saved = (await loadChallengeLibrary()).challenges;
+		const copied = saved.find(({ id }) => id !== source.id);
+		const getIds = (challenge: DeepReadonly<(typeof saved)[number]>) => [
+			challenge.id,
+			...challenge.factions.map(({ id }) => id),
+			...challenge.npcTypes.map(({ id }) => id),
+			...challenge.creatures.flatMap((creature) => [
+				creature.id,
+				...creature.turns.map(({ id }) => id)
+			])
+		];
+
+		expect(saved).toHaveLength(2);
+		expect(saved.find(({ id }) => id === source.id)).toEqual(source);
+		expect(copied?.name).toBe(source.name);
+		expect(copied?.creatures[0]).toMatchObject({
+			kind: 'character',
+			name: 'Aria',
+			factionId: copied?.factions[0]?.id,
+			isHidden: false,
+			turns: [{ initiative: { kind: 'roll', mode: 'manual' } }]
+		});
+		expect(copied).not.toHaveProperty('runState');
+		expect(getIds(copied!).some((id) => getIds(source).includes(id))).toBe(false);
+		const [navigationPath, navigationOptions] = mockedGoto.mock.calls[0] as [
+			string,
+			Record<string, unknown>
+		];
+		expect(navigationPath).toBe(`/challenges/${copied?.id}`);
+		expect(navigationOptions['replace']).toBe(true);
 	});
 
 	it('downloads the complete challenge library', async () => {

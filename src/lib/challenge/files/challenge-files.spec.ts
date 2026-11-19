@@ -4,6 +4,7 @@ import type { Challenge, ChallengeLibrary, StableId } from '../core/model';
 import { createChallengeJson, readChallengeJsonFile } from './json-files';
 import {
 	ChallengeImportError,
+	copyChallengeSettings,
 	prepareChallengeImport,
 	saveChallengeToJsonFile
 } from './challenge-files';
@@ -117,6 +118,102 @@ describe('challenge file workflows', () => {
 		expect(copied.creatures[0]?.id).not.toBe(creatureId);
 		expect(copied.creatures[0]?.turns[0]?.id).not.toBe(turnId);
 		expect(copied.creatures[0]?.turns[1]?.id).not.toBe(secondTurnId);
+		expect(validateChallengeLibrary({ formatVersion: 1, challenges: [copied] }).isValid).toBe(true);
+	});
+
+	it('copies setup settings with fresh IDs and without run state', () => {
+		const npcTypeId = createUuid();
+		const npcCreatureId = createUuid();
+		const npcTurnId = createUuid();
+		const source = createChallenge();
+		source.npcTypes = [{ id: npcTypeId, name: 'Skeleton', initiativeStat: 2 }];
+		source.creatures.push({
+			id: npcCreatureId,
+			kind: 'npc',
+			creatureTypeId: npcTypeId,
+			identifier: 'A',
+			factionId,
+			isHidden: false,
+			turns: [{ id: npcTurnId, initiative: { kind: 'static', value: 8 } }]
+		});
+		source.runState = {
+			initiativeResults: { [secondTurnId]: 13, [npcTurnId]: 8 },
+			tieDecisions: [[secondTurnId, turnId]],
+			spawnCount: 2,
+			spawnEdit: {
+				newCreatureIds: [npcCreatureId],
+				newNpcTypeIds: [npcTypeId],
+				newTurnIds: [npcTurnId],
+				lockedInitiativeTurnIds: [secondTurnId]
+			},
+			generatedTurnOrder: [{ kind: 'turn', turnId: secondTurnId }, { kind: 'spawn' }]
+		};
+		const original = structuredClone(source);
+		const copyStartedAt = Date.now();
+
+		const copied = copyChallengeSettings(source, {
+			formatVersion: 1,
+			challenges: [source]
+		});
+		const copyFinishedAt = Date.now();
+		const sourceIds = [
+			source.id,
+			...source.factions.map(({ id }) => id),
+			...source.npcTypes.map(({ id }) => id),
+			...source.creatures.flatMap((creature) => [
+				creature.id,
+				...creature.turns.map(({ id }) => id)
+			])
+		];
+		const copiedIds = [
+			copied.id,
+			...copied.factions.map(({ id }) => id),
+			...copied.npcTypes.map(({ id }) => id),
+			...copied.creatures.flatMap((creature) => [
+				creature.id,
+				...creature.turns.map(({ id }) => id)
+			])
+		];
+		const copiedCharacter = copied.creatures.find((creature) => creature.kind === 'character');
+		const copiedNpc = copied.creatures.find((creature) => creature.kind === 'npc');
+
+		expect(copied.name).toBe(source.name);
+		expect(copied.fairnessWeight).toBe(source.fairnessWeight);
+		expect(copied.factions[0]).toMatchObject({ name: 'Adventurers', color: 'blue' });
+		expect(copied.npcTypes[0]).toMatchObject({ name: 'Skeleton', initiativeStat: 2 });
+		expect(copiedCharacter).toMatchObject({
+			kind: 'character',
+			name: 'Aria',
+			isHidden: true,
+			factionId: copied.factions[0]?.id,
+			turns: [
+				{
+					initiative: {
+						kind: 'relative-position',
+						relation: 'before',
+						index: 1,
+						targetTurnId:
+							copiedCharacter.kind === 'character' ? copiedCharacter.turns[1]?.id : undefined
+					}
+				},
+				{ initiative: { kind: 'roll', mode: 'app' } }
+			]
+		});
+		expect(copiedNpc).toMatchObject({
+			kind: 'npc',
+			creatureTypeId: copied.npcTypes[0]?.id,
+			identifier: 'A',
+			turns: [{ initiative: { kind: 'static', value: 8 } }]
+		});
+		expect(copiedIds).toHaveLength(sourceIds.length);
+		expect(new Set(copiedIds).size).toBe(copiedIds.length);
+		expect(copiedIds.some((id) => sourceIds.includes(id))).toBe(false);
+		expect(copied.createdAt.getTime()).toBeGreaterThanOrEqual(copyStartedAt);
+		expect(copied.createdAt.getTime()).toBeLessThanOrEqual(copyFinishedAt);
+		expect(copied.updatedAt.getTime()).toBe(copied.createdAt.getTime());
+		expect(copied.createdAt).not.toBe(copied.updatedAt);
+		expect(copied).not.toHaveProperty('runState');
+		expect(source).toEqual(original);
 		expect(validateChallengeLibrary({ formatVersion: 1, challenges: [copied] }).isValid).toBe(true);
 	});
 

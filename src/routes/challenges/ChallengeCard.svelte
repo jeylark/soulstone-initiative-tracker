@@ -1,14 +1,18 @@
 <script lang="ts">
-	import { Card, NavButton } from '#lib/components';
+	import { ActionButton, Card, NavButton } from '#lib/components';
 	import { resolve } from '$app/paths';
 	import type { Challenge } from '#lib/challenge';
 
 	interface Props {
 		/** Saved challenge summarized by this card. */
 		challenge: Challenge;
+		/** Whether copying is unavailable while another library action is active. */
+		isCopyDisabled: boolean;
+		/** Called when the DM asks to copy this challenge's setup settings. */
+		onCopy: () => void;
 	}
 
-	let { challenge }: Props = $props();
+	let { challenge, isCopyDisabled, onCopy }: Props = $props();
 
 	const title = $derived(challenge.name || 'Untitled challenge');
 	const characterNames = $derived(
@@ -26,12 +30,22 @@
 			<time datetime={challenge.updatedAt.toISOString()} aria-label={`Modified ${modifiedDate}`}>
 				{modifiedDate}
 			</time>
-			<NavButton
-				href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
-				aria-label={`Load ${title}`}
-			>
-				Load
-			</NavButton>
+			<div class="challenge-actions">
+				<NavButton
+					href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
+					aria-label={`Load ${title}`}
+				>
+					Load
+				</NavButton>
+				<ActionButton
+					variant="neutral"
+					aria-label={`Copy ${title}`}
+					disabled={isCopyDisabled}
+					onclick={onCopy}
+				>
+					Copy
+				</ActionButton>
+			</div>
 		</div>
 		<dl>
 			<div class="challenge-row">
@@ -77,6 +91,12 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 12px;
+	}
+
+	.challenge-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
 	}
 
 	dl {

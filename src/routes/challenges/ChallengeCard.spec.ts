@@ -1,5 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Challenge, StableId } from '#lib/challenge';
 import { createSetupChallenge } from '../view-test-support';
 import ChallengeCard from './ChallengeCard.svelte';
@@ -100,5 +100,30 @@ describe('ChallengeCard', () => {
 		const load = screen.getByRole('link', { name: 'Load Ashen Company' });
 		expect(load.textContent?.trim()).toBe('Load');
 		expect(load.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
+	});
+
+	it('offers a Copy button and calls the parent action', async () => {
+		const onCopy = vi.fn();
+		render(ChallengeCard, {
+			challenge: createDetailedChallenge(),
+			isCopyDisabled: false,
+			onCopy
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Copy Ashen Company' }));
+
+		expect(onCopy).toHaveBeenCalledOnce();
+	});
+
+	it('disables Copy while another library action is active', () => {
+		render(ChallengeCard, {
+			challenge: createDetailedChallenge(),
+			isCopyDisabled: true,
+			onCopy: vi.fn()
+		});
+
+		expect(
+			screen.getByRole('button', { name: 'Copy Ashen Company' }).hasAttribute('disabled')
+		).toBe(true);
 	});
 });
