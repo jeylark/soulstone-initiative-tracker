@@ -38,7 +38,6 @@
 					Load
 				</NavButton>
 				<ActionButton
-					variant="neutral"
 					aria-label={`Copy ${title}`}
 					disabled={isCopyDisabled}
 					onclick={onCopy}
