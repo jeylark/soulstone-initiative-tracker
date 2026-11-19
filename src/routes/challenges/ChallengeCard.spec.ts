@@ -51,6 +51,36 @@ function createDetailedChallenge(): Challenge {
 }
 
 describe('ChallengeCard', () => {
+	it('marks a challenge with a generated order as running and uses the accent color', () => {
+		const challenge = createSetupChallenge();
+		challenge.runState = { initiativeResults: {}, generatedTurnOrder: [{ kind: 'spawn' }] };
+		render(ChallengeCard, { challenge });
+
+		const status = screen.getByText('Running');
+		const card = status.closest('.card');
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe('var(--color-accent)');
+	});
+
+	it('marks a challenge without a generated order as not running and uses the warning color', () => {
+		const challenge = createSetupChallenge();
+		render(ChallengeCard, { challenge });
+
+		const status = screen.getByText('Not running');
+		const card = status.closest('.card');
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe('var(--color-warning)');
+	});
+
+	it('does not count initiative results without a generated order as running', () => {
+		const challenge = createSetupChallenge();
+		challenge.runState = { initiativeResults: {} };
+		render(ChallengeCard, { challenge });
+
+		expect(screen.getByText('Not running')).toBeTruthy();
+		expect(screen.queryByText('Running')).toBeNull();
+	});
+
 	it('shows the name, modified date, PCs, and NPCs in separate rows', () => {
 		const challenge = createDetailedChallenge();
 		render(ChallengeCard, { challenge });
