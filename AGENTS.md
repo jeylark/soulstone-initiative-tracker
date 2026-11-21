@@ -58,8 +58,10 @@ Follow these instructions for every task in this repository.
 
 ## After finishing work
 
-- Review the session for learnings that could reduce future agents' workload,
-  and add any useful learnings to this file's [Lessons](#Lessons) section.
+- Before the final response, review the session for reusable implementation,
+  testing, or workflow lessons and add useful lessons to the appropriate
+  subsection below. If none are useful, explicitly state in the final response
+  that the review found no new lessons; do not leave the review implicit.
 - Run `npx prettier --write` on every changed file.
 
 # Lessons
@@ -114,6 +116,7 @@ Follow these instructions for every task in this repository.
   duplicate nested landmarks and makes single-region queries ambiguous.
 - When tabs cannot be selected, expose and visibly distinguish their unavailable state for both validation failures and temporary navigation locks; restore availability when the lock clears.
 - Before relying on shared disabled-control styles or theme colors, verify that the rendered control carries the required class and that the CSS variables are defined in both themes.
+- When color distinguishes interface states, use clearly distinguishable theme colors, verify them in both themes, and retain a visible text label so the distinction does not rely on color alone.git
 - Text inside a tab contributes to its accessible name even when visually clipped and referenced with `aria-describedby`; use an explicit `aria-label` when the tab's name must remain stable and expose supplemental status through its description.
 
 ## Testing and Verification Lessons
@@ -137,5 +140,8 @@ Follow these instructions for every task in this repository.
 
 - After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
 - When type-aware ESLint reports that a source file is missing from the project service after dependency installation, run `npm run prepare` to generate SvelteKit's project metadata before changing parser configuration.
+- Apply required boolean prefixes to option-object properties as well as local variables. In tests, inspect external option keys such as SvelteKit's `replace` through a typed record and bracket access to satisfy naming rules without suppressions.
 
 ## Documentation and Decision Lessons
+
+- When making settings-only copies, skip runtime-state remapping entirely rather than filtering it afterward; stale or invalid runtime references should not block a setup copy, and import-copy behavior should remain unchanged.

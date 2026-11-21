@@ -1,5 +1,5 @@
-import { cleanup, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Challenge, StableId } from '#lib/challenge';
 import { createSetupChallenge } from '../view-test-support';
 import ChallengeCard from './ChallengeCard.svelte';
@@ -51,6 +51,43 @@ function createDetailedChallenge(): Challenge {
 }
 
 describe('ChallengeCard', () => {
+	it('fills the height of its layout cell', () => {
+		render(ChallengeCard, { challenge: createSetupChallenge() });
+
+		const card = screen.getByRole('heading', { name: 'Untitled challenge' }).closest('.card');
+		expect(card?.classList.contains('card--full-height')).toBe(true);
+	});
+
+	it('marks a challenge with a generated order as running and uses the accent color', () => {
+		const challenge = createSetupChallenge();
+		challenge.runState = { initiativeResults: {}, generatedTurnOrder: [{ kind: 'spawn' }] };
+		render(ChallengeCard, { challenge });
+
+		const status = screen.getByText('Running');
+		const card = status.closest('.card');
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe('var(--color-accent)');
+	});
+
+	it('marks a challenge without a generated order as not running and uses the warning color', () => {
+		const challenge = createSetupChallenge();
+		render(ChallengeCard, { challenge });
+
+		const status = screen.getByText('Not running');
+		const card = status.closest('.card');
+		expect(card?.classList.contains('card--accented')).toBe(true);
+		expect(card?.style.getPropertyValue('--card-accent-color')).toBe('var(--color-warning)');
+	});
+
+	it('does not count initiative results without a generated order as running', () => {
+		const challenge = createSetupChallenge();
+		challenge.runState = { initiativeResults: {} };
+		render(ChallengeCard, { challenge });
+
+		expect(screen.getByText('Not running')).toBeTruthy();
+		expect(screen.queryByText('Running')).toBeNull();
+	});
+
 	it('shows the name, modified date, PCs, and NPCs in separate rows', () => {
 		const challenge = createDetailedChallenge();
 		render(ChallengeCard, { challenge });
@@ -100,5 +137,30 @@ describe('ChallengeCard', () => {
 		const load = screen.getByRole('link', { name: 'Load Ashen Company' });
 		expect(load.textContent?.trim()).toBe('Load');
 		expect(load.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
+	});
+
+	it('offers a Copy button and calls the parent action', async () => {
+		const onCopy = vi.fn();
+		render(ChallengeCard, {
+			challenge: createDetailedChallenge(),
+			isCopyDisabled: false,
+			onCopy
+		});
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Copy Ashen Company' }));
+
+		expect(onCopy).toHaveBeenCalledOnce();
+	});
+
+	it('disables Copy while another library action is active', () => {
+		render(ChallengeCard, {
+			challenge: createDetailedChallenge(),
+			isCopyDisabled: true,
+			onCopy: vi.fn()
+		});
+
+		expect(
+			screen.getByRole('button', { name: 'Copy Ashen Company' }).hasAttribute('disabled')
+		).toBe(true);
 	});
 });

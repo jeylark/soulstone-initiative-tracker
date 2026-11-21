@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { DeepReadonly } from '#lib/DeepReadonly';
 	import { ActionButton, ErrorDisplay, SelectInput, ViewPage } from '#lib/components';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -10,6 +11,7 @@
 		ChallengeLibraryValidationError,
 		ChallengeJsonFileError,
 		backupChallengeLibraryToJsonFile,
+		copyChallengeSettings,
 		createUuid,
 		getNextFactionColor,
 		loadChallengeLibraryWithDiagnostics,
@@ -28,8 +30,10 @@
 	let loadErrorDetails = $state('');
 	let unreadableDetails = $state('');
 	let createErrorDetails = $state('');
+	let copyErrorDetails = $state('');
 	let downloadErrorDetails = $state('');
 	let isCreating = $state(false);
+	let isCopying = $state(false);
 	let isDownloading = $state(false);
 	let isUploading = $state(false);
 	let uploadErrorDetails = $state('');
@@ -105,7 +109,7 @@
 	}
 
 	async function createChallenge(): Promise<void> {
-		if (isCreating) return;
+		if (isCreating || isCopying) return;
 		isCreating = true;
 		createErrorDetails = '';
 		draftChallenge ??= createDraftChallenge();
@@ -119,6 +123,28 @@
 			createErrorDetails = describeError(error);
 		} finally {
 			isCreating = false;
+		}
+	}
+
+	async function copyChallenge(challenge: DeepReadonly<Challenge>): Promise<void> {
+		if (isCopying || isCreating || isUploading || pendingLibrary) return;
+		isCopying = true;
+		copyErrorDetails = '';
+		try {
+			const copiedChallenge = copyChallengeSettings($state.snapshot(challenge), {
+				formatVersion: 1,
+				challenges: $state.snapshot(challenges)
+			});
+			await saveChallengeToLibrary(copiedChallenge);
+			challenges = [...challenges, copiedChallenge];
+			await goto(resolve('/challenges/[challengeId]', { challengeId: copiedChallenge.id }), {
+				// eslint-disable-next-line @typescript-eslint/naming-convention -- SvelteKit fixes this option name
+				replace: true
+			});
+		} catch (error) {
+			copyErrorDetails = describeError(error);
+		} finally {
+			isCopying = false;
 		}
 	}
 
@@ -138,7 +164,7 @@
 	async function uploadLibrary(): Promise<void> {
 		const file = fileInput.files?.[0];
 		fileInput.value = '';
-		if (!file || isUploading) return;
+		if (!file || isUploading || isCopying) return;
 		isUploading = true;
 		uploadErrorDetails = '';
 		importMessage = '';
@@ -173,7 +199,7 @@
 	}
 
 	async function importChallenges(): Promise<void> {
-		if (!pendingLibrary || isUploading || hasUnresolvedConflicts) return;
+		if (!pendingLibrary || isUploading || isCopying || hasUnresolvedConflicts) return;
 		isUploading = true;
 		uploadErrorDetails = '';
 		try {
@@ -233,7 +259,7 @@
 {#snippet newChallengeCard()}
 	<div role="listitem">
 		<NewChallengeCard
-			isDisabled={isCreating || isUploading || !!pendingLibrary}
+			isDisabled={isCreating || isCopying || isUploading || !!pendingLibrary}
 			{isCreating}
 			onCreate={() => void createChallenge()}
 		/>
@@ -270,7 +296,11 @@
 			{@render newChallengeCard()}
 			{#each challenges as challenge (challenge.id)}
 				<div role="listitem">
-					<ChallengeCard {challenge} />
+					<ChallengeCard
+						{challenge}
+						isCopyDisabled={isCreating || isCopying || isUploading || !!pendingLibrary}
+						onCopy={() => void copyChallenge(challenge)}
+					/>
 				</div>
 			{/each}
 		</div>
@@ -278,6 +308,9 @@
 	{#if createErrorDetails && loadStatus !== 'error'}
 		<ErrorDisplay message="The new challenge could not be saved." details={createErrorDetails} />
 		<ActionButton variant="neutral" onclick={() => void createChallenge()}>Try again</ActionButton>
+	{/if}
+	{#if copyErrorDetails}
+		<ErrorDisplay message="The challenge could not be copied." details={copyErrorDetails} />
 	{/if}
 	{#if downloadErrorDetails}
 		<ErrorDisplay
@@ -298,7 +331,7 @@
 	/>
 	<ActionButton
 		id="upload-library"
-		disabled={isCreating || isUploading || !!pendingLibrary}
+		disabled={isCreating || isCopying || isUploading || !!pendingLibrary}
 		onclick={() => fileInput.click()}
 	>
 		{isUploading ? 'Uploading…' : 'Upload Library'}

@@ -133,7 +133,8 @@ function createUniqueId(usedIds: Set<string>): StableId {
 
 function importChallengeEntities(
 	challenge: DeepReadonly<Challenge>,
-	usedIds: Set<string>
+	usedIds: Set<string>,
+	options: Readonly<{ areIdsAlwaysFresh?: boolean; isRunStateIncluded?: boolean }> = {}
 ): Readonly<{
 	challenge: Challenge;
 }> {
@@ -143,7 +144,8 @@ function importChallengeEntities(
 		const normalizedId = id.toLowerCase();
 		const existing = entityIdMap.get(normalizedId);
 		if (existing) return existing;
-		const mappedId = usedIds.has(normalizedId) ? createUniqueId(usedIds) : id;
+		const mappedId =
+			options.areIdsAlwaysFresh || usedIds.has(normalizedId) ? createUniqueId(usedIds) : id;
 		usedIds.add(mappedId.toLowerCase());
 		entityIdMap.set(normalizedId, mappedId);
 		return mappedId;
@@ -203,7 +205,7 @@ function importChallengeEntities(
 	});
 
 	const runState =
-		challenge.runState === undefined
+		options.isRunStateIncluded === false || challenge.runState === undefined
 			? undefined
 			: {
 					initiativeResults: Object.fromEntries(
@@ -256,6 +258,40 @@ function importChallengeEntities(
 			creatures,
 			...(runState === undefined ? {} : { runState })
 		}
+	};
+}
+
+/**
+ * Creates a saved challenge copy containing setup settings but no Roll or Run state.
+ * @param challenge Saved challenge whose setup settings will be copied.
+ * @param library Current library used to avoid reusing any challenge or entity IDs.
+ * @returns A new challenge with fresh IDs, remapped internal references, and reset timestamps.
+ */
+export function copyChallengeSettings(
+	challenge: DeepReadonly<Challenge>,
+	library: DeepReadonly<ChallengeLibrary>
+): Challenge {
+	const usedIds = new Set(
+		getLibraryEntityIds({
+			...library,
+			challenges: [...library.challenges, challenge]
+		})
+	);
+	const copied = importChallengeEntities(challenge, usedIds, {
+		areIdsAlwaysFresh: true,
+		isRunStateIncluded: false
+	}).challenge;
+	const copiedAt = new Date();
+
+	return {
+		id: copied.id,
+		name: copied.name,
+		createdAt: copiedAt,
+		updatedAt: new Date(copiedAt.getTime()),
+		factions: copied.factions,
+		npcTypes: copied.npcTypes,
+		fairnessWeight: copied.fairnessWeight,
+		creatures: copied.creatures
 	};
 }
 

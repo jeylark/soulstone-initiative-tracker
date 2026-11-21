@@ -1,16 +1,21 @@
 <script lang="ts">
-	import { Card, NavButton } from '#lib/components';
+	import { ActionButton, Card, NavButton } from '#lib/components';
 	import { resolve } from '$app/paths';
 	import type { Challenge } from '#lib/challenge';
 
 	interface Props {
 		/** Saved challenge summarized by this card. */
 		challenge: Challenge;
+		/** Whether copying is unavailable while another library action is active. */
+		isCopyDisabled: boolean;
+		/** Called when the DM asks to copy this challenge's setup settings. */
+		onCopy: () => void;
 	}
 
-	let { challenge }: Props = $props();
+	let { challenge, isCopyDisabled, onCopy }: Props = $props();
 
 	const title = $derived(challenge.name || 'Untitled challenge');
+	const isChallengeRunning = $derived(challenge.runState?.generatedTurnOrder !== undefined);
 	const characterNames = $derived(
 		challenge.creatures.flatMap((creature) =>
 			creature.kind === 'character' ? [creature.name] : []
@@ -20,19 +25,32 @@
 	const modifiedDate = $derived(challenge.updatedAt.toLocaleDateString());
 </script>
 
-<Card {title} headingLevel="h3" headerSize="medium">
+<Card
+	{title}
+	headingLevel="h3"
+	headerSize="medium"
+	isFullHeight
+	isAccented={true}
+	accentColor={isChallengeRunning ? 'var(--color-accent)' : 'var(--color-warning)'}
+>
 	<div class="challenge-details">
 		<div class="modified-row">
 			<time datetime={challenge.updatedAt.toISOString()} aria-label={`Modified ${modifiedDate}`}>
 				{modifiedDate}
 			</time>
-			<NavButton
-				href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
-				aria-label={`Load ${title}`}
-			>
-				Load
-			</NavButton>
+			<div class="challenge-actions">
+				<NavButton
+					href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
+					aria-label={`Load ${title}`}
+				>
+					Load
+				</NavButton>
+				<ActionButton aria-label={`Copy ${title}`} disabled={isCopyDisabled} onclick={onCopy}>
+					Copy
+				</ActionButton>
+			</div>
 		</div>
+		<p class="challenge-status">{isChallengeRunning ? 'Running' : 'Not running'}</p>
 		<dl>
 			<div class="challenge-row">
 				<dt id={`${challenge.id}-characters`}>PCs</dt>
@@ -77,6 +95,17 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 12px;
+	}
+
+	.challenge-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.challenge-status {
+		margin: 0;
+		font-weight: 600;
 	}
 
 	dl {
