@@ -449,9 +449,19 @@ describe('turn-order run route', () => {
 			.getByRole('button', { name: 'Next turn' })
 			.closest('.button-group');
 		expect(turnGroup).not.toBeNull();
+		const generateButton = within(controls).getByRole('button', { name: 'Generate turn order' });
+		expect(generateButton.closest('.button-group')).toBe(turnGroup);
 		expect(
 			within(controls).getByRole('button', { name: 'Edit Challenge' }).closest('.button-group')
 		).toBe(turnGroup);
+		expect(
+			Array.from(turnGroup?.querySelectorAll(':scope > .button-group-item') ?? []).map((item) =>
+				item.querySelector('button')?.textContent?.trim()
+			)
+		).toEqual(['Generate turn order', 'Next turn', 'Edit Challenge']);
+		expect(generateButton.closest('.button-group-item')?.getAttribute('data-sizing-labels')).toBe(
+			JSON.stringify(['Calculate Turn Order'])
+		);
 		expect(within(controls).queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBeTruthy();
 		expect(

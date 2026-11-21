@@ -141,6 +141,7 @@ Follow these instructions for every task in this repository.
 
 ## Tooling and Workflow Lessons
 
+- In Svelte files with repeated component markup, anchor patches on a unique nearby handler or condition; a repeated tag such as `ButtonGroup` can match an earlier block in the script.
 - After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
 - When type-aware ESLint reports that a source file is missing from the project service after dependency installation, run `npm run prepare` to generate SvelteKit's project metadata before changing parser configuration.
 - Apply required boolean prefixes to option-object properties as well as local variables. In tests, inspect external option keys such as SvelteKit's `replace` through a typed record and bracket access to satisfy naming rules without suppressions.

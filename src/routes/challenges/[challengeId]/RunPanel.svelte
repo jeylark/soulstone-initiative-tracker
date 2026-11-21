@@ -474,6 +474,14 @@
 				{/if}
 
 				<ButtonGroup>
+					<ButtonGroupItem sizingLabels={['Calculate Turn Order']}>
+						<ActionButton
+							disabled={isSaving || (!!challenge.runState?.generatedTurnOrder && !isEditing)}
+							onclick={generateTurnOrder}
+						>
+							{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
+						</ActionButton>
+					</ButtonGroupItem>
 					<ButtonGroupItem>
 						<ActionButton
 							disabled={!generatedOrderDisplay || isSaving || isEditing}
@@ -541,12 +549,6 @@
 						/>
 					{/if}
 				</section>
-				<ActionButton
-					disabled={isSaving || (!!challenge.runState?.generatedTurnOrder && !isEditing)}
-					onclick={generateTurnOrder}
-				>
-					{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
-				</ActionButton>
 				{#if hasSaveError}
 					<ErrorDisplay message="Changes could not be saved." />
 				{/if}
