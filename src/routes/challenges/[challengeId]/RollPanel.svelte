@@ -23,19 +23,27 @@
 
 	interface Props {
 		sharedChallenge?: Challenge;
+		/** Turn IDs missing results after the latest turn-order generation attempt. */
+		missingInitiativeTurnIds?: readonly StableId[];
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
 		/** Reports turns whose manual initiative inputs currently contain invalid values. */
 		onInvalidInitiativeChange?: (turnIds: readonly StableId[]) => void;
 	}
 
-	let { sharedChallenge, onInvalidInitiativeChange, titleActions }: Props = $props();
+	let {
+		sharedChallenge,
+		missingInitiativeTurnIds = [],
+		onInvalidInitiativeChange,
+		titleActions
+	}: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
 	let localChallenge = $state<Challenge>();
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let initiativeInputs = $state<Partial<Record<StableId, string>>>({});
+	let missingInitiativeTurnIdSet = $derived(new Set(missingInitiativeTurnIds));
 	let turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay> = $derived.by(() =>
 		challenge ? createTurnDisplayLookup(challenge) : new Map()
 	);
@@ -280,6 +288,7 @@
 						{faction}
 						creatures={challenge.creatures}
 						{turnDisplayLookup}
+						missingInitiativeTurnIds={missingInitiativeTurnIdSet}
 						initiativeResults={challenge.runState?.initiativeResults ?? {}}
 						{initiativeInputs}
 						isInvalidInput={(value) => value !== '' && parseInitiativeInput(value) === undefined}

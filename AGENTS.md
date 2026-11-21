@@ -109,6 +109,7 @@ Follow these instructions for every task in this repository.
 
 - Keep the complete validation issue set as the source for workflow blocking. Derive filtered presentation lists for inline fields and summaries so display changes cannot accidentally make an invalid workflow available.
 - Keep validation reported by a transient panel in its persistent parent when another tab must display it; reconcile reported IDs with current data and deduplicate overlapping issues by entity.
+- When a failed workflow action retains validation IDs, pass stable entity IDs to the relevant controls and re-check current entity state before rendering feedback so corrected values clear stale errors.
 
 ## Accessibility and Interaction Lessons
 

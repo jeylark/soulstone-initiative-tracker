@@ -15,6 +15,8 @@
 		faction: DeepReadonly<Faction>;
 		creatures: DeepReadonly<ChallengeCreature[]>;
 		turnDisplayLookup: ReadonlyMap<StableId, TurnDisplay>;
+		/** Turn IDs reported missing by the latest turn-order generation attempt. */
+		missingInitiativeTurnIds: ReadonlySet<StableId>;
 		initiativeResults: Readonly<InitiativeResults>;
 		initiativeInputs: Readonly<Partial<Record<StableId, string>>>;
 		isInvalidInput: (value: string) => boolean;
@@ -31,6 +33,7 @@
 		faction,
 		creatures,
 		turnDisplayLookup,
+		missingInitiativeTurnIds,
 		initiativeResults,
 		initiativeInputs,
 		isInvalidInput,
@@ -81,6 +84,7 @@
 							{result}
 							{inputValue}
 							isInvalid={isInvalidInput(inputValue)}
+							isMissingResult={missingInitiativeTurnIds.has(turn.id) && result === undefined}
 							canRoll={canRoll(creature)}
 							isInputLocked={isInputLocked(turn.id)}
 							isRollLocked={isRollLocked(turn.id)}

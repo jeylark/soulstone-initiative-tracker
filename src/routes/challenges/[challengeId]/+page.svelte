@@ -257,6 +257,7 @@
 			{:else if activeTab === 'roll'}
 				<RollPanel
 					sharedChallenge={challenge}
+					{missingInitiativeTurnIds}
 					onInvalidInitiativeChange={(turnIds) => (invalidInitiativeTurnIds = turnIds)}
 					titleActions={downloadAction}
 				/>

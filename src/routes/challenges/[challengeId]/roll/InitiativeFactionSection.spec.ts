@@ -28,6 +28,7 @@ it('renders one named, keyboard-focusable region for the faction', () => {
 			}
 		],
 		turnDisplayLookup: new Map<StableId, TurnDisplay>(),
+		missingInitiativeTurnIds: new Set<StableId>(),
 		initiativeResults: {},
 		initiativeInputs: {},
 		isInvalidInput: () => false,

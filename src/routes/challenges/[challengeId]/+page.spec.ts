@@ -285,17 +285,35 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(rollTab);
 		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
-		const ariaInput = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
+		const ariaInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Aria'
+		}) as HTMLInputElement;
+		const rookInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Rook'
+		}) as HTMLInputElement;
+		for (const input of [ariaInput, rookInput]) {
+			const errorId = input.getAttribute('aria-describedby');
+			assert(errorId);
+			expect(document.getElementById(errorId)?.textContent).toBe('Initiative result is required.');
+		}
 		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		const ariaErrorId = ariaInput.getAttribute('aria-describedby');
+		assert(ariaErrorId);
+		expect(document.getElementById(ariaErrorId)?.textContent).toBe(
+			'Enter a non-negative whole number.'
+		);
 		await fireEvent.input(ariaInput, { target: { value: '8' } });
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		const rookErrorId = rookInput.getAttribute('aria-describedby');
+		assert(rookErrorId);
+		expect(document.getElementById(rookErrorId)?.textContent).toBe(
+			'Initiative result is required.'
+		);
 		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
 		await fireEvent.input(ariaInput, { target: { value: '8' } });
-		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Rook' }), {
-			target: { value: '10' }
-		});
+		await fireEvent.input(rookInput, { target: { value: '10' } });
 		expect(rollTab.querySelector('.validation-count')).toBeNull();
 		expect(rollTab.getAttribute('aria-describedby')).toBeNull();
 		await fireEvent.click(runTab);
@@ -319,6 +337,13 @@ describe('challenge workflow tabs', () => {
 		const runTab = screen.getByRole('tab', { name: 'Run' });
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
 		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		const rookRollButton = screen.getByRole('button', { name: 'Roll initiative for Rook' });
+		const rookErrorId = rookRollButton.getAttribute('aria-describedby');
+		assert(rookErrorId);
+		expect(document.getElementById(rookErrorId)?.textContent).toBe(
+			'Initiative result is required.'
+		);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Roll all remaining' }));
 		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
 		await fireEvent.click(runTab);
