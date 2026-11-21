@@ -116,7 +116,7 @@ Follow these instructions for every task in this repository.
   duplicate nested landmarks and makes single-region queries ambiguous.
 - When tabs cannot be selected, expose and visibly distinguish their unavailable state for both validation failures and temporary navigation locks; restore availability when the lock clears.
 - Before relying on shared disabled-control styles or theme colors, verify that the rendered control carries the required class and that the CSS variables are defined in both themes.
-- When color distinguishes interface states, use clearly distinguishable theme colors, verify them in both themes, and retain a visible text label so the distinction does not rely on color alone.
+- When color distinguishes interface states, use clearly distinguishable theme colors, verify them in both themes, and retain a visible text label so the distinction does not rely on color alone.git 
 - Text inside a tab contributes to its accessible name even when visually clipped and referenced with `aria-describedby`; use an explicit `aria-label` when the tab's name must remain stable and expose supplemental status through its description.
 
 ## Testing and Verification Lessons
