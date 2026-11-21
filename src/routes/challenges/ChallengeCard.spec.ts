@@ -51,6 +51,13 @@ function createDetailedChallenge(): Challenge {
 }
 
 describe('ChallengeCard', () => {
+	it('fills the height of its layout cell', () => {
+		render(ChallengeCard, { challenge: createSetupChallenge() });
+
+		const card = screen.getByRole('heading', { name: 'Untitled challenge' }).closest('.card');
+		expect(card?.classList.contains('card--full-height')).toBe(true);
+	});
+
 	it('marks a challenge with a generated order as running and uses the accent color', () => {
 		const challenge = createSetupChallenge();
 		challenge.runState = { initiativeResults: {}, generatedTurnOrder: [{ kind: 'spawn' }] };

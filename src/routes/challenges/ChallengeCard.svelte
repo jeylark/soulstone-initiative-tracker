@@ -29,6 +29,7 @@
 	{title}
 	headingLevel="h3"
 	headerSize="medium"
+	isFullHeight
 	isAccented={true}
 	accentColor={isChallengeRunning ? 'var(--color-accent)' : 'var(--color-warning)'}
 >
