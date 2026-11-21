@@ -108,6 +108,7 @@ Follow these instructions for every task in this repository.
 ## Data and State Management Lessons
 
 - Keep the complete validation issue set as the source for workflow blocking. Derive filtered presentation lists for inline fields and summaries so display changes cannot accidentally make an invalid workflow available.
+- Keep validation reported by a transient panel in its persistent parent when another tab must display it; reconcile reported IDs with current data and deduplicate overlapping issues by entity.
 
 ## Accessibility and Interaction Lessons
 

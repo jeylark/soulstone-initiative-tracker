@@ -265,23 +265,109 @@ describe('challenge workflow tabs', () => {
 		expect(rollTab.querySelector('.validation-count')).toBeNull();
 	});
 
-	it('shows Run blockers by affected turn and clears the count when leaving Run', async () => {
+	it('shows missing initiative results on Roll until they are corrected', async () => {
 		const challenge = createRunChallenge();
 		challenge.runState = { initiativeResults: {} };
 		await saveChallengeToLibrary(challenge);
 		render(challengePage);
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
 
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
 		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
-		expect(runTab.querySelector('.validation-count')?.textContent).toBe('2');
-
-		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
-		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
 		expect(runTab.querySelector('.validation-count')).toBeNull();
+		const descriptionId = rollTab.getAttribute('aria-describedby');
+		assert(descriptionId);
+		expect(document.getElementById(descriptionId)?.textContent).toBe('2 validation errors');
+
+		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		const ariaInput = screen.getByRole('spinbutton', { name: 'Initiative for Aria' });
+		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		await fireEvent.input(ariaInput, { target: { value: '8' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		await fireEvent.input(ariaInput, { target: { value: '8' } });
+		await fireEvent.input(screen.getByRole('spinbutton', { name: 'Initiative for Rook' }), {
+			target: { value: '10' }
+		});
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		expect(rollTab.getAttribute('aria-describedby')).toBeNull();
 		await fireEvent.click(runTab);
 		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
 		expect(runTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('updates missing app results and replaces them on a generation retry', async () => {
+		const challenge = createRunChallenge();
+		const rook = challenge.creatures[1];
+		assert(rook?.kind === 'character');
+		rook.initiativeStat = 0;
+		rook.turns[0]!.initiative = { kind: 'roll', mode: 'app' };
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		await fireEvent.click(rollTab);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Roll all remaining' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(runTab);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		expect(runTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(rollTab);
+		await fireEvent.input(await screen.findByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '8' }
+		});
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(runTab);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		await waitFor(() =>
+			expect(
+				(screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement).disabled
+			).toBe(false)
+		);
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('keeps unresolved tie counts on Run', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 } };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(
+			screen.getByRole('tab', { name: 'Run' }).querySelector('.validation-count')?.textContent
+		).toBe('1');
+		expect(screen.getByRole('tab', { name: 'Roll' }).querySelector('.validation-count')).toBeNull();
+	});
+
+	it('removes missing-result badges when the reported turns are removed in Setup', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Remove Turn 1 for Aria' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove Turn 1 for Rook' }));
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
 	});
 
 	it('supports keyboard navigation between tabs', async () => {

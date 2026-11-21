@@ -40,8 +40,10 @@
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
 		onTransitionChange?: (isTransitioning: boolean) => void;
-		/** Reports how many turns or tie groups currently block turn-order generation. */
+		/** Reports how many placement turns or tie groups block turn-order generation. */
 		onValidationCountChange?: (count: number) => void;
+		/** Reports turns missing initiative after each generation attempt. */
+		onMissingInitiativeChange?: (turnIds: readonly StableId[]) => void;
 	}
 
 	let {
@@ -50,6 +52,7 @@
 		onTabChange,
 		onTransitionChange,
 		onValidationCountChange,
+		onMissingInitiativeChange,
 		titleActions
 	}: Props = $props();
 	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
@@ -69,7 +72,7 @@
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
 	let generationIssueCount = $derived.by(() => {
-		if (!generationIssue) return 0;
+		if (!generationIssue || generationIssue.status === 'missing-results') return 0;
 		return generationIssue.status === 'unresolved-ties'
 			? generationIssue.groups.length
 			: generationIssue.turnIds.length;
@@ -352,6 +355,9 @@
 			challenge,
 			runState.initiativeResults,
 			runState.tieDecisions
+		);
+		onMissingInitiativeChange?.(
+			preparation.status === 'missing-results' ? preparation.turnIds : []
 		);
 		if (preparation.status !== 'generated') {
 			generationIssue = preparation;

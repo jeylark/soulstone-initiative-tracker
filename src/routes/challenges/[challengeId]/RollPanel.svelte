@@ -25,11 +25,11 @@
 		sharedChallenge?: Challenge;
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
-		/** Reports how many manual initiative inputs currently contain invalid values. */
-		onValidationCountChange?: (count: number) => void;
+		/** Reports turns whose manual initiative inputs currently contain invalid values. */
+		onInvalidInitiativeChange?: (turnIds: readonly StableId[]) => void;
 	}
 
-	let { sharedChallenge, onValidationCountChange, titleActions }: Props = $props();
+	let { sharedChallenge, onInvalidInitiativeChange, titleActions }: Props = $props();
 
 	let loadStatus = $state<LoadStatus>('loading');
 	let hasSaveError = $state(false);
@@ -57,15 +57,20 @@
 		const initiative = Number(value);
 		return Number.isInteger(initiative) && initiative >= 0 ? initiative : undefined;
 	}
-	let invalidInputCount = $derived(
-		Object.values(initiativeInputs).filter(
-			(value) => value !== undefined && value !== '' && parseInitiativeInput(value) === undefined
-		).length
+	let invalidInputTurnIds = $derived(
+		challenge?.creatures.flatMap((creature) =>
+			creature.turns
+				.filter((turn) => {
+					const value = initiativeInputs[turn.id];
+					return value !== undefined && value !== '' && parseInitiativeInput(value) === undefined;
+				})
+				.map((turn) => turn.id)
+		) ?? []
 	);
 
-	$effect(() => onValidationCountChange?.(invalidInputCount));
+	$effect(() => onInvalidInitiativeChange?.(invalidInputTurnIds));
 
-	onDestroy(() => onValidationCountChange?.(0));
+	onDestroy(() => onInvalidInitiativeChange?.([]));
 
 	/** Whether a turn's result may be changed; results collected before editing started never can. */
 	function isTurnLocked(turnId: StableId): boolean {

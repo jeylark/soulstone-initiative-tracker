@@ -9,7 +9,8 @@
 		saveChallengeToLibrary,
 		getChallengeSetupIssues,
 		saveChallengeToJsonFile,
-		type Challenge
+		type Challenge,
+		type StableId
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import RollPanel from './RollPanel.svelte';
@@ -32,7 +33,23 @@
 	let downloadErrorDetails = $state('');
 	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
-	let rollValidationCount = $state(0);
+	let invalidInitiativeTurnIds = $state<readonly StableId[]>([]);
+	let missingInitiativeTurnIds = $state<readonly StableId[]>([]);
+	let rollValidationCount = $derived.by(() => {
+		const missingIds = new Set(missingInitiativeTurnIds);
+		const currentMissingIds =
+			challenge?.creatures.flatMap((creature) =>
+				creature.turns
+					.filter(
+						(turn) =>
+							turn.initiative.kind === 'roll' &&
+							missingIds.has(turn.id) &&
+							challenge?.runState?.initiativeResults[turn.id] === undefined
+					)
+					.map((turn) => turn.id)
+			) ?? [];
+		return new Set([...invalidInitiativeTurnIds, ...currentMissingIds]).size;
+	});
 	let runValidationCount = $state(0);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -240,7 +257,7 @@
 			{:else if activeTab === 'roll'}
 				<RollPanel
 					sharedChallenge={challenge}
-					onValidationCountChange={(count) => (rollValidationCount = count)}
+					onInvalidInitiativeChange={(turnIds) => (invalidInitiativeTurnIds = turnIds)}
 					titleActions={downloadAction}
 				/>
 			{:else}
@@ -250,6 +267,7 @@
 					onTabChange={selectTab}
 					onTransitionChange={(value) => (isTransitioning = value)}
 					onValidationCountChange={(count) => (runValidationCount = count)}
+					onMissingInitiativeChange={(turnIds) => (missingInitiativeTurnIds = turnIds)}
 					titleActions={downloadAction}
 				/>
 			{/if}

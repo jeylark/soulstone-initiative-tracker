@@ -616,9 +616,15 @@ describe('turn-order run route', () => {
 		delete challenge.runState?.initiativeResults[ariaTurnId];
 		delete challenge.runState?.generatedTurnOrder;
 		await saveChallengeToLibrary(challenge);
+		const onMissingInitiativeChange = vi.fn();
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, {
+			props: { sharedChallenge: challenge, onMissingInitiativeChange, onValidationCountChange }
+		});
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(onMissingInitiativeChange).toHaveBeenLastCalledWith([ariaTurnId]);
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(0));
 
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
@@ -715,11 +721,13 @@ describe('turn-order run route', () => {
 			targetTurnId: ariaTurnId
 		};
 		await saveChallengeToLibrary(challenge);
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, { props: { sharedChallenge: challenge, onValidationCountChange } });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		const invalidTurns = await screen.findByRole('list', { name: 'Turns with invalid placement' });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(2));
 		expectPageError('Turn placement could not be resolved.');
 		expect(within(invalidTurns).getByText('Aria')).toBeTruthy();
 		expect(within(invalidTurns).getByText('Rook')).toBeTruthy();

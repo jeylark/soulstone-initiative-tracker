@@ -48,7 +48,7 @@ describe('running challenge view', () => {
 		).toBeTruthy();
 	});
 
-	it('reports the current invalid manual initiative count', async () => {
+	it('reports the turns with invalid manual initiative inputs', async () => {
 		const challenge = createSetupChallenge();
 		challenge.name = 'Initiative validation';
 		const turnId = '00000000-0000-4000-8000-000000000006' as StableId;
@@ -63,22 +63,22 @@ describe('running challenge view', () => {
 			}
 		];
 		challenge.runState = { initiativeResults: { [turnId]: 5 } };
-		const onValidationCountChange = vi.fn();
+		const onInvalidInitiativeChange = vi.fn();
 		const { unmount } = render(rollChallengePage, {
 			sharedChallenge: challenge,
-			onValidationCountChange
+			onInvalidInitiativeChange
 		});
 		const input = await screen.findByRole('spinbutton', { name: 'Initiative for Aria' });
 
 		await fireEvent.input(input, { target: { value: '1.5' } });
-		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+		await waitFor(() => expect(onInvalidInitiativeChange).toHaveBeenLastCalledWith([turnId]));
 		await fireEvent.input(input, { target: { value: '9' } });
-		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(0));
+		await waitFor(() => expect(onInvalidInitiativeChange).toHaveBeenLastCalledWith([]));
 		await fireEvent.input(input, { target: { value: '1.5' } });
-		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(1));
+		await waitFor(() => expect(onInvalidInitiativeChange).toHaveBeenLastCalledWith([turnId]));
 
 		unmount();
-		expect(onValidationCountChange).toHaveBeenLastCalledWith(0);
+		expect(onInvalidInitiativeChange).toHaveBeenLastCalledWith([]);
 	});
 });
 
