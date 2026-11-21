@@ -51,6 +51,13 @@ describe('challenge hub', () => {
 		await screen.findByText('Local');
 		await uploadLibrary(createChallengeLibraryJson({ formatVersion: 1, challenges: imported }));
 		await screen.findByRole('button', { name: 'Import challenges' });
+		const importGroup = screen
+			.getByRole('button', { name: 'Import challenges' })
+			.closest('.button-group');
+		expect(importGroup).not.toBeNull();
+		expect(screen.getByRole('button', { name: 'Cancel import' }).closest('.button-group')).toBe(
+			importGroup
+		);
 		expect((await loadChallengeLibrary()).challenges).toEqual([local]);
 		await fireEvent.click(screen.getByRole('button', { name: 'Import challenges' }));
 		await screen.findByRole('heading', { name: 'Imported 2' });

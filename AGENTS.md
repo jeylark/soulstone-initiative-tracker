@@ -123,6 +123,7 @@ Follow these instructions for every task in this repository.
 
 ## Testing and Verification Lessons
 
+- When reserving button space for alternate labels, retain icons and styled label markup in measurement copies; replacing the whole button text discards icon width.
 - Svelte dimension bindings use a shared ResizeObserver. In JSDOM layout tests, provide a minimal observer fixture and mock the measured dimension; exercise resize notifications and verify the element is unobserved on teardown.
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 - In this JSDOM environment, `Blob.stream()` may be unavailable; use `new Response(text).body` when a test needs a readable stream fixture.

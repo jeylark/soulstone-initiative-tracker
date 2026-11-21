@@ -342,6 +342,13 @@ describe('turn-order run route', () => {
 		render(turnOrderPage, { sharedChallenge: challenge });
 
 		expect(await screen.findByText('23456789')).toBeTruthy();
+		const sessionGroup = screen
+			.getByRole('button', { name: 'Regenerate viewer code' })
+			.closest('.button-group');
+		expect(sessionGroup).not.toBeNull();
+		expect(screen.getByRole('button', { name: 'End live session' }).closest('.button-group')).toBe(
+			sessionGroup
+		);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Regenerate viewer code' }));
 
 		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
@@ -438,6 +445,13 @@ describe('turn-order run route', () => {
 		const turnCards = screen.getByRole('region', { name: 'Turn cards' });
 		expect(within(controls).getByText('Ashen Company')).toBeTruthy();
 		expect(within(controls).getByRole('button', { name: 'Next turn' })).toBeTruthy();
+		const turnGroup = within(controls)
+			.getByRole('button', { name: 'Next turn' })
+			.closest('.button-group');
+		expect(turnGroup).not.toBeNull();
+		expect(
+			within(controls).getByRole('button', { name: 'Edit Challenge' }).closest('.button-group')
+		).toBe(turnGroup);
 		expect(within(controls).queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBeTruthy();
 		expect(

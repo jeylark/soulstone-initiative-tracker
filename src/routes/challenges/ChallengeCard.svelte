@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ActionButton, Card, NavButton } from '#lib/components';
+	import { ActionButton, ButtonGroup, ButtonGroupItem, Card, NavButton } from '#lib/components';
 	import { resolve } from '$app/paths';
 	import type { Challenge } from '#lib/challenge';
 
@@ -38,17 +38,21 @@
 			<time datetime={challenge.updatedAt.toISOString()} aria-label={`Modified ${modifiedDate}`}>
 				{modifiedDate}
 			</time>
-			<div class="challenge-actions">
-				<NavButton
-					href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
-					aria-label={`Load ${title}`}
-				>
-					Load
-				</NavButton>
-				<ActionButton aria-label={`Copy ${title}`} disabled={isCopyDisabled} onclick={onCopy}>
-					Copy
-				</ActionButton>
-			</div>
+			<ButtonGroup>
+				<ButtonGroupItem>
+					<NavButton
+						href={resolve('/challenges/[challengeId]', { challengeId: challenge.id })}
+						aria-label={`Load ${title}`}
+					>
+						Load
+					</NavButton>
+				</ButtonGroupItem>
+				<ButtonGroupItem>
+					<ActionButton aria-label={`Copy ${title}`} disabled={isCopyDisabled} onclick={onCopy}>
+						Copy
+					</ActionButton>
+				</ButtonGroupItem>
+			</ButtonGroup>
 		</div>
 		<p class="challenge-status">{isChallengeRunning ? 'Running' : 'Not running'}</p>
 		<dl>
@@ -95,12 +99,6 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 12px;
-	}
-
-	.challenge-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
 	}
 
 	.challenge-status {

@@ -1,5 +1,9 @@
 /** Shared action button component. */
 export { default as ActionButton } from './ActionButton.svelte';
+/** Arranges button group items with equal-sized controls. */
+export { default as ButtonGroup } from './ButtonGroup.svelte';
+/** Keeps one grouped button and its feedback together. */
+export { default as ButtonGroupItem } from './ButtonGroupItem.svelte';
 /** Shared card surface component. */
 export { default as Card } from './Card.svelte';
 /** Renders a collection of entities as a list. */

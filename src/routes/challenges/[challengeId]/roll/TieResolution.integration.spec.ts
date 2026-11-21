@@ -49,6 +49,13 @@ describe('TieResolution', () => {
 		});
 
 		expect(screen.getByText('Ordered')).toBeTruthy();
+		const group = screen
+			.getByRole('button', { name: 'Move Rook earlier' })
+			.closest('.button-group');
+		expect(group).not.toBeNull();
+		expect(screen.getByRole('button', { name: 'Move Rook later' }).closest('.button-group')).toBe(
+			group
+		);
 		expect(
 			(screen.getByRole('button', { name: /Confirm default order/ }) as HTMLButtonElement).disabled
 		).toBe(true);

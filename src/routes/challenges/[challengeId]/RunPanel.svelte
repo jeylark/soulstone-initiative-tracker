@@ -16,7 +16,14 @@
 		type ChallengeRunState,
 		type StableId
 	} from '#lib/challenge';
-	import { ActionButton, ErrorDisplay, TurnOrderList, ViewPage } from '#lib/components';
+	import {
+		ActionButton,
+		ButtonGroup,
+		ButtonGroupItem,
+		ErrorDisplay,
+		TurnOrderList,
+		ViewPage
+	} from '#lib/components';
 	import {
 		createLiveSession,
 		deleteLiveSessionCredential,
@@ -466,42 +473,30 @@
 					</ul>
 				{/if}
 
-				<ActionButton
-					disabled={!generatedOrderDisplay || isSaving || isEditing}
-					onclick={advanceToNextTurn}
-				>
-					Next turn
-				</ActionButton>
-				<ActionButton
-					disabled={!generatedOrderDisplay || isSaving || isEditing || !isSpawnCurrent}
-					onclick={startEditing}
-				>
-					Edit Challenge
-				</ActionButton>
+				<ButtonGroup>
+					<ButtonGroupItem>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isSaving || isEditing}
+							onclick={advanceToNextTurn}
+						>
+							Next turn
+						</ActionButton>
+					</ButtonGroupItem>
+					<ButtonGroupItem>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isSaving || isEditing || !isSpawnCurrent}
+							onclick={startEditing}
+						>
+							Edit Challenge
+						</ActionButton>
+					</ButtonGroupItem>
+				</ButtonGroup>
 				<section aria-label="Live session">
 					<h2>Live session</h2>
 					{#if liveSession}
 						<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
-						<ActionButton
-							disabled={!savedLiveSessionCredential || isRegeneratingViewerCode}
-							onclick={regenerateLiveSessionViewerCode}
-						>
-							{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
-						</ActionButton>
-						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-							{isEndingLiveSession ? 'Ending…' : 'End live session'}
-						</ActionButton>
 					{:else if savedLiveSessionCredential}
 						<p>A saved live session could not be resumed.</p>
-						<ActionButton
-							disabled={!generatedOrderDisplay || isLoadingLiveSession}
-							onclick={resumeSavedLiveSession}
-						>
-							Retry session resume
-						</ActionButton>
-						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-							{isEndingLiveSession ? 'Ending…' : 'End live session'}
-						</ActionButton>
 					{:else}
 						<p>Start a live session to let viewers join this challenge.</p>
 						<ActionButton
@@ -510,6 +505,34 @@
 						>
 							{isStartingLiveSession ? 'Starting…' : 'Start live session'}
 						</ActionButton>
+					{/if}
+					{#if liveSession || savedLiveSessionCredential}
+						<ButtonGroup>
+							<ButtonGroupItem
+								sizingLabels={['Regenerate viewer code', 'Regenerating…', 'Retry session resume']}
+							>
+								{#if liveSession}
+									<ActionButton
+										disabled={!savedLiveSessionCredential || isRegeneratingViewerCode}
+										onclick={regenerateLiveSessionViewerCode}
+									>
+										{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
+									</ActionButton>
+								{:else}
+									<ActionButton
+										disabled={!generatedOrderDisplay || isLoadingLiveSession}
+										onclick={resumeSavedLiveSession}
+									>
+										Retry session resume
+									</ActionButton>
+								{/if}
+							</ButtonGroupItem>
+							<ButtonGroupItem sizingLabels={['End live session', 'Ending…']}>
+								<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+									{isEndingLiveSession ? 'Ending…' : 'End live session'}
+								</ActionButton>
+							</ButtonGroupItem>
+						</ButtonGroup>
 					{/if}
 					{#if liveSessionErrorDetails}
 						<ErrorDisplay
