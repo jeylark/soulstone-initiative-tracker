@@ -16,7 +16,14 @@
 		type ChallengeRunState,
 		type StableId
 	} from '#lib/challenge';
-	import { ActionButton, ErrorDisplay, TurnOrderList, ViewPage } from '#lib/components';
+	import {
+		ActionButton,
+		ButtonGroup,
+		ButtonGroupItem,
+		ErrorDisplay,
+		TurnOrderList,
+		ViewPage
+	} from '#lib/components';
 	import {
 		createLiveSession,
 		deleteLiveSessionCredential,
@@ -40,8 +47,10 @@
 		/** Optional action displayed beside the page title. */
 		titleActions?: Snippet;
 		onTransitionChange?: (isTransitioning: boolean) => void;
-		/** Reports how many turns or tie groups currently block turn-order generation. */
+		/** Reports how many placement turns or tie groups block turn-order generation. */
 		onValidationCountChange?: (count: number) => void;
+		/** Reports turns missing initiative after each generation attempt. */
+		onMissingInitiativeChange?: (turnIds: readonly StableId[]) => void;
 	}
 
 	let {
@@ -50,6 +59,7 @@
 		onTabChange,
 		onTransitionChange,
 		onValidationCountChange,
+		onMissingInitiativeChange,
 		titleActions
 	}: Props = $props();
 	type GenerationIssue = Exclude<TurnOrderPreparation, { status: 'generated' }>;
@@ -69,7 +79,7 @@
 	let challenge = $derived(sharedChallenge ?? localChallenge);
 	let generationIssue = $state<GenerationIssue>();
 	let generationIssueCount = $derived.by(() => {
-		if (!generationIssue) return 0;
+		if (!generationIssue || generationIssue.status === 'missing-results') return 0;
 		return generationIssue.status === 'unresolved-ties'
 			? generationIssue.groups.length
 			: generationIssue.turnIds.length;
@@ -353,6 +363,9 @@
 			runState.initiativeResults,
 			runState.tieDecisions
 		);
+		onMissingInitiativeChange?.(
+			preparation.status === 'missing-results' ? preparation.turnIds : []
+		);
 		if (preparation.status !== 'generated') {
 			generationIssue = preparation;
 			return;
@@ -460,42 +473,38 @@
 					</ul>
 				{/if}
 
-				<ActionButton
-					disabled={!generatedOrderDisplay || isSaving || isEditing}
-					onclick={advanceToNextTurn}
-				>
-					Next turn
-				</ActionButton>
-				<ActionButton
-					disabled={!generatedOrderDisplay || isSaving || isEditing || !isSpawnCurrent}
-					onclick={startEditing}
-				>
-					Edit Challenge
-				</ActionButton>
+				<ButtonGroup>
+					<ButtonGroupItem sizingLabels={['Calculate Turn Order']}>
+						<ActionButton
+							disabled={isSaving || (!!challenge.runState?.generatedTurnOrder && !isEditing)}
+							onclick={generateTurnOrder}
+						>
+							{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
+						</ActionButton>
+					</ButtonGroupItem>
+					<ButtonGroupItem>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isSaving || isEditing}
+							onclick={advanceToNextTurn}
+						>
+							Next turn
+						</ActionButton>
+					</ButtonGroupItem>
+					<ButtonGroupItem>
+						<ActionButton
+							disabled={!generatedOrderDisplay || isSaving || isEditing || !isSpawnCurrent}
+							onclick={startEditing}
+						>
+							Edit Challenge
+						</ActionButton>
+					</ButtonGroupItem>
+				</ButtonGroup>
 				<section aria-label="Live session">
 					<h2>Live session</h2>
 					{#if liveSession}
 						<p>Viewer code: <output>{liveSession.viewerCode}</output></p>
-						<ActionButton
-							disabled={!savedLiveSessionCredential || isRegeneratingViewerCode}
-							onclick={regenerateLiveSessionViewerCode}
-						>
-							{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
-						</ActionButton>
-						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-							{isEndingLiveSession ? 'Ending…' : 'End live session'}
-						</ActionButton>
 					{:else if savedLiveSessionCredential}
 						<p>A saved live session could not be resumed.</p>
-						<ActionButton
-							disabled={!generatedOrderDisplay || isLoadingLiveSession}
-							onclick={resumeSavedLiveSession}
-						>
-							Retry session resume
-						</ActionButton>
-						<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
-							{isEndingLiveSession ? 'Ending…' : 'End live session'}
-						</ActionButton>
 					{:else}
 						<p>Start a live session to let viewers join this challenge.</p>
 						<ActionButton
@@ -505,6 +514,34 @@
 							{isStartingLiveSession ? 'Starting…' : 'Start live session'}
 						</ActionButton>
 					{/if}
+					{#if liveSession || savedLiveSessionCredential}
+						<ButtonGroup>
+							<ButtonGroupItem
+								sizingLabels={['Regenerate viewer code', 'Regenerating…', 'Retry session resume']}
+							>
+								{#if liveSession}
+									<ActionButton
+										disabled={!savedLiveSessionCredential || isRegeneratingViewerCode}
+										onclick={regenerateLiveSessionViewerCode}
+									>
+										{isRegeneratingViewerCode ? 'Regenerating…' : 'Regenerate viewer code'}
+									</ActionButton>
+								{:else}
+									<ActionButton
+										disabled={!generatedOrderDisplay || isLoadingLiveSession}
+										onclick={resumeSavedLiveSession}
+									>
+										Retry session resume
+									</ActionButton>
+								{/if}
+							</ButtonGroupItem>
+							<ButtonGroupItem sizingLabels={['End live session', 'Ending…']}>
+								<ActionButton disabled={isEndingLiveSession} onclick={endCurrentLiveSession}>
+									{isEndingLiveSession ? 'Ending…' : 'End live session'}
+								</ActionButton>
+							</ButtonGroupItem>
+						</ButtonGroup>
+					{/if}
 					{#if liveSessionErrorDetails}
 						<ErrorDisplay
 							message="The live session could not be started, resumed, or ended."
@@ -512,12 +549,6 @@
 						/>
 					{/if}
 				</section>
-				<ActionButton
-					disabled={isSaving || (!!challenge.runState?.generatedTurnOrder && !isEditing)}
-					onclick={generateTurnOrder}
-				>
-					{isEditing ? 'Calculate Turn Order' : 'Generate turn order'}
-				</ActionButton>
 				{#if hasSaveError}
 					<ErrorDisplay message="Changes could not be saved." />
 				{/if}

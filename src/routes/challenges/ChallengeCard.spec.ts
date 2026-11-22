@@ -137,6 +137,11 @@ describe('ChallengeCard', () => {
 		const load = screen.getByRole('link', { name: 'Load Ashen Company' });
 		expect(load.textContent?.trim()).toBe('Load');
 		expect(load.getAttribute('href')).toBe(`/challenges/${challenge.id}`);
+		const group = load.closest('.button-group');
+		expect(group).not.toBeNull();
+		expect(
+			screen.getByRole('button', { name: 'Copy Ashen Company' }).closest('.button-group')
+		).toBe(group);
 	});
 
 	it('offers a Copy button and calls the parent action', async () => {

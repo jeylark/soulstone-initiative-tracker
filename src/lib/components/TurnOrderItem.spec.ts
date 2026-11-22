@@ -118,7 +118,7 @@ describe('TurnOrderItem', () => {
 	it('renders Spawn without turn-only content', () => {
 		render(TurnOrderItem, { props: { item: { kind: 'spawn', position: 1 } } });
 
-		expect(screen.getByRole('heading', { name: 'Spawn' })).toBeTruthy();
+		expect(screen.getByText('Spawn', { selector: '.turn-order-creature-name' })).toBeTruthy();
 		expect(screen.queryByText(/^Initiative:/)).toBeNull();
 		expect(screen.queryByRole('checkbox')).toBeNull();
 		expect(screen.queryByText('1')).toBeNull();

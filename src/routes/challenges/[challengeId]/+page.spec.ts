@@ -8,15 +8,21 @@ import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 import { createSetupChallenge, seedStoredChallengeLibrary } from '../../view-test-support';
 
-const { mockedPage } = vi.hoisted(() => ({
-	mockedPage: { params: {} as Record<string, string> }
+const { mockedPage, mockedGoto } = vi.hoisted(() => ({
+	mockedPage: {
+		params: {} as Record<string, string>,
+		url: new URL('http://localhost/')
+	},
+	mockedGoto: vi.fn()
 }));
 
 vi.mock('$app/state', () => ({ page: mockedPage }));
+vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
 
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.clearAllMocks();
 });
 
 beforeEach(async () => {
@@ -25,6 +31,12 @@ beforeEach(async () => {
 	challenge.name = 'Tab navigation';
 	await saveChallengeToLibrary(challenge);
 	mockedPage.params = { challengeId: challenge.id };
+	mockedPage.url = new URL(`http://localhost/challenges/${challenge.id}`);
+	// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+	mockedGoto.mockImplementation((url: URL | string) => {
+		mockedPage.url = new URL(url.toString(), 'http://localhost');
+		return Promise.resolve();
+	});
 });
 
 describe('challenge workflow tabs', () => {
@@ -140,6 +152,106 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(screen.getByRole('tab', { name: 'Run' }));
 		expect(await screen.findByRole('heading', { level: 1, name: 'Turn order' })).toBeTruthy();
 		expect(screen.getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe('true');
+	});
+
+	it.each([
+		['roll', 'Initiative rolling'],
+		['run', 'Turn order']
+	] as const)('restores the %s panel from the URL', async (tab, heading) => {
+		mockedPage.url.searchParams.set('tab', tab);
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
+		expect(
+			screen
+				.getByRole('tab', { name: heading === 'Turn order' ? 'Run' : 'Roll' })
+				.getAttribute('aria-selected')
+		).toBe('true');
+	});
+
+	it('falls back to Setup and removes an unknown tab from the URL', async () => {
+		mockedPage.url.searchParams.set('tab', 'unknown');
+		mockedPage.url.searchParams.set('source', 'test');
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		expect(mockedGoto.mock.calls[0]?.[1]).toEqual({ ['replace']: true });
+	});
+
+	it('falls back to Setup when the URL selects a panel blocked by setup issues', async () => {
+		await saveChallengeToLibrary(createSetupChallenge());
+		mockedPage.url.searchParams.set('tab', 'run');
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+	});
+
+	it('shows the panel after saving even when URL navigation is still pending', async () => {
+		mockedGoto.mockImplementation(() => new Promise(() => undefined));
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+
+		expect(
+			await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' })
+		).toBeTruthy();
+		expect(screen.getByRole('tab', { name: 'Roll' }).getAttribute('aria-selected')).toBe('true');
+	});
+
+	it('updates the URL without adding history entries when selecting a panel', async () => {
+		mockedPage.url.searchParams.set('source', '[filter]/one & two');
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(mockedPage.url.pathname).toBe(`/challenges/${mockedPage.params.challengeId}`);
+		expect(mockedPage.url.searchParams.get('tab')).toBe('roll');
+		expect(mockedPage.url.searchParams.get('source')).toBe('[filter]/one & two');
+		const [, navigationOptions] = mockedGoto.mock.calls.at(-1) as [
+			URL | string,
+			Record<string, unknown>
+		];
+		expect(navigationOptions).toEqual({ ['replace']: true });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+		expect(mockedPage.url.searchParams.get('source')).toBe('[filter]/one & two');
+		expect(mockedGoto.mock.calls.at(-1)?.[1]).toEqual({ ['replace']: true });
+	});
+
+	it('removes the query string when returning to Setup without other parameters', async () => {
+		mockedPage.url.searchParams.set('tab', 'roll');
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(mockedPage.url.pathname).toBe(`/challenges/${mockedPage.params.challengeId}`);
+		expect(mockedPage.url.search).toBe('');
+		expect(mockedGoto.mock.calls.at(-1)?.[1]).toEqual({ ['replace']: true });
+	});
+
+	it('keeps the selected panel and URL when saving fails before a tab switch', async () => {
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		vi.spyOn(challengeLibrary, 'saveChallengeToLibrary').mockRejectedValueOnce(
+			new Error('Save failed')
+		);
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByText('Changes could not be saved.');
+		expect(screen.getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe('true');
+		expect(mockedPage.url.searchParams.get('tab')).toBe('run');
+		expect(mockedGoto).toHaveBeenCalledOnce();
 	});
 
 	it('keeps workflow navigation available after the challenge starts', async () => {
@@ -265,23 +377,134 @@ describe('challenge workflow tabs', () => {
 		expect(rollTab.querySelector('.validation-count')).toBeNull();
 	});
 
-	it('shows Run blockers by affected turn and clears the count when leaving Run', async () => {
+	it('shows missing initiative results on Roll until they are corrected', async () => {
 		const challenge = createRunChallenge();
 		challenge.runState = { initiativeResults: {} };
 		await saveChallengeToLibrary(challenge);
 		render(challengePage);
 		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
 
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
 		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
-		expect(runTab.querySelector('.validation-count')?.textContent).toBe('2');
-
-		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
-		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
 		expect(runTab.querySelector('.validation-count')).toBeNull();
+		const descriptionId = rollTab.getAttribute('aria-describedby');
+		assert(descriptionId);
+		expect(document.getElementById(descriptionId)?.textContent).toBe('2 validation errors');
+
+		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		const ariaInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Aria'
+		}) as HTMLInputElement;
+		const rookInput = screen.getByRole('spinbutton', {
+			name: 'Initiative for Rook'
+		}) as HTMLInputElement;
+		for (const input of [ariaInput, rookInput]) {
+			const errorId = input.getAttribute('aria-describedby');
+			assert(errorId);
+			expect(document.getElementById(errorId)?.textContent).toBe('Initiative result is required.');
+		}
+		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		const ariaErrorId = ariaInput.getAttribute('aria-describedby');
+		assert(ariaErrorId);
+		expect(document.getElementById(ariaErrorId)?.textContent).toBe(
+			'Enter a non-negative whole number.'
+		);
+		await fireEvent.input(ariaInput, { target: { value: '8' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		const rookErrorId = rookInput.getAttribute('aria-describedby');
+		assert(rookErrorId);
+		expect(document.getElementById(rookErrorId)?.textContent).toBe(
+			'Initiative result is required.'
+		);
+		await fireEvent.input(ariaInput, { target: { value: '1.5' } });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		await fireEvent.input(ariaInput, { target: { value: '8' } });
+		await fireEvent.input(rookInput, { target: { value: '10' } });
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		expect(rollTab.getAttribute('aria-describedby')).toBeNull();
 		await fireEvent.click(runTab);
 		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
 		expect(runTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('updates missing app results and replaces them on a generation retry', async () => {
+		const challenge = createRunChallenge();
+		const rook = challenge.creatures[1];
+		assert(rook?.kind === 'character');
+		rook.initiativeStat = 0;
+		rook.turns[0]!.initiative = { kind: 'roll', mode: 'app' };
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		const runTab = screen.getByRole('tab', { name: 'Run' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+		await fireEvent.click(rollTab);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		const rookRollButton = screen.getByRole('button', { name: 'Roll initiative for Rook' });
+		const rookErrorId = rookRollButton.getAttribute('aria-describedby');
+		assert(rookErrorId);
+		expect(document.getElementById(rookErrorId)?.textContent).toBe(
+			'Initiative result is required.'
+		);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Roll all remaining' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(runTab);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		expect(runTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(rollTab);
+		await fireEvent.input(await screen.findByRole('spinbutton', { name: 'Initiative for Aria' }), {
+			target: { value: '8' }
+		});
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+		await fireEvent.click(runTab);
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		await waitFor(() =>
+			expect(
+				(screen.getByRole('button', { name: 'Next turn' }) as HTMLButtonElement).disabled
+			).toBe(false)
+		);
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
+	});
+
+	it('keeps unresolved tie counts on Run', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: { [ariaTurnId]: 9, [rookTurnId]: 9 } };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(
+			screen.getByRole('tab', { name: 'Run' }).querySelector('.validation-count')?.textContent
+		).toBe('1');
+		expect(screen.getByRole('tab', { name: 'Roll' }).querySelector('.validation-count')).toBeNull();
+	});
+
+	it('removes missing-result badges when the reported turns are removed in Setup', async () => {
+		const challenge = createRunChallenge();
+		challenge.runState = { initiativeResults: {} };
+		await saveChallengeToLibrary(challenge);
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		const rollTab = screen.getByRole('tab', { name: 'Roll' });
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('2');
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await fireEvent.click(await screen.findByRole('button', { name: 'Remove Turn 1 for Aria' }));
+		expect(rollTab.querySelector('.validation-count')?.textContent).toBe('1');
+		await fireEvent.click(screen.getByRole('button', { name: 'Remove Turn 1 for Rook' }));
+		expect(rollTab.querySelector('.validation-count')).toBeNull();
 	});
 
 	it('supports keyboard navigation between tabs', async () => {

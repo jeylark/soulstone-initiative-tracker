@@ -81,7 +81,9 @@ describe('turn', () => {
 		expect(
 			items.slice(0, 3).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
 		).toEqual(['Aria - Turn 1', 'Rook', 'Aria - Turn 2']);
-		expect(within(items[3]!).getByRole('heading', { name: 'Spawn' })).toBeTruthy();
+		expect(
+			within(items[3]!).getByText('Spawn', { selector: '.turn-order-creature-name' })
+		).toBeTruthy();
 		const ariaItems = items.filter((item) =>
 			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);

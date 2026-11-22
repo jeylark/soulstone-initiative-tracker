@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
@@ -9,7 +10,8 @@
 		saveChallengeToLibrary,
 		getChallengeSetupIssues,
 		saveChallengeToJsonFile,
-		type Challenge
+		type Challenge,
+		type StableId
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
 	import RollPanel from './RollPanel.svelte';
@@ -32,7 +34,23 @@
 	let downloadErrorDetails = $state('');
 	let isTransitioning = $state(false);
 	let setupIssues = $derived(challenge ? getChallengeSetupIssues(challenge) : []);
-	let rollValidationCount = $state(0);
+	let invalidInitiativeTurnIds = $state<readonly StableId[]>([]);
+	let missingInitiativeTurnIds = $state<readonly StableId[]>([]);
+	let rollValidationCount = $derived.by(() => {
+		const missingIds = new Set(missingInitiativeTurnIds);
+		const currentMissingIds =
+			challenge?.creatures.flatMap((creature) =>
+				creature.turns
+					.filter(
+						(turn) =>
+							turn.initiative.kind === 'roll' &&
+							missingIds.has(turn.id) &&
+							challenge?.runState?.initiativeResults[turn.id] === undefined
+					)
+					.map((turn) => turn.id)
+			) ?? [];
+		return new Set([...invalidInitiativeTurnIds, ...currentMissingIds]).size;
+	});
 	let runValidationCount = $state(0);
 	let saveQueue: Promise<void> = Promise.resolve();
 	let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -56,6 +74,17 @@
 				loadErrorDetails =
 					unreadable?.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n') ?? '';
 				loadStatus = challenge ? 'ready' : unreadable ? 'error' : 'not-found';
+				if (challenge) {
+					const requestedTabValue = page.url.searchParams.get('tab');
+					const requestedTab = workflowTabs.find((tab) => tab === requestedTabValue);
+					const canOpenRequestedTab =
+						requestedTab === 'setup' ||
+						(requestedTab !== undefined && getChallengeSetupIssues(challenge).length === 0);
+					activeTab = canOpenRequestedTab ? requestedTab : 'setup';
+					if (requestedTabValue !== null && activeTab === 'setup') {
+						await updateTabUrl('setup');
+					}
+				}
 			} catch (error) {
 				loadErrorDetails =
 					error instanceof Error
@@ -131,14 +160,34 @@
 		}
 	}
 
-	async function selectTab(tab: WorkflowTab): Promise<void> {
+	async function updateTabUrl(tab: WorkflowTab): Promise<void> {
+		const challengeId = challenge?.id ?? page.params.challengeId;
+		if (!challengeId) return;
+		const url = new URL(page.url.toString());
+		if (tab === 'setup') url.searchParams.delete('tab');
+		else url.searchParams.set('tab', tab);
+		await goto(resolve(`challenges/${challengeId}${url.search}`), {
+			['replace']: true
+		});
+	}
+
+	async function selectTab(tab: WorkflowTab, isFocusRequested = false): Promise<void> {
 		if (tab === activeTab || isTransitioning) return;
 		if (tab !== 'setup' && setupIssues.length > 0) return;
 		try {
 			await saveNow();
-			activeTab = tab;
 		} catch {
 			// Keep the current panel open when its latest changes could not be saved.
+			return;
+		}
+
+		const previousTab = activeTab;
+		activeTab = tab;
+		if (isFocusRequested) document.getElementById(`challenge-tab-${tab}`)?.focus();
+		try {
+			await updateTabUrl(tab);
+		} catch {
+			activeTab = previousTab;
 		}
 	}
 
@@ -158,9 +207,7 @@
 		event.preventDefault();
 		const nextTab = workflowTabs[nextIndex];
 		if (!nextTab) return;
-		void selectTab(nextTab).then(() => {
-			if (activeTab === nextTab) document.getElementById(`challenge-tab-${nextTab}`)?.focus();
-		});
+		void selectTab(nextTab, true);
 	}
 </script>
 
@@ -240,7 +287,8 @@
 			{:else if activeTab === 'roll'}
 				<RollPanel
 					sharedChallenge={challenge}
-					onValidationCountChange={(count) => (rollValidationCount = count)}
+					{missingInitiativeTurnIds}
+					onInvalidInitiativeChange={(turnIds) => (invalidInitiativeTurnIds = turnIds)}
 					titleActions={downloadAction}
 				/>
 			{:else}
@@ -250,6 +298,7 @@
 					onTabChange={selectTab}
 					onTransitionChange={(value) => (isTransitioning = value)}
 					onValidationCountChange={(count) => (runValidationCount = count)}
+					onMissingInitiativeChange={(turnIds) => (missingInitiativeTurnIds = turnIds)}
 					titleActions={downloadAction}
 				/>
 			{/if}

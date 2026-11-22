@@ -45,7 +45,7 @@ describe('turn list', () => {
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
 			'Enemies',
 			'Players',
-			'Spawn'
+			undefined
 		]);
 		expect(items.every((item) => item.querySelector('.turn-order-position') === null)).toBe(true);
 		expect(items[0]?.querySelector('.turn-order-creature-name')?.textContent).toBe('Rook');

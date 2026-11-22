@@ -11,6 +11,14 @@
 	font: inherit;
 }
 
+.button-group-item > .ui-button {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	height: var(--button-group-button-height, auto);
+	overflow-wrap: anywhere;
+}
+
 .ui-button:focus-visible {
 	outline: var(--focus-ring);
 	outline-offset: var(--focus-ring-offset);

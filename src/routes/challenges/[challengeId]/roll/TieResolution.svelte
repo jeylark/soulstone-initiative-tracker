@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { StableId, TurnDisplay } from '#lib/challenge';
-	import { ActionButton, Card } from '#lib/components';
+	import { ActionButton, ButtonGroup, ButtonGroupItem, Card } from '#lib/components';
 
 	interface Props {
 		/** Every current group of tied same-faction turns. */
@@ -45,18 +45,24 @@
 						{#each order as turnId, index (turnId)}
 							<li>
 								<span>{label(turnId)}</span>
-								<ActionButton
-									variant="neutral"
-									disabled={index === 0}
-									aria-label={`Move ${label(turnId)} earlier`}
-									onclick={() => move(order, index, -1)}>Up</ActionButton
-								>
-								<ActionButton
-									variant="neutral"
-									disabled={index === order.length - 1}
-									aria-label={`Move ${label(turnId)} later`}
-									onclick={() => move(order, index, 1)}>Down</ActionButton
-								>
+								<ButtonGroup>
+									<ButtonGroupItem>
+										<ActionButton
+											variant="neutral"
+											disabled={index === 0}
+											aria-label={`Move ${label(turnId)} earlier`}
+											onclick={() => move(order, index, -1)}>Up</ActionButton
+										>
+									</ButtonGroupItem>
+									<ButtonGroupItem>
+										<ActionButton
+											variant="neutral"
+											disabled={index === order.length - 1}
+											aria-label={`Move ${label(turnId)} later`}
+											onclick={() => move(order, index, 1)}>Down</ActionButton
+										>
+									</ButtonGroupItem>
+								</ButtonGroup>
 							</li>
 						{/each}
 					</ol>

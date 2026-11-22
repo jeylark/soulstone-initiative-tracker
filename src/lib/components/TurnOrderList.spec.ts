@@ -44,7 +44,7 @@ describe('TurnOrderList', () => {
 		expect(items).toHaveLength(3);
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
 			'Unknown faction',
-			'Spawn',
+			undefined,
 			'Unknown faction'
 		]);
 		expect(items[0]?.getAttribute('aria-current')).toBe('step');

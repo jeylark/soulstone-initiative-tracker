@@ -10,16 +10,20 @@ import SavedChallengesPage from './challenges/+page.svelte';
 import ChallengePage from './challenges/[challengeId]/+page.svelte';
 import ViewerPage from './view/+page.svelte';
 import LayoutWithChallenge from './layout-test-support.svelte';
-import { createSetupChallenge } from './view-test-support';
+import { createRunChallenge } from './challenges/[challengeId]/run/run-test-support';
 import { saveChallengeToLibrary } from '#lib/challenge';
 import type { DeepReadonly } from '#lib';
 
-vi.mock('$app/state', () => ({
-	page: {
-		params: { challengeId: '00000000-0000-4000-8000-000000000001' }
-	}
+const { mockedPage, mockedGoto } = vi.hoisted(() => ({
+	mockedPage: {
+		params: { challengeId: '00000000-0000-4000-8000-000000000001' },
+		url: new URL('http://localhost/challenges/00000000-0000-4000-8000-000000000001')
+	},
+	mockedGoto: vi.fn()
 }));
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+
+vi.mock('$app/state', () => ({ page: mockedPage }));
+vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
 
 const resizeObservers: TestResizeObserver[] = [];
 
@@ -51,6 +55,14 @@ class TestResizeObserver {
 
 beforeEach(() => {
 	vi.stubGlobal('ResizeObserver', TestResizeObserver);
+	mockedPage.params = {
+		challengeId: '00000000-0000-4000-8000-000000000001'
+	};
+	mockedPage.url = new URL('http://localhost/challenges/00000000-0000-4000-8000-000000000001');
+	mockedGoto.mockImplementation((url: Readonly<{ readonly toString: () => string }>) => {
+		mockedPage.url = new URL(url.toString(), 'http://localhost');
+		return Promise.resolve();
+	});
 });
 
 afterEach(() => {
@@ -169,7 +181,7 @@ describe('app layout', () => {
 
 	it('shows the challenge tabs in the header and removes them when the view is left', async () => {
 		vi.stubGlobal('indexedDB', new IDBFactory());
-		const challenge = createSetupChallenge();
+		const challenge = createRunChallenge();
 		challenge.name = 'Header tabs';
 		await saveChallengeToLibrary(challenge);
 		const { container } = render(LayoutWithChallenge);
@@ -180,6 +192,37 @@ describe('app layout', () => {
 		const tabs = await screen.findByRole('tablist', { name: 'Challenge workflow' });
 		expect(header.contains(tabs)).toBe(true);
 		expect(screen.getAllByRole('tablist', { name: 'Challenge workflow' })).toHaveLength(1);
+
+		await fireEvent.click(within(tabs).getByRole('tab', { name: 'Roll' }));
+		await waitFor(() =>
+			expect(within(tabs).getByRole('tab', { name: 'Roll' }).getAttribute('aria-selected')).toBe(
+				'true'
+			)
+		);
+		expect(mockedPage.url.searchParams.get('tab')).toBe('roll');
+
+		await fireEvent.click(within(tabs).getByRole('tab', { name: 'Setup' }));
+		await waitFor(() =>
+			expect(within(tabs).getByRole('tab', { name: 'Setup' }).getAttribute('aria-selected')).toBe(
+				'true'
+			)
+		);
+
+		await fireEvent.click(within(tabs).getByRole('tab', { name: 'Run' }));
+		await waitFor(() =>
+			expect(within(tabs).getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe(
+				'true'
+			)
+		);
+		expect(mockedPage.url.searchParams.get('tab')).toBe('run');
+
+		await fireEvent.click(within(tabs).getByRole('tab', { name: 'Setup' }));
+		await waitFor(() =>
+			expect(within(tabs).getByRole('tab', { name: 'Setup' }).getAttribute('aria-selected')).toBe(
+				'true'
+			)
+		);
+
 		await fireEvent.keyDown(within(tabs).getByRole('tab', { name: 'Setup' }), {
 			key: 'ArrowRight'
 		});
@@ -188,6 +231,13 @@ describe('app layout', () => {
 				'true'
 			)
 		);
+		await fireEvent.click(within(tabs).getByRole('tab', { name: 'Setup' }));
+		await waitFor(() =>
+			expect(within(tabs).getByRole('tab', { name: 'Setup' }).getAttribute('aria-selected')).toBe(
+				'true'
+			)
+		);
+
 		await fireEvent.click(screen.getByRole('button', { name: 'Toggle challenge' }));
 		await waitFor(() => expect(within(header).queryByRole('tablist')).toBeNull());
 		await fireEvent.click(screen.getByRole('button', { name: 'Toggle challenge' }));

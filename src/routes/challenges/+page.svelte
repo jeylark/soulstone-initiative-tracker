@@ -1,6 +1,13 @@
 <script lang="ts">
-	import type { DeepReadonly } from '#lib/DeepReadonly';
-	import { ActionButton, ErrorDisplay, SelectInput, ViewPage } from '#lib/components';
+	import type { DeepReadonly } from '#lib';
+	import {
+		ActionButton,
+		ButtonGroup,
+		ButtonGroupItem,
+		ErrorDisplay,
+		SelectInput,
+		ViewPage
+	} from '#lib/components';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -371,15 +378,21 @@
 					</SelectInput>
 				</div>
 			{/each}
-			<ActionButton
-				disabled={isUploading || hasUnresolvedConflicts}
-				onclick={() => void importChallenges()}
-			>
-				Import challenges
-			</ActionButton>
-			<ActionButton variant="neutral" disabled={isUploading} onclick={() => void cancelImport()}
-				>Cancel import</ActionButton
-			>
+			<ButtonGroup>
+				<ButtonGroupItem>
+					<ActionButton
+						disabled={isUploading || hasUnresolvedConflicts}
+						onclick={() => void importChallenges()}
+					>
+						Import challenges
+					</ActionButton>
+				</ButtonGroupItem>
+				<ButtonGroupItem>
+					<ActionButton variant="neutral" disabled={isUploading} onclick={() => void cancelImport()}
+						>Cancel import</ActionButton
+					>
+				</ButtonGroupItem>
+			</ButtonGroup>
 		</section>
 	{/if}
 	{#if importMessage}<p role="status">{importMessage}</p>{/if}

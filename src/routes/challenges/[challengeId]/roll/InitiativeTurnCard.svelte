@@ -9,6 +9,8 @@
 		result: number | undefined;
 		inputValue: string;
 		isInvalid: boolean;
+		/** Whether generation reported this turn as missing an initiative result. */
+		isMissingResult: boolean;
 		/** Whether the initiative stat allows an app roll. */
 		canRoll: boolean;
 		/** Whether the manual field is read-only. */
@@ -26,6 +28,7 @@
 		result,
 		inputValue,
 		isInvalid,
+		isMissingResult,
 		canRoll,
 		isInputLocked,
 		isRollLocked,
@@ -34,6 +37,10 @@
 	}: Props = $props();
 	let label = $derived(`Initiative for ${title}`);
 	let hasWarning = $derived(result !== undefined && result > 18);
+	let isMissingInputResult = $derived(
+		isMissingResult && result === undefined && inputValue.trim() === ''
+	);
+	let hasMissingResult = $derived(isMissingResult && result === undefined);
 </script>
 
 <div
@@ -59,9 +66,13 @@
 					step={1}
 					{hasWarning}
 					warningMessage={hasWarning ? 'Initiative is above 18.' : undefined}
-					{isInvalid}
+					isInvalid={isInvalid || isMissingInputResult}
 					disabled={isInputLocked}
-					invalidMessage={isInvalid ? 'Enter a non-negative whole number.' : undefined}
+					invalidMessage={isInvalid
+						? 'Enter a non-negative whole number.'
+						: isMissingInputResult
+							? 'Initiative result is required.'
+							: undefined}
 					value={inputValue}
 					oninput={(event) => onInput(event.currentTarget.value)}
 				/>
@@ -72,6 +83,8 @@
 						<ActionButton
 							aria-label={`Reroll initiative for ${title}`}
 							disabled={!canRoll || isRollLocked}
+							isInvalid={hasMissingResult}
+							invalidMessage={hasMissingResult ? 'Initiative result is required.' : undefined}
 							onclick={onRoll}
 						>
 							Reroll
@@ -80,6 +93,8 @@
 						<ActionButton
 							aria-label={`Roll initiative for ${title}`}
 							disabled={!canRoll || isRollLocked}
+							isInvalid={hasMissingResult}
+							invalidMessage={hasMissingResult ? 'Initiative result is required.' : undefined}
 							onclick={onRoll}
 						>
 							Roll

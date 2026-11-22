@@ -12,6 +12,7 @@ function cardProps() {
 		result: undefined,
 		inputValue: '',
 		isInvalid: false,
+		isMissingResult: false,
 		canRoll: true,
 		isInputLocked: false,
 		isRollLocked: false,
@@ -21,6 +22,31 @@ function cardProps() {
 }
 
 describe('InitiativeTurnCard', () => {
+	it('shows missing results on the corresponding manual or app control', async () => {
+		const props = { ...cardProps(), mode: 'manual' as const, isMissingResult: true };
+		const { rerender } = render(InitiativeTurnCard, props);
+		const input = screen.getByRole('spinbutton', {
+			name: `Initiative for ${props.title}`
+		}) as HTMLInputElement;
+		const inputError = screen.getByRole('alert');
+
+		expect(inputError.textContent).toBe('Initiative result is required.');
+		expect(input.getAttribute('aria-describedby')).toBe(inputError.id);
+		expect(input.getAttribute('aria-invalid')).toBe('true');
+
+		await rerender({ isInvalid: true, inputValue: '1.5' });
+		expect(screen.getByRole('alert').textContent).toBe('Enter a non-negative whole number.');
+
+		await rerender({ mode: 'app', isInvalid: false, inputValue: '', isMissingResult: true });
+		const rollButton = screen.getByRole('button', {
+			name: `Roll initiative for ${props.title}`
+		});
+		const appError = screen.getByRole('alert');
+
+		expect(appError.textContent).toBe('Initiative result is required.');
+		expect(rollButton.getAttribute('aria-describedby')).toBe(appError.id);
+	});
+
 	it('keeps app sizing through rolling, rerolling, and invalid-stat feedback', async () => {
 		const props = cardProps();
 		const { container, rerender } = render(InitiativeTurnCard, props);

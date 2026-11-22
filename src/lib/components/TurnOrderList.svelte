@@ -28,4 +28,13 @@
 		padding: 0;
 		list-style: none;
 	}
+
+	.turn-order-list > :first-child {
+		width: 100%;
+	}
+
+	.turn-order-list > :not(:first-child) {
+		width: 75%;
+		justify-self: center;
+	}
 </style>

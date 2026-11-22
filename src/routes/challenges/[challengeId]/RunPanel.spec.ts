@@ -342,6 +342,13 @@ describe('turn-order run route', () => {
 		render(turnOrderPage, { sharedChallenge: challenge });
 
 		expect(await screen.findByText('23456789')).toBeTruthy();
+		const sessionGroup = screen
+			.getByRole('button', { name: 'Regenerate viewer code' })
+			.closest('.button-group');
+		expect(sessionGroup).not.toBeNull();
+		expect(screen.getByRole('button', { name: 'End live session' }).closest('.button-group')).toBe(
+			sessionGroup
+		);
 		await fireEvent.click(await screen.findByRole('button', { name: 'Regenerate viewer code' }));
 
 		expect(await screen.findByText('ABCDEFGH')).toBeTruthy();
@@ -438,6 +445,23 @@ describe('turn-order run route', () => {
 		const turnCards = screen.getByRole('region', { name: 'Turn cards' });
 		expect(within(controls).getByText('Ashen Company')).toBeTruthy();
 		expect(within(controls).getByRole('button', { name: 'Next turn' })).toBeTruthy();
+		const turnGroup = within(controls)
+			.getByRole('button', { name: 'Next turn' })
+			.closest('.button-group');
+		expect(turnGroup).not.toBeNull();
+		const generateButton = within(controls).getByRole('button', { name: 'Generate turn order' });
+		expect(generateButton.closest('.button-group')).toBe(turnGroup);
+		expect(
+			within(controls).getByRole('button', { name: 'Edit Challenge' }).closest('.button-group')
+		).toBe(turnGroup);
+		expect(
+			Array.from(turnGroup?.querySelectorAll(':scope > .button-group-item') ?? []).map((item) =>
+				item.querySelector('button')?.textContent?.trim()
+			)
+		).toEqual(['Generate turn order', 'Next turn', 'Edit Challenge']);
+		expect(generateButton.closest('.button-group-item')?.getAttribute('data-sizing-labels')).toBe(
+			JSON.stringify(['Calculate Turn Order'])
+		);
 		expect(within(controls).queryByRole('button', { name: 'Recalculate' })).toBeNull();
 		expect(within(turnCards).getByRole('list', { name: 'Generated turn order' })).toBeTruthy();
 		expect(
@@ -616,9 +640,15 @@ describe('turn-order run route', () => {
 		delete challenge.runState?.initiativeResults[ariaTurnId];
 		delete challenge.runState?.generatedTurnOrder;
 		await saveChallengeToLibrary(challenge);
+		const onMissingInitiativeChange = vi.fn();
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, {
+			props: { sharedChallenge: challenge, onMissingInitiativeChange, onValidationCountChange }
+		});
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
+		expect(onMissingInitiativeChange).toHaveBeenLastCalledWith([ariaTurnId]);
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(0));
 
 		const missingTurns = await screen.findByRole('list', {
 			name: 'Turns missing initiative results'
@@ -715,11 +745,13 @@ describe('turn-order run route', () => {
 			targetTurnId: ariaTurnId
 		};
 		await saveChallengeToLibrary(challenge);
+		const onValidationCountChange = vi.fn();
 
-		render(turnOrderPage);
+		render(turnOrderPage, { props: { sharedChallenge: challenge, onValidationCountChange } });
 		await fireEvent.click(await screen.findByRole('button', { name: 'Generate turn order' }));
 
 		const invalidTurns = await screen.findByRole('list', { name: 'Turns with invalid placement' });
+		await waitFor(() => expect(onValidationCountChange).toHaveBeenLastCalledWith(2));
 		expectPageError('Turn placement could not be resolved.');
 		expect(within(invalidTurns).getByText('Aria')).toBeTruthy();
 		expect(within(invalidTurns).getByText('Rook')).toBeTruthy();
@@ -815,7 +847,7 @@ describe('turn-order run route', () => {
 		expect(items.map((item) => item.querySelector('h2')?.textContent)).toEqual([
 			'Enemies',
 			'Players',
-			'Spawn'
+			undefined
 		]);
 		expect(
 			items.slice(0, 2).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
@@ -884,7 +916,9 @@ describe('turn-order run route', () => {
 		expect(
 			items.slice(0, 3).map((item) => item.querySelector('.turn-order-creature-name')?.textContent)
 		).toEqual(['Aria - Turn 1', 'Rook', 'Aria - Turn 2']);
-		expect(within(items[3]!).getByRole('heading', { name: 'Spawn' })).toBeTruthy();
+		expect(
+			within(items[3]!).getByText('Spawn', { selector: '.turn-order-creature-name' })
+		).toBeTruthy();
 		const ariaItems = items.filter((item) =>
 			item.querySelector('.turn-order-creature-name')?.textContent?.startsWith('Aria')
 		);
