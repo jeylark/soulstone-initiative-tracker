@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { getContext, onMount, type Snippet } from 'svelte';
 	import type { DeepReadonly } from '#lib';
@@ -73,6 +74,17 @@
 				loadErrorDetails =
 					unreadable?.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n') ?? '';
 				loadStatus = challenge ? 'ready' : unreadable ? 'error' : 'not-found';
+				if (challenge) {
+					const requestedTabValue = page.url.searchParams.get('tab');
+					const requestedTab = workflowTabs.find((tab) => tab === requestedTabValue);
+					const canOpenRequestedTab =
+						requestedTab === 'setup' ||
+						(requestedTab !== undefined && getChallengeSetupIssues(challenge).length === 0);
+					activeTab = canOpenRequestedTab ? requestedTab : 'setup';
+					if (requestedTabValue !== null && activeTab === 'setup') {
+						await updateTabUrl('setup');
+					}
+				}
 			} catch (error) {
 				loadErrorDetails =
 					error instanceof Error
@@ -148,11 +160,19 @@
 		}
 	}
 
+	async function updateTabUrl(tab: WorkflowTab): Promise<void> {
+		const url = new URL(page.url);
+		if (tab === 'setup') url.searchParams.delete('tab');
+		else url.searchParams.set('tab', tab);
+		await goto(url, { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
 	async function selectTab(tab: WorkflowTab): Promise<void> {
 		if (tab === activeTab || isTransitioning) return;
 		if (tab !== 'setup' && setupIssues.length > 0) return;
 		try {
 			await saveNow();
+			await updateTabUrl(tab);
 			activeTab = tab;
 		} catch {
 			// Keep the current panel open when its latest changes could not be saved.

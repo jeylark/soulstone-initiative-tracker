@@ -8,15 +8,21 @@ import { loadChallengeLibrary, saveChallengeToLibrary } from '#lib/challenge';
 import { ariaTurnId, rookTurnId, createRunChallenge } from './run/run-test-support';
 import { createSetupChallenge, seedStoredChallengeLibrary } from '../../view-test-support';
 
-const { mockedPage } = vi.hoisted(() => ({
-	mockedPage: { params: {} as Record<string, string> }
+const { mockedPage, mockedGoto } = vi.hoisted(() => ({
+	mockedPage: {
+		params: {} as Record<string, string>,
+		url: new URL('http://localhost/')
+	},
+	mockedGoto: vi.fn()
 }));
 
 vi.mock('$app/state', () => ({ page: mockedPage }));
+vi.mock('$app/navigation', () => ({ goto: mockedGoto }));
 
 afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
+	vi.clearAllMocks();
 });
 
 beforeEach(async () => {
@@ -25,6 +31,11 @@ beforeEach(async () => {
 	challenge.name = 'Tab navigation';
 	await saveChallengeToLibrary(challenge);
 	mockedPage.params = { challengeId: challenge.id };
+	mockedPage.url = new URL(`http://localhost/challenges/${challenge.id}`);
+	mockedGoto.mockImplementation((url: URL | string) => {
+		mockedPage.url = new URL(url.toString());
+		return Promise.resolve();
+	});
 });
 
 describe('challenge workflow tabs', () => {
@@ -140,6 +151,77 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(screen.getByRole('tab', { name: 'Run' }));
 		expect(await screen.findByRole('heading', { level: 1, name: 'Turn order' })).toBeTruthy();
 		expect(screen.getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe('true');
+	});
+
+	it.each([
+		['roll', 'Initiative rolling'],
+		['run', 'Turn order']
+	] as const)('restores the %s panel from the URL', async (tab, heading) => {
+		mockedPage.url.searchParams.set('tab', tab);
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy();
+		expect(
+			screen
+				.getByRole('tab', { name: heading === 'Turn order' ? 'Run' : 'Roll' })
+				.getAttribute('aria-selected')
+		).toBe('true');
+	});
+
+	it('falls back to Setup and removes an unknown tab from the URL', async () => {
+		mockedPage.url.searchParams.set('tab', 'unknown');
+		mockedPage.url.searchParams.set('source', 'test');
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+	});
+
+	it('falls back to Setup when the URL selects a panel blocked by setup issues', async () => {
+		await saveChallengeToLibrary(createSetupChallenge());
+		mockedPage.url.searchParams.set('tab', 'run');
+		render(challengePage);
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
+		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+	});
+
+	it('updates the URL without adding history entries when selecting a panel', async () => {
+		mockedPage.url.searchParams.set('source', 'test');
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(mockedPage.url.searchParams.get('tab')).toBe('roll');
+		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		const [, navigationOptions] = mockedGoto.mock.calls.at(-1) as [
+			URL | string,
+			Record<string, unknown>
+		];
+		expect(navigationOptions['replaceState']).toBe(true);
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+	});
+
+	it('keeps the selected panel and URL when saving fails before a tab switch', async () => {
+		render(challengePage);
+		await fireEvent.click(await screen.findByRole('tab', { name: 'Run' }));
+		await screen.findByRole('heading', { level: 1, name: 'Turn order' });
+		vi.spyOn(challengeLibrary, 'saveChallengeToLibrary').mockRejectedValueOnce(
+			new Error('Save failed')
+		);
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByText('Changes could not be saved.');
+		expect(screen.getByRole('tab', { name: 'Run' }).getAttribute('aria-selected')).toBe('true');
+		expect(mockedPage.url.searchParams.get('tab')).toBe('run');
+		expect(mockedGoto).toHaveBeenCalledOnce();
 	});
 
 	it('keeps workflow navigation available after the challenge starts', async () => {
