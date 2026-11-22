@@ -70,6 +70,8 @@
 			{title}
 		</svelte:element>
 	{/if}
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+	<!-- Reason: The card body is scrollable and needs to be focusable for accessibility -->
 	<div
 		class="card-body"
 		role="region"
