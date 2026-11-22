@@ -73,7 +73,7 @@ describe('POST /api/sessions/join', () => {
 	it('accepts a regenerated eight-character viewer code', async () => {
 		const { session, reconnectToken } = liveSessionRegistry.create(createChallenge());
 		const regeneratedSession = liveSessionRegistry.regenerateViewerCode(session.id, reconnectToken);
-		expect(regeneratedSession.viewerCode).toHaveLength(8);
+		expect(regeneratedSession.viewerCode).toHaveLength(4);
 
 		const response = await POST({
 			request: createRequest({ viewerCode: regeneratedSession.viewerCode })

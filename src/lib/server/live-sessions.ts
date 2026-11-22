@@ -11,7 +11,6 @@ import { createViewerTurnOrder } from './viewer-turn-order';
 
 const VIEWER_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const VIEWER_CODE_LENGTH = 4;
-const REGENERATED_VIEWER_CODE_LENGTH = 8;
 const DEFAULT_MAX_VIEWER_CONNECTIONS_PER_SESSION = 100;
 const DEFAULT_SESSION_INACTIVITY_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
@@ -312,9 +311,9 @@ export class InMemoryLiveSessionRegistry {
 			throw new LiveSessionAuthorizationError();
 		}
 
-		let viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
+		let viewerCode = this.createViewerCode(VIEWER_CODE_LENGTH);
 		while (this.sessionIdsByViewerCode.has(viewerCode)) {
-			viewerCode = this.createViewerCode(REGENERATED_VIEWER_CODE_LENGTH);
+			viewerCode = this.createViewerCode(VIEWER_CODE_LENGTH);
 		}
 		this.sessionIdsByViewerCode.delete(session.viewerCode);
 		session.viewerCode = viewerCode;

@@ -353,7 +353,7 @@ describe('in-memory live session registry', () => {
 		const regeneratedSession = registry.regenerateViewerCode(session.id, reconnectToken);
 
 		expect(regeneratedSession.id).toBe(session.id);
-		expect(regeneratedSession.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$/);
+		expect(regeneratedSession.viewerCode).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/);
 		expect(regeneratedSession.viewerCode).not.toBe(session.viewerCode);
 		expect(registry.findByViewerCode(session.viewerCode)).toBeUndefined();
 		expect(registry.findByViewerCode(regeneratedSession.viewerCode)).toEqual(regeneratedSession);
