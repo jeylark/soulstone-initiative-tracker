@@ -32,6 +32,7 @@ beforeEach(async () => {
 	await saveChallengeToLibrary(challenge);
 	mockedPage.params = { challengeId: challenge.id };
 	mockedPage.url = new URL(`http://localhost/challenges/${challenge.id}`);
+	// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
 	mockedGoto.mockImplementation((url: URL | string) => {
 		mockedPage.url = new URL(url.toString(), 'http://localhost');
 		return Promise.resolve();
