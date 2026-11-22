@@ -69,6 +69,10 @@
 	<main>
 		{@render children()}
 	</main>
+
+	<footer>
+		<p class="version">Version: {APP_VERSION}</p>
+	</footer>
 </div>
 
 <style>
@@ -151,6 +155,18 @@
 
 	main {
 		padding-top: 8px;
+	}
+
+	footer {
+		margin-top: 8px;
+		padding: 4px;
+	}
+
+	footer .version {
+		text-align: right;
+		font-style: italic;
+        font-size: 0.75rem;
+        opacity: 0.65;
 	}
 
 	@media (min-width: 760px) {

@@ -13,4 +13,6 @@ declare global {
 	}
 }
 
+declare const APP_VERSION: string;
+
 export {};
