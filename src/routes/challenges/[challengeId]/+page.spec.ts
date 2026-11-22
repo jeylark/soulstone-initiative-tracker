@@ -177,6 +177,7 @@ describe('challenge workflow tabs', () => {
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
 		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
 		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		expect(mockedGoto.mock.calls[0]?.[1]).toEqual({ ['replace']: true });
 	});
 
 	it('falls back to Setup when the URL selects a panel blocked by setup issues', async () => {
@@ -215,11 +216,13 @@ describe('challenge workflow tabs', () => {
 			URL | string,
 			Record<string, unknown>
 		];
-		expect(navigationOptions['replaceState']).toBe(true);
+		expect(navigationOptions).toEqual({ ['replace']: true });
 
 		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		expect(mockedGoto.mock.calls.at(-1)?.[1]).toEqual({ ['replace']: true });
 	});
 
 	it('keeps the selected panel and URL when saving fails before a tab switch', async () => {

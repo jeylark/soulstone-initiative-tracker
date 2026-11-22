@@ -166,9 +166,8 @@
 		const url = new URL(page.url.toString());
 		if (tab === 'setup') url.searchParams.delete('tab');
 		else url.searchParams.set('tab', tab);
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolve() supplies the route and url.search supplies the tab query
 		await goto(resolve('/challenges/[challengeId]', { challengeId }) + url.search, {
-			['replaceState']: true
+			['replace']: true
 		});
 	}
 
