@@ -32,16 +32,44 @@
 			handleChange: (isHidden: boolean) => handleVisibilityChange(creatureId, isHidden)
 		};
 	});
+
+	function fitText(node: HTMLElement) {
+		const resize = () => {
+			const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+			const vw = window.innerWidth / 100;
+
+			const min = 1.5 * rem;
+			const max = 3.5 * rem;
+			const preferred = 8 * vw;
+
+			const initial = Math.min(max, Math.max(min, preferred));
+
+			let size = initial;
+			node.style.fontSize = `${size}px`;
+
+			while (size > min && node.scrollWidth > node.clientWidth) {
+				size -= 1;
+				node.style.fontSize = `${size}px`;
+			}
+			console.log('size', size);
+		};
+
+		const observer = new ResizeObserver(resize);
+		observer.observe(node);
+
+		resize();
+
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
+	}
 </script>
 
 {#if item.kind === 'spawn'}
-	<Card
-		title="Spawn"
-		headingLevel="h2"
-		headerSize="small"
-		spacing="compact"
-		class="turn-order-card"
-	>
+	<Card spacing="compact" class="turn-order-card">
+		<p class="turn-order-creature-name" use:fitText>Spawn</p>
 		<div class="turn-order-card-details" aria-hidden="true"></div>
 	</Card>
 {:else}
@@ -49,29 +77,33 @@
 		<Card
 			title={item.display.faction?.name ?? 'Unknown faction'}
 			headingLevel="h2"
-			headerSize="small"
+			headerSize="medium"
 			spacing="compact"
 			class="turn-order-card"
 			isAccented
 			accentColor={factionColor?.hex}
 			isMuted={item.display.isHidden}
 		>
-			<p class="turn-order-creature-name">{item.display.label}</p>
-			<div class="turn-order-card-details">
-				{#if item.initiative !== undefined}
-					<span class="turn-order-initiative">Initiative: {item.initiative}</span>
-				{/if}
-			</div>
-			{#if visibilityControl}
-				<div class="turn-order-visibility">
-					<CheckboxInput
-						label="Hidden"
-						aria-label={`Hidden from viewers: ${visibilityControl.creatureName}`}
-						checked={visibilityControl.isHidden}
-						onchange={(event) => visibilityControl?.handleChange(event.currentTarget.checked)}
-					/>
+			<div class="turn-order-card-content">
+				<p class="turn-order-creature-name" use:fitText>{item.display.label}</p>
+				<div>
+					<div class="turn-order-card-details">
+						{#if item.initiative !== undefined}
+							<span class="turn-order-initiative">Initiative: {item.initiative}</span>
+						{/if}
+					</div>
+					{#if visibilityControl}
+						<div class="turn-order-visibility">
+							<CheckboxInput
+								label="Hidden"
+								aria-label={`Hidden from viewers: ${visibilityControl.creatureName}`}
+								checked={visibilityControl.isHidden}
+								onchange={(event) => visibilityControl?.handleChange(event.currentTarget.checked)}
+							/>
+						</div>
+					{/if}
 				</div>
-			{/if}
+			</div>
 		</Card>
 	</div>
 {/if}
@@ -96,13 +128,19 @@
 
 	.turn-order-creature-name {
 		margin: 0 0 8px;
-		font-size: clamp(1.5rem, 4vw, 1.75rem);
 		font-weight: 700;
 		line-height: 1.15;
-		overflow-wrap: anywhere;
+		white-space: nowrap;
+		overflow: hidden;
+		font-size: 8vw;
 	}
 
 	.turn-order-initiative {
 		font-size: 1rem;
+	}
+	.turn-order-card-content {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
 	}
 </style>

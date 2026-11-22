@@ -3,7 +3,7 @@
 
 	interface Props {
 		/** Visible title and accessible name of the scrollable content region. */
-		title: string;
+		title?: string;
 		/** Semantic heading level of the title; defaults to h2. */
 		headingLevel?: 'h2' | 'h3' | 'h4' | 'h5';
 		/** Title size; defaults to large. */
@@ -61,9 +61,15 @@
 	class={`card card--${variant} card--${spacing} ${isFullHeight ? 'card--full-height' : ''} ${hasOverlayAction ? 'card--overlay-action' : ''} ${isAccented ? 'card--accented' : ''} ${isMuted ? 'card--muted' : ''} ${isContentSized ? 'card--content-sized' : ''} ${isStripItem ? 'card--strip-item' : ''} ${className}`}
 	style={accentColor ? `--card-accent-color: ${accentColor}` : undefined}
 >
-	<svelte:element this={headingLevel} id={titleId} class={`card-header card-header--${headerSize}`}>
-		{title}
-	</svelte:element>
+	{#if title}
+		<svelte:element
+			this={headingLevel}
+			id={titleId}
+			class={`card-header card-header--${headerSize}`}
+		>
+			{title}
+		</svelte:element>
+	{/if}
 	<div
 		class="card-body"
 		role="region"

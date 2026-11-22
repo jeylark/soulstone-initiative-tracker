@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DeepReadonly } from '#lib/DeepReadonly';
+	import type { DeepReadonly } from '#lib';
 	import {
 		ActionButton,
 		ButtonGroup,
