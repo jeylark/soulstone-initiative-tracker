@@ -161,21 +161,34 @@
 	}
 
 	async function updateTabUrl(tab: WorkflowTab): Promise<void> {
-		const url = new URL(page.url);
+		const challengeId = challenge?.id ?? page.params.challengeId;
+		if (!challengeId) return;
+		const url = new URL(page.url.toString());
 		if (tab === 'setup') url.searchParams.delete('tab');
 		else url.searchParams.set('tab', tab);
-		await goto(url, { replaceState: true, noScroll: true, keepFocus: true });
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolve() supplies the route and url.search supplies the tab query
+		await goto(resolve('/challenges/[challengeId]', { challengeId }) + url.search, {
+			['replaceState']: true
+		});
 	}
 
-	async function selectTab(tab: WorkflowTab): Promise<void> {
+	async function selectTab(tab: WorkflowTab, isFocusRequested = false): Promise<void> {
 		if (tab === activeTab || isTransitioning) return;
 		if (tab !== 'setup' && setupIssues.length > 0) return;
 		try {
 			await saveNow();
-			await updateTabUrl(tab);
-			activeTab = tab;
 		} catch {
 			// Keep the current panel open when its latest changes could not be saved.
+			return;
+		}
+
+		const previousTab = activeTab;
+		activeTab = tab;
+		if (isFocusRequested) document.getElementById(`challenge-tab-${tab}`)?.focus();
+		try {
+			await updateTabUrl(tab);
+		} catch {
+			activeTab = previousTab;
 		}
 	}
 
@@ -195,9 +208,7 @@
 		event.preventDefault();
 		const nextTab = workflowTabs[nextIndex];
 		if (!nextTab) return;
-		void selectTab(nextTab).then(() => {
-			if (activeTab === nextTab) document.getElementById(`challenge-tab-${nextTab}`)?.focus();
-		});
+		void selectTab(nextTab, true);
 	}
 </script>
 

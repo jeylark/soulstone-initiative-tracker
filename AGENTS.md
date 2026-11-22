@@ -58,10 +58,14 @@ Follow these instructions for every task in this repository.
 
 ## After finishing work
 
-- Before the final response, review the session for reusable implementation,
-  testing, or workflow lessons and add useful lessons to the appropriate
-  subsection below. If none are useful, explicitly state in the final response
-  that the review found no new lessons; do not leave the review implicit.
+- Before the final response, automatically review the session for reusable
+  implementation, testing, architecture, or workflow lessons. When work reveals
+  a defect pattern, a missing regression test, or a preventive convention that
+  could help future sessions avoid the same mistake, add a concise, general
+  lesson to the appropriate subsection below. Do not record task-specific
+  incidents or repeated implementation details. If no reusable lesson is found,
+  explicitly state in the final response that the review found no new lessons;
+  do not leave the review implicit.
 - Run `npx prettier --write` on every changed file.
 
 # Lessons
@@ -123,12 +127,14 @@ Follow these instructions for every task in this repository.
 
 ## Testing and Verification Lessons
 
+- Challenge-layout integration mocks must provide the `$app/state.page.url` API and update it through mocked `$app/navigation.goto`; otherwise the challenge page can load into an error state and valid-header tab interactions never render.
 - When reserving button space for alternate labels, retain icons and styled label markup in measurement copies; replacing the whole button text discards icon width.
 - Svelte dimension bindings use a shared ResizeObserver. In JSDOM layout tests, provide a minimal observer fixture and mock the measured dimension; exercise resize notifications and verify the element is unobserved on teardown.
 - In UI tests, query current semantic roles and names or rendered classes. A stale selector can pass vacuously without checking the visible UI; assert against the actual region or control that owns the behavior.
 - When testing route state persisted in the URL, mock SvelteKit `goto` so it updates mocked `page.url`; verify the resulting URL as well as navigation options, including across successive route-state changes.
 - In this JSDOM environment, `Blob.stream()` may be unavailable; use `new Response(text).body` when a test needs a readable stream fixture.
 - When tab selection awaits persistence, wait for the destination panel or selected state before asserting that the previous panel's local state was cleared; `fireEvent.click` alone does not await the full async transition.
+- Navigation should update the visible destination promptly after prerequisites such as persistence succeed, without waiting indefinitely for URL navigation to settle. Test pending or rejected `goto()` calls to ensure the new state remains visible, focused controls keep keyboard context, and navigation failure restores the previous state.
 - When testing layout CSS with stylesheet-source assertions, also assert that the rendered owning element carries the class targeted by the selector; otherwise an unused rule can pass the test.
 - Make CSS-source assertions tolerant of whitespace and line wrapping so Prettier formatting does not break otherwise valid tests.
 - Testing Library's `DEBUG_PRINT_LIMIT` limits individual DOM dumps, not complete role listings or timeout errors. Test the actual Vitest failure output when changing diagnostic formatting; async queries can wrap an earlier error again.

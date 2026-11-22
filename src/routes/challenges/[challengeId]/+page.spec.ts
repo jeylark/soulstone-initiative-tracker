@@ -33,7 +33,7 @@ beforeEach(async () => {
 	mockedPage.params = { challengeId: challenge.id };
 	mockedPage.url = new URL(`http://localhost/challenges/${challenge.id}`);
 	mockedGoto.mockImplementation((url: URL | string) => {
-		mockedPage.url = new URL(url.toString());
+		mockedPage.url = new URL(url.toString(), 'http://localhost');
 		return Promise.resolve();
 	});
 });
@@ -187,6 +187,19 @@ describe('challenge workflow tabs', () => {
 		expect(await screen.findByRole('heading', { level: 1, name: 'Challenge setup' })).toBeTruthy();
 		await waitFor(() => expect(mockedGoto).toHaveBeenCalledOnce());
 		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
+	});
+
+	it('shows the panel after saving even when URL navigation is still pending', async () => {
+		mockedGoto.mockImplementation(() => new Promise(() => undefined));
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
+
+		expect(
+			await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' })
+		).toBeTruthy();
+		expect(screen.getByRole('tab', { name: 'Roll' }).getAttribute('aria-selected')).toBe('true');
 	});
 
 	it('updates the URL without adding history entries when selecting a panel', async () => {
