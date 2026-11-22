@@ -204,14 +204,15 @@ describe('challenge workflow tabs', () => {
 	});
 
 	it('updates the URL without adding history entries when selecting a panel', async () => {
-		mockedPage.url.searchParams.set('source', 'test');
+		mockedPage.url.searchParams.set('source', '[filter]/one & two');
 		render(challengePage);
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 
 		await fireEvent.click(screen.getByRole('tab', { name: 'Roll' }));
 		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+		expect(mockedPage.url.pathname).toBe(`/challenges/${mockedPage.params.challengeId}`);
 		expect(mockedPage.url.searchParams.get('tab')).toBe('roll');
-		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		expect(mockedPage.url.searchParams.get('source')).toBe('[filter]/one & two');
 		const [, navigationOptions] = mockedGoto.mock.calls.at(-1) as [
 			URL | string,
 			Record<string, unknown>
@@ -221,7 +222,19 @@ describe('challenge workflow tabs', () => {
 		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
 		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
 		expect(mockedPage.url.searchParams.has('tab')).toBe(false);
-		expect(mockedPage.url.searchParams.get('source')).toBe('test');
+		expect(mockedPage.url.searchParams.get('source')).toBe('[filter]/one & two');
+		expect(mockedGoto.mock.calls.at(-1)?.[1]).toEqual({ ['replace']: true });
+	});
+
+	it('removes the query string when returning to Setup without other parameters', async () => {
+		mockedPage.url.searchParams.set('tab', 'roll');
+		render(challengePage);
+		await screen.findByRole('heading', { level: 1, name: 'Initiative rolling' });
+
+		await fireEvent.click(screen.getByRole('tab', { name: 'Setup' }));
+		await screen.findByRole('heading', { level: 1, name: 'Challenge setup' });
+		expect(mockedPage.url.pathname).toBe(`/challenges/${mockedPage.params.challengeId}`);
+		expect(mockedPage.url.search).toBe('');
 		expect(mockedGoto.mock.calls.at(-1)?.[1]).toEqual({ ['replace']: true });
 	});
 

@@ -148,6 +148,7 @@ Follow these instructions for every task in this repository.
 
 ## Tooling and Workflow Lessons
 
+- When resolving navigation URLs with arbitrary query strings, use SvelteKit's base-relative pathname form; route-ID resolution can interpret query characters as route syntax.
 - In Svelte files with repeated component markup, anchor patches on a unique nearby handler or condition; a repeated tag such as `ButtonGroup` can match an earlier block in the script.
 - After running Prettier on a large existing test file, inspect the diff for unrelated legacy reflows and avoid broadening the change.
 - When type-aware ESLint reports that a source file is missing from the project service after dependency installation, run `npm run prepare` to generate SvelteKit's project metadata before changing parser configuration.

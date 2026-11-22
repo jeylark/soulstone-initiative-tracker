@@ -166,7 +166,7 @@
 		const url = new URL(page.url.toString());
 		if (tab === 'setup') url.searchParams.delete('tab');
 		else url.searchParams.set('tab', tab);
-		await goto(resolve('/challenges/[challengeId]', { challengeId }) + url.search, {
+		await goto(resolve(`challenges/${challengeId}${url.search}`), {
 			['replace']: true
 		});
 	}
