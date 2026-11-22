@@ -79,11 +79,11 @@ describe('viewer session page', () => {
 		expect(entries.map((entry) => entry.querySelector('h2')?.textContent)).toEqual([
 			'Players',
 			'Players',
-			'Spawn'
+			undefined
 		]);
 		expect(
 			entries.map((entry) => entry.querySelector('.turn-order-creature-name')?.textContent ?? null)
-		).toEqual(['Aria', 'Rook', null]);
+		).toEqual(['Aria', 'Rook', 'Spawn']);
 		expect(screen.queryByRole('checkbox')).toBeNull();
 		expect(screen.queryByRole('status')).toBeNull();
 

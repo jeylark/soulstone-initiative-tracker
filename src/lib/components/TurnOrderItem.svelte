@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { StableId, TurnOrderDisplayItem, ViewerTurnOrderDisplayItem } from '#lib/challenge';
 	import { FACTION_COLORS } from '#lib/challenge';
-	import { Card, CheckboxInput } from '#lib/components';
+	import { Card, CheckboxInput, createFontSizeFitter } from '#lib/components';
 
 	interface Props {
 		/** Turn or Spawn data to render as a card. */
@@ -33,38 +33,7 @@
 		};
 	});
 
-	function fitText(node: HTMLElement) {
-		const resize = () => {
-			const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-			const vw = window.innerWidth / 100;
-
-			const min = 1.5 * rem;
-			const max = 3.5 * rem;
-			const preferred = 8 * vw;
-
-			const initial = Math.min(max, Math.max(min, preferred));
-
-			let size = initial;
-			node.style.fontSize = `${size}px`;
-
-			while (size > min && node.scrollWidth > node.clientWidth) {
-				size -= 1;
-				node.style.fontSize = `${size}px`;
-			}
-			console.log('size', size);
-		};
-
-		const observer = new ResizeObserver(resize);
-		observer.observe(node);
-
-		resize();
-
-		return {
-			destroy() {
-				observer.disconnect();
-			}
-		};
-	}
+	const fitText = createFontSizeFitter('1.5rem', '8vw', '3.5rem');
 </script>
 
 {#if item.kind === 'spawn'}

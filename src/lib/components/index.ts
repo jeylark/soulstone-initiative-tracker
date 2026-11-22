@@ -21,3 +21,5 @@ export { default as NavButton } from './NavButton.svelte';
 export * from './forms';
 /** Provides the shared page content layout. */
 export { default as ViewPage } from './ViewPage.svelte';
+export type { CssLength } from './css-length';
+export { createFontSizeFitter } from './font-size-fitter';

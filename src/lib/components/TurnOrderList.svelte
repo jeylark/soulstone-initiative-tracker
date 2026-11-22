@@ -21,20 +21,20 @@
 </ol>
 
 <style>
-.turn-order-list {
-    display: grid;
-    gap: 12px;
-    margin-block: 24px;
-    padding: 0;
-    list-style: none;
-}
+	.turn-order-list {
+		display: grid;
+		gap: 12px;
+		margin-block: 24px;
+		padding: 0;
+		list-style: none;
+	}
 
-.turn-order-list > :first-child {
-    width: 100%;
-}
+	.turn-order-list > :first-child {
+		width: 100%;
+	}
 
-.turn-order-list > :not(:first-child) {
-    width: 75%;
-    justify-self: center;
-}
+	.turn-order-list > :not(:first-child) {
+		width: 75%;
+		justify-self: center;
+	}
 </style>
