@@ -16,8 +16,7 @@
 		findInitiativeTies
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
-	import InitiativeFactionSection from './roll/InitiativeFactionSection.svelte';
-	import TieResolution from './roll/TieResolution.svelte';
+	import { InitiativeFactionSection, TieResolution } from './roll';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 

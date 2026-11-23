@@ -23,10 +23,8 @@
 		type ValidationIssue
 	} from '#lib/challenge';
 	import { ActionButton, ErrorDisplay, ViewPage } from '#lib/components';
-	import ChallengeSettings from './setup/ChallengeSettings.svelte';
-	import CreatureSetup from './setup/CreatureSetup.svelte';
-	import NpcTypeEditor from './setup/NpcTypeEditor.svelte';
-	import type { InitiativeChoice, TurnEditorChange } from './setup/challenge-setup-types';
+	import { ChallengeSettings, CreatureSetup, NpcTypeEditor } from './setup';
+	import type { InitiativeChoice, TurnEditorChange } from './setup';
 	import './setup/challenge-setup.css';
 
 	type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';

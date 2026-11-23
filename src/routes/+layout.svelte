@@ -165,8 +165,8 @@
 	footer .version {
 		text-align: right;
 		font-style: italic;
-        font-size: 0.75rem;
-        opacity: 0.65;
+		font-size: 0.75rem;
+		opacity: 0.65;
 	}
 
 	@media (min-width: 760px) {
