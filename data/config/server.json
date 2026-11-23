@@ -1,0 +1,6 @@
+{
+	"maxActiveSessions": 100,
+	"maxViewerConnectionsPerSession": 100,
+	"sessionInactivityTimeoutMs": 21600000,
+	"maxRetainedLogSizeBytes": 1000000000
+}

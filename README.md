@@ -54,7 +54,7 @@ container with Docker Compose:
 docker compose up --build
 ```
 
-The app listens on `127.0.0.1:3000` on the host. Configure a host-managed
+The app listens on `127.0.0.1:8080` on the host. Configure a host-managed
 reverse proxy to forward requests to that address and handle HTTPS. Keep the
 proxy configured to pass Server-Sent Events without buffering when live viewer
 updates are implemented.
